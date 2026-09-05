@@ -237,6 +237,33 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void OnLocalTerminalButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Avalonia.Controls.Control anchor ||
+            DataContext is not MainWindowViewModel vm)
+        {
+            return;
+        }
+
+        var menu = new AtomContextMenu
+        {
+            Placement = Avalonia.Controls.PlacementMode.Bottom,
+            PlacementTarget = anchor
+        };
+
+        foreach (var profile in vm.LocalTerminalProfiles)
+        {
+            var capturedProfile = profile;
+            AddMenuItem(
+                menu,
+                profile.Name,
+                () => _ = vm.OpenLocalTerminalAsync(capturedProfile));
+        }
+
+        menu.Open(anchor);
+        e.Handled = true;
+    }
+
     private void OnAgentPanelCloseRequested(object? sender, EventArgs e)
     {
         if (DataContext is MainWindowViewModel viewModel && viewModel.IsAgentPanelVisible)

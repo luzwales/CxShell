@@ -247,6 +247,13 @@
                         <atom:TextBlock Text="{Binding SessionManagerText}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </atom:Button>
+                <atom:Button Click="OnLocalTerminalButtonClick"
+                             ButtonType="Default"
+                             Icon="{antdicons:AntDesignIconProvider Kind=CodeOutlined}"
+                             IsEnabled="{Binding HasLocalTerminalProfiles}"
+                             atom:ToolTip.Tip="{Binding LocalTerminalToolTip}"
+                             atom:ToolTip.Placement="Bottom"
+                             Content="{Binding LocalTerminalText}"/>
                 <Border Width="1" Background="{atom:SharedTokenResource ColorSplit}" Margin="8,4" Opacity="0.6" IsVisible="False"/>
                 <atom:Button Command="{Binding CurrentConnectCommand}"
                              IsVisible="False"
@@ -345,17 +352,14 @@
                                     TextAlignment="Center"
                                     VerticalAlignment="Center"/>
                 </atom:Button>
-                <atom:Button x:Name="TabArrangeButton"
-                             ButtonType="Default"
-                             Icon="{antdicons:AntDesignIconProvider Kind=LayoutOutlined}"
-                             Click="OnTabArrangeButtonClick"
-                             atom:ToolTip.Tip="{Binding ArrangeToolTip}"
-                             atom:ToolTip.Placement="Bottom">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <atom:TextBlock Text="{Binding ArrangeText}" VerticalAlignment="Center"/>
-                        <atom:TextBlock Text="▾" FontSize="10" VerticalAlignment="Center" Opacity="0.75"/>
-                    </StackPanel>
-                </atom:Button>
+                 <atom:Button x:Name="TabArrangeButton"
+                              ButtonType="Default"
+                              Icon="{antdicons:AntDesignIconProvider Kind=LayoutOutlined}"
+                              Click="OnTabArrangeButtonClick"
+                              atom:ToolTip.Tip="{Binding ArrangeToolTip}"
+                              atom:ToolTip.Placement="Bottom">
+                    <atom:TextBlock Text="▾" FontSize="10" VerticalAlignment="Center" Opacity="0.75"/>
+                 </atom:Button>
                 <atom:Button x:Name="LanguageButton"
                              ButtonType="Default"
                              Click="OnLanguageButtonClick"
@@ -371,12 +375,11 @@
                         <atom:TextBlock Text="▾" FontSize="10" VerticalAlignment="Center" Opacity="0.75"/>
                     </StackPanel>
                 </atom:Button>
-                <atom:Button x:Name="SettingsButton"
-                             ButtonType="Default"
-                             Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
-                             Content="{Binding SettingsText}"
-                             Command="{Binding ShowApplicationSettingsCommand}"
-                             atom:ToolTip.Tip="{Binding SettingsToolTip}"
+                 <atom:Button x:Name="SettingsButton"
+                              ButtonType="Default"
+                              Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
+                              Command="{Binding ShowApplicationSettingsCommand}"
+                              atom:ToolTip.Tip="{Binding SettingsToolTip}"
                              atom:ToolTip.Placement="Bottom"/>
                 <atom:Popup x:Name="LanguagePopup"
                             Placement="Bottom"

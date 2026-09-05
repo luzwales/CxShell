@@ -688,8 +688,16 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Toolbar.SettingsTip"] = "Application settings, connection audit, and session recordings";
         EnglishTexts["Toolbar.Tunnels"] = "Tunnels";
         EnglishTexts["Toolbar.TunnelsTip"] = "Manage tunnels for the current SSH session";
+        EnglishTexts["Toolbar.LocalTerminal"] = "Local";
+        EnglishTexts["Toolbar.LocalTerminalTip"] = "Open a local terminal shell";
+        EnglishTexts["Palette.LocalTerminals"] = "Local terminals";
+        EnglishTexts["Palette.LocalTerminalHint"] = "Open local terminal";
         EnglishTexts["Toolbar.Agent"] = "Agent";
         EnglishTexts["Toolbar.AgentTip"] = "Open the SSH operations assistant";
+        ChineseTexts["Toolbar.LocalTerminal"] = "本地";
+        ChineseTexts["Toolbar.LocalTerminalTip"] = "打开本机终端 Shell";
+        ChineseTexts["Palette.LocalTerminals"] = "本地终端";
+        ChineseTexts["Palette.LocalTerminalHint"] = "打开本地终端";
         EnglishTexts["TunnelCenter.Title"] = "SSH tunnel center";
         EnglishTexts["TunnelCenter.Description"] = "Inspect and control port-forwarding rules for the selected SSH terminal.";
         EnglishTexts["TunnelCenter.Session"] = "Current session";
@@ -1184,7 +1192,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Toolbar.HelpTip"] = "\u5173\u4e8e CxShell \u548c\u66f4\u65b0";
         ChineseTexts["Toolbar.Settings"] = "\u8bbe\u7f6e";
         ChineseTexts["Toolbar.SettingsTip"] = "\u5e94\u7528\u8bbe\u7f6e\u3001\u8fde\u63a5\u5ba1\u8ba1\u548c\u4f1a\u8bdd\u5f55\u5236";
-        ChineseTexts["Toolbar.Tunnels"] = "SSH \u96a7\u9053";
+        ChineseTexts["Toolbar.Tunnels"] = "\u96a7\u9053";
         ChineseTexts["Toolbar.TunnelsTip"] = "\u7ba1\u7406\u5f53\u524d SSH \u4f1a\u8bdd\u7684\u7aef\u53e3\u8f6c\u53d1";
         ChineseTexts["Toolbar.Agent"] = "Agent";
         ChineseTexts["Toolbar.AgentTip"] = "\u6253\u5f00 SSH \u8fd0\u7ef4\u52a9\u624b";

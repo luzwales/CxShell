@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using AtomUI;
 using AtomUI.Controls;
 using AtomUI.Desktop.Controls;
@@ -17,6 +18,8 @@ namespace CxShell;
 
 public partial class App : Application
 {
+    private TrayIcon? _windowsTrayIcon;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -64,9 +67,60 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.MainWindow = new MainWindow(desktop.Args ?? Array.Empty<string>());
+            InitializeWindowsTrayIcon(desktop);
+            desktop.Exit += (_, _) => DisposeWindowsTrayIcon();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void InitializeWindowsTrayIcon(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (!OperatingSystem.IsWindows() || desktop.MainWindow is not { } mainWindow)
+            return;
+
+        var showWindowItem = new NativeMenuItem("显示 CxShell");
+        showWindowItem.Click += (_, _) => ShowMainWindow(desktop);
+
+        var exitItem = new NativeMenuItem("退出");
+        exitItem.Click += (_, _) => desktop.Shutdown();
+
+        var menu = new NativeMenu();
+        menu.Items.Add(showWindowItem);
+        menu.Items.Add(new NativeMenuItemSeparator());
+        menu.Items.Add(exitItem);
+
+        _windowsTrayIcon = new TrayIcon
+        {
+            Icon = mainWindow.Icon,
+            ToolTipText = "CxShell",
+            Menu = menu,
+            IsVisible = true
+        };
+        _windowsTrayIcon.Clicked += (_, _) => ShowMainWindow(desktop);
+
+        var trayIcons = new TrayIcons();
+        trayIcons.Add(_windowsTrayIcon);
+        TrayIcon.SetIcons(this, trayIcons);
+    }
+
+    private static void ShowMainWindow(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        if (desktop.MainWindow is not { } mainWindow)
+            return;
+
+        if (mainWindow.WindowState == WindowState.Minimized)
+            mainWindow.WindowState = WindowState.Normal;
+
+        mainWindow.Show();
+        mainWindow.Activate();
+    }
+
+    private void DisposeWindowsTrayIcon()
+    {
+        _windowsTrayIcon?.Dispose();
+        _windowsTrayIcon = null;
+        TrayIcon.SetIcons(this, new TrayIcons());
     }
 
     private void InstallMacOsApplicationMenu()

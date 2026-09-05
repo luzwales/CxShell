@@ -697,7 +697,7 @@ public partial class TerminalViewModel : ObservableObject
             previousSendQueue?.Dispose();
             previous?.Dispose();
 
-            connection = CreateConnectionService(_session.Protocol);
+            connection = CreateConnectionService(_session);
             _connection = connection;
             sendQueue = new TerminalSendQueue();
             _sendQueue = sendQueue;
@@ -1940,7 +1940,12 @@ public partial class TerminalViewModel : ObservableObject
 
     private static bool ConnectionSupportsPosixShellFeatures(ITerminalConnectionService connection)
     {
-        return connection is not SshConnectionService { SupportsPosixShellFeatures: false };
+        return connection switch
+        {
+            SshConnectionService { SupportsPosixShellFeatures: false } => false,
+            LocalTerminalConnectionService { SupportsPosixShellFeatures: false } => false,
+            _ => true
+        };
     }
 
     private static string NormalizeScriptSendText(string text)
@@ -3604,13 +3609,14 @@ public partial class TerminalViewModel : ObservableObject
         });
     }
 
-    private static ITerminalConnectionService CreateConnectionService(SessionProtocol protocol)
+    private static ITerminalConnectionService CreateConnectionService(SessionInfo session)
     {
-        return protocol switch
+        return session.Protocol switch
         {
             SessionProtocol.TELNET => new TelnetConnectionService(),
             SessionProtocol.RLOGIN => new RloginConnectionService(),
             SessionProtocol.SERIAL => new SerialConnectionService(),
+            SessionProtocol.Local => new LocalTerminalConnectionService(),
             _ => new SshConnectionService()
         };
     }
@@ -3682,6 +3688,7 @@ public partial class TerminalViewModel : ObservableObject
         return session.Protocol switch
         {
             SessionProtocol.SERIAL => session.SerialPortName,
+            SessionProtocol.Local => $"Local / {session.LocalTerminalProfile?.Name ?? session.Name}",
             _ => $"{session.Username}@{session.Host}:{session.Port}"
         };
     }

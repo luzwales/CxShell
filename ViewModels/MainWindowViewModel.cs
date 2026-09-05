@@ -59,6 +59,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly ServerMonitorViewModel _emptyMonitor = new();
     private readonly AppUpdateService _appUpdateService = new();
     private readonly ConnectionAuditService _connectionAuditService = new();
+    private readonly IReadOnlyList<LocalTerminalProfile> _localTerminalProfiles;
     private readonly AgentPermissionPolicy _agentPermissionPolicy;
     private UpdateProgressWindow? _updateProgressWindow;
     private UpdateProgressViewModel? _updateProgressViewModel;
@@ -92,6 +93,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public ObservableCollection<TerminalTabGroupViewModel> TabGroups { get; } = new();
     public ObservableCollection<TileTabGroupRowViewModel> TileRows { get; } = new();
     public ObservableCollection<RecentSessionItemViewModel> RecentSessions { get; } = new();
+    public IReadOnlyList<LocalTerminalProfile> LocalTerminalProfiles => _localTerminalProfiles;
+    public bool HasLocalTerminalProfiles => _localTerminalProfiles.Count > 0;
     public CommandPaletteViewModel CommandPalette { get; }
     public IAgentSessionGateway AgentSessionGateway { get; }
     public IAgentRunCoordinator AgentRunCoordinator { get; }
@@ -145,11 +148,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public ServerMonitorViewModel Monitor => SelectedTab?.Monitor ?? _emptyMonitor;
     public ObservableCollection<SessionInfo> QuickSessions => _sessionTreeVm.QuickSessions;
     public string ThemeIcon => IsDarkMode ? "\u263E" : "\u2600";
-    public string LanguageIcon => _localization.IsEnglish ? "EN" : "中";
+    public string LanguageIcon => _localization.IsEnglish ? "En" : "中";
     public string NewSessionText => _localization.Text("Toolbar.New");
     public string NewSessionToolTip => _localization.Text("Toolbar.NewTip");
     public string SessionManagerText => _localization.Text("Toolbar.Sessions");
     public string SessionManagerToolTip => _localization.Text("Toolbar.SessionsTip");
+    public string LocalTerminalText => _localization.Text("Toolbar.LocalTerminal");
+    public string LocalTerminalToolTip => _localization.Text("Toolbar.LocalTerminalTip");
+    public string LocalTerminalPaletteCategory => _localization.Text("Palette.LocalTerminals");
+    public string LocalTerminalPaletteHint => _localization.Text("Palette.LocalTerminalHint");
     public string TabBarText => _localization.Text("Toolbar.TabBar");
     public string TabBarToolTip => _localization.Text("Toolbar.TabBarTip");
     public string ConnectText => _localization.Text("Toolbar.Connect");
@@ -223,6 +230,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _sessionTreeVm = new SessionTreeViewModel(this);
         _sessionTree = _sessionTreeVm;
+        _localTerminalProfiles = LocalTerminalCatalog.Detect();
         CommandPalette = new CommandPaletteViewModel(BuildCommandPaletteItems);
         _sftp = _emptySftp;
         _lastSftpPanelWidth = Math.Max(MinimumSftpPanelWidth, _sessionTreeVm.Settings.SftpPanelWidth);
@@ -1059,6 +1067,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(NewSessionToolTip));
         OnPropertyChanged(nameof(SessionManagerText));
         OnPropertyChanged(nameof(SessionManagerToolTip));
+        OnPropertyChanged(nameof(LocalTerminalText));
+        OnPropertyChanged(nameof(LocalTerminalToolTip));
+        OnPropertyChanged(nameof(LocalTerminalPaletteCategory));
+        OnPropertyChanged(nameof(LocalTerminalPaletteHint));
         OnPropertyChanged(nameof(TabBarText));
         OnPropertyChanged(nameof(TabBarToolTip));
         OnPropertyChanged(nameof(ConnectText));
@@ -1149,6 +1161,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 IsMonitorVisible = false;
         }
         if (value?.FileTransfer != null)
+        {
+            if (IsSftpVisible)
+                IsSftpVisible = false;
+            if (IsMonitorVisible)
+                IsMonitorVisible = false;
+        }
+        if (value?.Session.Protocol == SessionProtocol.Local)
         {
             if (IsSftpVisible)
                 IsSftpVisible = false;
@@ -1626,6 +1645,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         foreach (var session in sessions.Where(session => !recentSessionIds.Contains(session.Id)))
         {
             AddSessionPaletteItem(items, sessionsCategory, session, connectHint);
+        }
+
+        foreach (var profile in _localTerminalProfiles)
+        {
+            var capturedProfile = profile;
+            items.Add(new CommandPaletteItem(
+                LocalTerminalPaletteCategory,
+                profile.Name,
+                () => _ = OpenLocalTerminalAsync(capturedProfile),
+                $"{LocalTerminalPaletteHint} · {profile.ExecutablePath}"));
         }
 
         var selectedTab = SelectedTab;
@@ -2298,6 +2327,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         return ConnectSession(session, null, null);
     }
 
+    /// <summary>
+    /// Opens a detected local shell in a temporary terminal tab. Local tabs
+    /// intentionally do not enter the remote session store or audit history.
+    /// </summary>
+    public Task OpenLocalTerminalAsync(LocalTerminalProfile? profile)
+    {
+        return profile == null
+            ? Task.CompletedTask
+            : ConnectSession(profile.CreateSession(), null, null);
+    }
+
     public async Task ConnectSession(SessionInfo session, string? passwordOverride, string? initialRemoteDirectory)
     {
         if (session.Protocol is SessionProtocol.SFTP or SessionProtocol.FTP)
@@ -2318,7 +2358,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (session.Protocol is not (SessionProtocol.SSH or SessionProtocol.TELNET or SessionProtocol.RLOGIN or SessionProtocol.SERIAL))
+        if (session.Protocol is not (SessionProtocol.SSH or SessionProtocol.TELNET or SessionProtocol.RLOGIN or SessionProtocol.SERIAL or SessionProtocol.Local))
         {
             ConnectionStatusText = $"Protocol {session.Protocol} does not support terminal connection yet";
             ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
@@ -2631,6 +2671,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ConnectionAuditEventType eventType,
         string? detail = null)
     {
+        if (session.Protocol == SessionProtocol.Local)
+            return;
+
         _connectionAuditService.Record(session, eventType, detail);
     }
 

@@ -21,7 +21,99 @@ public enum SessionProtocol
     SERIAL,
     FTP,
     RDP,
-    VNC
+    VNC,
+    Local
+}
+
+/// <summary>
+/// A locally detected interactive shell. It is runtime-only and is attached
+/// to a temporary <see cref="SessionInfo"/> when a local terminal tab opens.
+/// </summary>
+public sealed class LocalTerminalProfile
+{
+    public LocalTerminalProfile(
+        string id,
+        string name,
+        string executablePath,
+        IReadOnlyList<string>? arguments = null,
+        bool supportsPosixShellFeatures = true,
+        string? workingDirectory = null)
+    {
+        Id = id;
+        Name = name;
+        ExecutablePath = executablePath;
+        Arguments = arguments?.ToArray() ?? [];
+        SupportsPosixShellFeatures = supportsPosixShellFeatures;
+        WorkingDirectory = workingDirectory;
+    }
+
+    public string Id { get; }
+    public string Name { get; }
+    public string ExecutablePath { get; }
+    public IReadOnlyList<string> Arguments { get; }
+    public bool SupportsPosixShellFeatures { get; }
+    public string? WorkingDirectory { get; }
+
+    public string CommandLine => string.Join(
+        " ",
+        new[] { ExecutablePath }.Concat(Arguments).Select(QuoteCommandLineArgument));
+
+    public SessionInfo CreateSession()
+    {
+        return new SessionInfo
+        {
+            Name = Name,
+            Host = "local",
+            Port = 0,
+            Protocol = SessionProtocol.Local,
+            AutoReconnect = false,
+            SendSessionKeepAlive = false,
+            SendIdleString = false,
+            RunLoginScriptFile = false,
+            SshAutoOpenSftpPanel = false,
+            SshAutoOpenMonitorPanel = false,
+            TerminalType = "xterm-256color",
+            TerminalEncoding = "utf-8",
+            LocalTerminalProfile = this
+        };
+    }
+
+    private static string QuoteCommandLineArgument(string value)
+    {
+        if (value.Length == 0)
+            return "\"\"";
+
+        if (!value.Any(char.IsWhiteSpace) && !value.Contains('"'))
+            return value;
+
+        var builder = new System.Text.StringBuilder(value.Length + 2);
+        builder.Append('"');
+        var backslashes = 0;
+        foreach (var character in value)
+        {
+            if (character == '\\')
+            {
+                backslashes++;
+                continue;
+            }
+
+            if (character == '"')
+            {
+                builder.Append('\\', backslashes * 2 + 1);
+                builder.Append('"');
+                backslashes = 0;
+                continue;
+            }
+
+            builder.Append('\\', backslashes);
+            backslashes = 0;
+            builder.Append(character);
+        }
+
+        builder.Append('\\', backslashes * 2);
+        builder.Append('"');
+        return builder.ToString();
+    }
 }
 
 public enum SshTunnelRuleType
@@ -273,6 +365,13 @@ public class SessionInfo
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public SessionProtocol Protocol { get; set; } = SessionProtocol.SSH;
+
+    /// <summary>
+    /// Runtime-only shell metadata for <see cref="SessionProtocol.Local"/>.
+    /// Local terminal tabs are never persisted as remote sessions.
+    /// </summary>
+    [JsonIgnore]
+    public LocalTerminalProfile? LocalTerminalProfile { get; set; }
 
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public AuthMethod AuthMethod { get; set; } = AuthMethod.Password;
