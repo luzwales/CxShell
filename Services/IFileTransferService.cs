@@ -15,7 +15,9 @@ public interface IFileTransferService
 
     Task<string> GetHomeDirectoryAsync();
 
-    Task<List<SftpFileItem>> ListDirectoryAsync(string path);
+    Task<List<SftpFileItem>> ListDirectoryAsync(
+        string path,
+        CancellationToken cancellationToken = default);
 
     Task UploadFileAsync(
         string localPath,

@@ -82,10 +82,10 @@
                             <TextBlock Text="{Binding AgentProviderText}"
                                        VerticalAlignment="Center"
                                        Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding AgentProviderTypeText}"
-                                       VerticalAlignment="Center"
-                                       Foreground="{atom:SharedTokenResource ColorText}"/>
+                            <atom:Select Grid.Column="1"
+                                         OptionsSource="{Binding AgentProviderTypeOptions}"
+                                         SelectedOption="{Binding AgentProviderTypeOption, Mode=TwoWay}"
+                                         HorizontalAlignment="Stretch"/>
 
                             <TextBlock Grid.Row="1"
                                        Text="{Binding AgentProviderNameText}"
@@ -111,14 +111,49 @@
                                        Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
                             <Grid Grid.Row="3"
                                   Grid.Column="1"
-                                  ColumnDefinitions="*,Auto"
+                                  ColumnDefinitions="*,Auto,Auto"
                                   ColumnSpacing="6">
                                 <atom:TextBox Text="{Binding AgentModel, Mode=TwoWay}"
                                               MinWidth="160"/>
-                                <atom:Button Grid.Column="1"
+                                <atom:Button x:Name="AgentModelPickerButton"
+                                             Grid.Column="1"
+                                             Content="{Binding AgentModelCatalogSummaryText}"
+                                             Icon="{antdicons:AntDesignIconProvider Kind=DownOutlined}"
+                                             Command="{Binding ToggleAgentModelPickerCommand}"
+                                             ButtonType="Default"
+                                             MinWidth="130"/>
+                                <atom:Button Grid.Column="2"
                                              Content="{Binding AgentRefreshModelsText}"
                                              Command="{Binding RefreshAgentModelsCommand}"
                                              ButtonType="Default"/>
+                                <Popup IsOpen="{Binding IsAgentModelPickerOpen, Mode=TwoWay}"
+                                       PlacementTarget="{Binding ElementName=AgentModelPickerButton}"
+                                       Placement="Bottom"
+                                       IsLightDismissEnabled="True">
+                                    <Border MinWidth="300"
+                                            MaxWidth="480"
+                                            MaxHeight="260"
+                                            Background="{atom:SharedTokenResource ColorBgElevated}"
+                                            BorderBrush="{atom:SharedTokenResource ColorBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            BoxShadow="0 6 18 0 #26000000"
+                                            Padding="2">
+                                        <ListBox ItemsSource="{Binding AgentModelOptions}"
+                                                 SelectedItem="{Binding AgentModelOption, Mode=TwoWay}"
+                                                 Background="Transparent"
+                                                 BorderThickness="0"
+                                                 MaxHeight="254">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Padding="8,6">
+                                                        <TextBlock Text="{Binding Content}"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Border>
+                                </Popup>
                             </Grid>
 
                             <TextBlock Grid.Row="4"
@@ -193,6 +228,73 @@
                                          ButtonType="Default"
                                          Command="{Binding UseRoutinPresetCommand}"/>
                         </Grid>
+                        <Border Background="{atom:SharedTokenResource ColorBgLayout}"
+                                BorderBrush="{atom:SharedTokenResource ColorSplit}"
+                                BorderThickness="1"
+                                CornerRadius="5"
+                                Padding="12,10"
+                                Margin="0,4,0,0">
+                            <StackPanel Spacing="9">
+                                <TextBlock Text="{Binding AgentGlobalProxyText}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{atom:SharedTokenResource ColorText}"/>
+                                <atom:CheckBox Content="{Binding AgentGlobalProxyEnabledText}"
+                                               IsChecked="{Binding AgentGlobalProxyEnabled, Mode=TwoWay}"/>
+                                <Grid ColumnDefinitions="132,*"
+                                      ColumnSpacing="10"
+                                      IsEnabled="{Binding AgentGlobalProxyEnabled}">
+                                    <TextBlock Text="{Binding AgentGlobalProxyTypeText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                                    <atom:Select Grid.Column="1"
+                                                 OptionsSource="{Binding AgentGlobalProxyTypeOptions}"
+                                                 SelectedOption="{Binding AgentGlobalProxyTypeOption, Mode=TwoWay}"
+                                                 HorizontalAlignment="Stretch"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="132,*"
+                                      ColumnSpacing="10"
+                                      IsEnabled="{Binding AgentGlobalProxyEnabled}">
+                                    <TextBlock Text="{Binding AgentGlobalProxyHostText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                                    <atom:TextBox Grid.Column="1"
+                                                  Text="{Binding AgentGlobalProxyHost, Mode=TwoWay}"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="132,Auto"
+                                      ColumnSpacing="10"
+                                      IsEnabled="{Binding AgentGlobalProxyEnabled}">
+                                    <TextBlock Text="{Binding AgentGlobalProxyPortText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                                    <atom:NumericUpDown Grid.Column="1"
+                                                        Width="92"
+                                                        Minimum="0"
+                                                        Maximum="65535"
+                                                        Value="{Binding AgentGlobalProxyPort, Mode=TwoWay}"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="132,*"
+                                      ColumnSpacing="10"
+                                      IsEnabled="{Binding AgentGlobalProxyEnabled}">
+                                    <TextBlock Text="{Binding AgentGlobalProxyUsernameText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                                    <atom:TextBox Grid.Column="1"
+                                                  Text="{Binding AgentGlobalProxyUsername, Mode=TwoWay}"/>
+                                </Grid>
+                                <Grid ColumnDefinitions="132,*"
+                                      ColumnSpacing="10"
+                                      IsEnabled="{Binding AgentGlobalProxyEnabled}">
+                                    <TextBlock Text="{Binding AgentGlobalProxyPasswordText}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                                    <atom:TextBox Grid.Column="1"
+                                                  Text="{Binding AgentGlobalProxyPassword, Mode=TwoWay}"
+                                                  PasswordChar="*"
+                                                  IsEnableRevealButton="True"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
                         <Border Background="{atom:SharedTokenResource ColorBgLayout}"
                                 BorderBrush="{atom:SharedTokenResource ColorSplit}"
                                 BorderThickness="1"

@@ -6,7 +6,8 @@ namespace CxShell.Models;
 public enum AgentProviderType
 {
     OpenAiChatCompatible,
-    OpenAiResponses
+    OpenAiResponses,
+    AnthropicMessages
 }
 
 /// <summary>

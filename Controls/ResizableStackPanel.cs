@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.VisualTree;
 
 namespace CxShell.Controls;
 
@@ -33,10 +35,13 @@ public sealed class ResizableStackPanel : Panel
     private double _dragStartBeforeLength;
     private double _dragStartAfterLength;
     private bool _isDragging;
-    private Cursor? _previousTopLevelCursor;
-    private bool _hasTopLevelCursor;
     private TopLevel? _trackedTopLevel;
     private bool _topLevelHandlersAttached;
+
+    // Several nested panels can observe the same pointer event. Keep one
+    // window-level cursor owner so one panel cannot restore another panel's
+    // resize cursor and leave it active over a child view.
+    private static readonly ConditionalWeakTable<TopLevel, ResizeCursorState> ResizeCursorStates = new();
 
     public ResizableStackPanel()
     {
@@ -45,6 +50,7 @@ public sealed class ResizableStackPanel : Panel
         AddHandler(PointerReleasedEvent, OnPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(PointerExitedEvent, OnPointerExited, RoutingStrategies.Bubble, handledEventsToo: true);
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
     public Orientation Orientation
@@ -170,6 +176,13 @@ public sealed class ResizableStackPanel : Panel
     {
         if (!_isDragging)
             ClearResizeCursor();
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        EndDrag(null);
+        ClearResizeCursor();
+        DetachTopLevelHandlers();
     }
 
     private void OnTopLevelPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -403,14 +416,7 @@ public sealed class ResizableStackPanel : Panel
             return;
 
         AttachTopLevelHandlers(topLevel);
-
-        if (!_hasTopLevelCursor)
-        {
-            _previousTopLevelCursor = topLevel.Cursor;
-            _hasTopLevelCursor = true;
-        }
-
-        topLevel.Cursor = cursor;
+        AcquireTopLevelCursor(topLevel, cursor);
     }
 
     private void ClearResizeCursor()
@@ -420,14 +426,34 @@ public sealed class ResizableStackPanel : Panel
 
         Cursor = null;
 
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel == null || !_hasTopLevelCursor)
-            return;
-
-        topLevel.Cursor = _previousTopLevelCursor;
-        _previousTopLevelCursor = null;
-        _hasTopLevelCursor = false;
+        var topLevel = _trackedTopLevel ?? TopLevel.GetTopLevel(this);
+        if (topLevel != null)
+            ReleaseTopLevelCursor(topLevel);
         DetachTopLevelHandlers();
+    }
+
+    private void AcquireTopLevelCursor(TopLevel topLevel, Cursor cursor)
+    {
+        var state = ResizeCursorStates.GetValue(topLevel, static _ => new ResizeCursorState());
+        if (state.Owner == null)
+            state.PreviousCursor = topLevel.Cursor;
+
+        state.Owner = this;
+        topLevel.Cursor = cursor;
+    }
+
+    private void ReleaseTopLevelCursor(TopLevel topLevel)
+    {
+        if (!ResizeCursorStates.TryGetValue(topLevel, out var state) ||
+            !ReferenceEquals(state.Owner, this))
+        {
+            return;
+        }
+
+        topLevel.Cursor = state.PreviousCursor;
+        state.Owner = null;
+        state.PreviousCursor = null;
+        ResizeCursorStates.Remove(topLevel);
     }
 
     private void AttachTopLevelHandlers(TopLevel topLevel)
@@ -453,5 +479,12 @@ public sealed class ResizableStackPanel : Panel
         _trackedTopLevel.RemoveHandler(PointerReleasedEvent, OnTopLevelPointerReleased);
         _trackedTopLevel = null;
         _topLevelHandlersAttached = false;
+    }
+
+    private sealed class ResizeCursorState
+    {
+        public ResizableStackPanel? Owner { get; set; }
+
+        public Cursor? PreviousCursor { get; set; }
     }
 }

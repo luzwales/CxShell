@@ -142,7 +142,7 @@
                                         VerticalAlignment="Center"/>
                     </Grid>
                     <Grid Grid.Row="1"
-                          ColumnDefinitions="Auto,*"
+                          ColumnDefinitions="Auto,130,Auto,*"
                           ColumnSpacing="8">
                         <atom:TextBlock Text="{Binding ModeText}"
                                         FontSize="11"
@@ -151,6 +151,16 @@
                         <atom:Select Grid.Column="1"
                                      OptionsSource="{Binding ChatModeOptions}"
                                      SelectedOption="{Binding SelectedChatModeOption, Mode=TwoWay}"
+                                     Width="130"
+                                     HorizontalAlignment="Left"/>
+                        <atom:TextBlock Grid.Column="2"
+                                        Text="{Binding ReasoningEffortText}"
+                                        FontSize="11"
+                                        Foreground="{atom:SharedTokenResource ColorTextSecondary}"
+                                        VerticalAlignment="Center"/>
+                        <atom:Select Grid.Column="3"
+                                     OptionsSource="{Binding ReasoningEffortOptions}"
+                                     SelectedOption="{Binding SelectedReasoningEffortOption, Mode=TwoWay}"
                                      Width="130"
                                      HorizontalAlignment="Left"/>
                     </Grid>

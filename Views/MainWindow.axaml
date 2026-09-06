@@ -103,9 +103,6 @@
                 <Setter Property="BorderBrush" Value="{atom:SharedTokenResource ColorBorder}"/>
             </Style>
         </Style>
-        <Style Selector="Border.session-tab-header.tab-dragging">
-            <Setter Property="Opacity" Value="0.64"/>
-        </Style>
         <Style Selector="atom|ListBox.recent-session-list">
             <Setter Property="Background" Value="{atom:SharedTokenResource ColorBgContainer}"/>
             <Setter Property="BorderBrush" Value="{atom:SharedTokenResource ColorBorderSecondary}"/>
@@ -125,7 +122,6 @@
         <DataTemplate x:Key="TabHeaderTemplate" DataType="vm:TerminalTabViewModel">
             <Border MinWidth="72"
                     MaxWidth="220"
-                    Classes="session-tab-header"
                     Padding="8,0,0,0"
                     PointerPressed="OnTabHeaderPointerPressed">
                 <StackPanel Orientation="Horizontal"
@@ -170,6 +166,7 @@
                                        SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
                                        ItemTemplate="{StaticResource TabHeaderTemplate}"
                                        IsTabReorderEnabled="True"
+                                       TabActivationTrigger="PointerReleased"
                                        IsTabClosable="True"
                                        IsTabAutoHideCloseButton="False"
                                        IsMotionEnabled="False"
@@ -797,6 +794,7 @@
                                            SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
                                            ItemTemplate="{StaticResource TabHeaderTemplate}"
                                            IsTabReorderEnabled="True"
+                                           TabActivationTrigger="PointerReleased"
                                            IsTabClosable="True"
                                            IsTabAutoHideCloseButton="False"
                                            IsMotionEnabled="False"
@@ -971,35 +969,6 @@
                             Background="{atom:SharedTokenResource ColorPrimary}"/>
                 </StackPanel>
             </Border>
-            <Border x:Name="TabDragGhost"
-                    Width="44"
-                    Height="14"
-                    CornerRadius="7"
-                    Background="{atom:SharedTokenResource ColorPrimaryBgHover}"
-                    BorderBrush="{atom:SharedTokenResource ColorPrimary}"
-                    BorderThickness="1"
-                    Opacity="0.9"
-                    IsVisible="False">
-                <StackPanel Orientation="Horizontal"
-                            Spacing="4"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                    <Border Width="12"
-                            Height="3"
-                            CornerRadius="1.5"
-                            Background="{atom:SharedTokenResource ColorPrimary}"/>
-                    <Border Width="12"
-                            Height="3"
-                            CornerRadius="1.5"
-                            Background="{atom:SharedTokenResource ColorPrimary}"/>
-                </StackPanel>
-            </Border>
-            <Border x:Name="TabDropIndicator"
-                    Width="2"
-                    Height="24"
-                    CornerRadius="1"
-                    Background="{atom:SharedTokenResource ColorPrimary}"
-                    IsVisible="False"/>
         </Canvas>
 
         <Grid Grid.RowSpan="4"

@@ -57,7 +57,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly LocalizationService _localization = LocalizationService.Shared;
     private readonly SftpViewModel _emptySftp = new();
     private readonly ServerMonitorViewModel _emptyMonitor = new();
-    private readonly AppUpdateService _appUpdateService = new();
+    private readonly AppUpdateService _appUpdateService;
     private readonly ConnectionAuditService _connectionAuditService = new();
     private readonly IReadOnlyList<LocalTerminalProfile> _localTerminalProfiles;
     private readonly AgentPermissionPolicy _agentPermissionPolicy;
@@ -230,6 +230,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _sessionTreeVm = new SessionTreeViewModel(this);
         _sessionTree = _sessionTreeVm;
+        Func<ProxySettings?> globalProxyProvider = () =>
+            _sessionTreeVm.Settings.GlobalProxy?.IsEnabled == true
+                ? _sessionTreeVm.Settings.GlobalProxy
+                : null;
+        ProxyConnectionFactory.ConfigureGlobalProxy(globalProxyProvider);
+        _appUpdateService = new AppUpdateService(globalProxyProvider);
         _localTerminalProfiles = LocalTerminalCatalog.Detect();
         CommandPalette = new CommandPaletteViewModel(BuildCommandPaletteItems);
         _sftp = _emptySftp;
@@ -264,19 +270,28 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 CloseAgentSessionAsync),
             _agentPermissionPolicy,
             agentAuditLog);
-        var agentModelClient = new OpenAiCompatibleAgentModelClient();
+        var agentModelClient = new OpenAiCompatibleAgentModelClient(
+            globalProxyProvider: globalProxyProvider);
+        var agentModelCatalogClient = new AgentModelCatalogClient(
+            globalProxyProvider: globalProxyProvider);
+        var agentWebAccess = new AgentWebAccess(
+            () => _sessionTreeVm.Settings.AgentWeb,
+            globalProxyProvider: globalProxyProvider);
         AgentRunCoordinator = new AgentRunCoordinator(
             AgentSessionGateway,
             () => _sessionTreeVm.Settings.AgentProvider,
             agentModelClient,
             new JsonAgentRunHistoryStore(),
-            webSettings: () => _sessionTreeVm.Settings.AgentWeb);
+            webSettings: () => _sessionTreeVm.Settings.AgentWeb,
+            webAccess: agentWebAccess);
         AgentRuntimeSessionAdapter = new AgentRuntimeSessionAdapter(
             AgentSessionGateway,
             () => _sessionTreeVm.Settings.AgentProvider,
             agentModelClient,
             AgentRunCoordinator,
-            webSettings: () => _sessionTreeVm.Settings.AgentWeb);
+            webSettings: () => _sessionTreeVm.Settings.AgentWeb,
+            modelCatalogClient: agentModelCatalogClient,
+            webAccess: agentWebAccess);
         AgentRuntimeHost = new AgentRuntimeHost([(IAgentRuntimeModule)AgentRuntimeSessionAdapter]);
         AgentRuntimeJsonEndpoint = new AgentRuntimeJsonEndpoint(AgentRuntimeHost);
         AgentRuntimeTransport = new InProcessAgentRuntimeTransport(AgentRuntimeHost);
@@ -2235,46 +2250,47 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _sessionTreeVm.MoveQuickSession(source, target, insertAfter);
     }
 
-    public void MoveTabWithinSameStrip(TerminalTabViewModel? source, TerminalTabViewModel? target, bool insertAfter)
+    public void HandleTabReordered(TerminalTabViewModel? tab)
     {
-        if (source == null || target == null || source == target)
+        if (tab == null || !Tabs.Contains(tab))
             return;
 
-        var sourceGroup = IsTabArrangementEnabled ? FindTabGroup(source) : null;
-        var targetGroup = IsTabArrangementEnabled ? FindTabGroup(target) : null;
-        if (IsTabArrangementEnabled && (sourceGroup == null || sourceGroup != targetGroup))
-            return;
+        var group = IsTabArrangementEnabled ? FindTabGroup(tab) : null;
+        if (group != null)
+            SynchronizeGlobalTabOrder(group);
 
-        MoveItemBeforeOrAfter(Tabs, source, target, insertAfter);
-        if (sourceGroup != null)
-        {
-            MoveItemBeforeOrAfter(sourceGroup.Tabs, source, target, insertAfter);
-            sourceGroup.SelectedTab = source;
-        }
-
-        SelectedTab = source;
-        ActivateTabGroupForSelectedTab(source);
+        SelectedTab = tab;
+        ActivateTabGroupForSelectedTab(tab);
     }
 
-    private static void MoveItemBeforeOrAfter<T>(
-        ObservableCollection<T> collection,
-        T source,
-        T target,
-        bool insertAfter)
+    private void SynchronizeGlobalTabOrder(TerminalTabGroupViewModel group)
     {
-        var oldIndex = collection.IndexOf(source);
-        var targetIndex = collection.IndexOf(target);
-        if (oldIndex < 0 || targetIndex < 0)
+        var groupTabs = group.Tabs.ToArray();
+        if (groupTabs.Length < 2)
             return;
 
-        var newIndex = targetIndex + (insertAfter ? 1 : 0);
-        if (oldIndex < newIndex)
-            newIndex--;
-
-        if (oldIndex == newIndex)
+        var groupTabSet = groupTabs.ToHashSet();
+        var groupPositions = Tabs
+            .Select((tab, index) => (tab, index))
+            .Where(item => groupTabSet.Contains(item.tab))
+            .Select(item => item.index)
+            .ToArray();
+        if (groupPositions.Length != groupTabs.Length)
             return;
 
-        collection.Move(oldIndex, newIndex);
+        var desiredOrder = Tabs.ToArray();
+        for (var i = 0; i < groupPositions.Length; i++)
+            desiredOrder[groupPositions[i]] = groupTabs[i];
+
+        for (var index = 0; index < desiredOrder.Length; index++)
+        {
+            if (ReferenceEquals(Tabs[index], desiredOrder[index]))
+                continue;
+
+            var currentIndex = Tabs.IndexOf(desiredOrder[index]);
+            if (currentIndex >= 0)
+                Tabs.Move(currentIndex, index);
+        }
     }
 
     public IReadOnlyList<QuickCommandItem> GetQuickCommands(TerminalTabViewModel? tab)
@@ -2787,6 +2803,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         (AgentRuntimeHost as IDisposable)?.Dispose();
         (AgentRunCoordinator as IDisposable)?.Dispose();
         (AgentSessionGateway as IDisposable)?.Dispose();
+        ProxyConnectionFactory.ConfigureGlobalProxy(null);
     }
 
     private IReadOnlyList<IAgentSessionEndpoint> BuildAgentSessionEndpoints()
@@ -3009,8 +3026,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     request.DisplayCommand,
                     request.SensitiveInput).ConfigureAwait(false);
             },
-            runCommandProgressResult: async (request, cancellationToken, progressReceived) =>
-            {
+             runCommandProgressResult: async (request, cancellationToken, progressReceived) =>
+             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (tab.IsDisposed || !tab.IsConnected || !tab.Terminal.IsConnected)
                     throw new AgentCommandDeliveryException(
@@ -3023,9 +3040,93 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     request.Timeout,
                     cancellationToken,
                     request.DisplayCommand,
-                    request.SensitiveInput,
-                    progressReceived).ConfigureAwait(false);
-            });
+                     request.SensitiveInput,
+                     progressReceived).ConfigureAwait(false);
+            },
+            terminalTextProvider: () => Dispatcher.UIThread.CheckAccess()
+                ? tab.Terminal.Buffer.ExportText()
+                : Dispatcher.UIThread
+                    .InvokeAsync(() => tab.Terminal.Buffer.ExportText())
+                    .GetAwaiter()
+                    .GetResult(),
+            remoteDirectoryProvider: async (path, maxEntries, cancellationToken) =>
+            {
+                if (tab.IsDisposed || !tab.IsConnected || !tab.Terminal.IsConnected)
+                    return new AgentRemoteDirectoryResult(
+                        false,
+                        path,
+                        [],
+                        Error: "The requested session is no longer connected.",
+                        ErrorCode: "session_not_connected");
+
+                var items = await tab.AgentSftpReadSession.ListDirectoryAsync(
+                        tab.Session,
+                        tab.ConnectedPassword ?? GetSavedPassword(tab.Session),
+                        path,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                var truncated = items.Count > maxEntries;
+                var entries = items
+                    .Take(maxEntries)
+                    .Select(item => new AgentRemoteFileEntry(
+                        item.Name,
+                        item.FullPath,
+                        item.IsDirectory,
+                        item.Size,
+                        item.LastModified,
+                        item.Permissions,
+                        item.IsSymLink))
+                    .ToList();
+                return new AgentRemoteDirectoryResult(true, path, entries, truncated);
+            },
+            remoteFileProvider: async (path, maxCharacters, cancellationToken) =>
+            {
+                if (tab.IsDisposed || !tab.IsConnected || !tab.Terminal.IsConnected)
+                    return new AgentRemoteFileReadResult(
+                        false,
+                        path,
+                        string.Empty,
+                        0,
+                        "The requested session is no longer connected.",
+                        "session_not_connected");
+
+                var content = await tab.AgentSftpReadSession.ReadTextFileAsync(
+                        tab.Session,
+                        tab.ConnectedPassword ?? GetSavedPassword(tab.Session),
+                        path,
+                        maxCharacters,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return new AgentRemoteFileReadResult(true, path, content, content.Length);
+            },
+            remotePathProvider: async (path, cancellationToken) =>
+            {
+                if (tab.IsDisposed || !tab.IsConnected || !tab.Terminal.IsConnected)
+                    return new AgentRemotePathResult(
+                        false,
+                        path,
+                        Error: "The requested session is no longer connected.",
+                        ErrorCode: "session_not_connected");
+
+                var item = await tab.AgentSftpReadSession.StatAsync(
+                        tab.Session,
+                        tab.ConnectedPassword ?? GetSavedPassword(tab.Session),
+                        path,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return new AgentRemotePathResult(
+                    true,
+                    path,
+                    new AgentRemoteFileEntry(
+                        item.Name,
+                        item.FullPath,
+                        item.IsDirectory,
+                        item.Size,
+                        item.LastModified,
+                        item.Permissions,
+                        item.IsSymLink));
+            },
+            workingDirectoryProvider: () => tab.Terminal.RemoteCurrentDirectory);
     }
 
     [RelayCommand]

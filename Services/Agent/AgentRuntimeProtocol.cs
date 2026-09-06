@@ -122,6 +122,7 @@ public static class AgentRuntimeContract
         "agent.session.command",
         "agent.session.command.execute",
         "agent.session.command.output",
+        "agent.session.sftp.read",
         "agent.session.terminal.write",
         "agent.session.command.batch",
         "agent.diagnostics",

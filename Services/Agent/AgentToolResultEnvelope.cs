@@ -30,6 +30,9 @@ public sealed record AgentToolResultEnvelope
     public long DurationMs { get; init; }
     public string RequestId { get; init; } = string.Empty;
     public string SessionId { get; init; } = string.Empty;
+    public string Risk { get; init; } = nameof(AgentCommandRisk.ReadOnly);
+    public bool ApprovalRequired { get; init; }
+    public bool TimedOut { get; init; }
     public AgentCommandVerification Verification { get; init; } =
         new(AgentCommandVerificationState.Unknown, "The tool result requires additional verification.", false, null);
     public bool RetrySafe { get; init; }
@@ -59,6 +62,9 @@ public sealed record AgentToolResultEnvelope
             DurationMs = durationMs ?? result.DurationMs,
             RequestId = result.RequestId.ToString("D"),
             SessionId = sessionId,
+            Risk = result.Risk.ToString(),
+            ApprovalRequired = result.ApprovalRequired,
+            TimedOut = result.TimedOut,
             Verification = AgentCommandVerificationService.Evaluate(result),
             RetrySafe = result.IsRetrySafe
         };
@@ -106,7 +112,13 @@ public sealed record AgentToolResultEnvelope
         }
 
         SetIfMissing(node, "success", success);
-        SetIfMissing(node, "status", success ? "completed" : "failed");
+        var existingStatus = ReadString(node, "status");
+        if (string.IsNullOrWhiteSpace(existingStatus) ||
+            existingStatus.Equals("Sent", StringComparison.OrdinalIgnoreCase) ||
+            existingStatus.Equals("Failed", StringComparison.OrdinalIgnoreCase))
+        {
+            SetOrReplace(node, "status", success ? "completed" : "failed");
+        }
         SetIfMissing(node, "executionState", success ? "Completed" : "Failed");
         SetIfMissing(node, "outcomeCertain", success);
         SetIfMissing(node, "remoteCompletionConfirmed", false);
@@ -117,6 +129,13 @@ public sealed record AgentToolResultEnvelope
             SetIfMissing(node, "error", content);
         SetIfMissing(node, "durationMs", Math.Max(0, durationMs));
         SetIfMissing(node, "sessionId", sessionId);
+        SetIfMissing(node, "requestId", string.Empty);
+        SetIfMissing(node, "risk", nameof(AgentCommandRisk.ReadOnly));
+        SetIfMissing(node, "approvalRequired", false);
+        SetIfMissing(node, "timedOut", false);
+        SetIfMissing(node, "exitCode", null);
+        SetIfMissing(node, "output", null);
+        SetIfMissing(node, "error", null);
         // A generic tool failure is not automatically safe to repeat. Tools that
         // can prove idempotency must opt in by returning retrySafe explicitly.
         SetIfMissing(node, "retrySafe", false);
@@ -141,6 +160,14 @@ public sealed record AgentToolResultEnvelope
         if (!node.ContainsKey(name))
             node[name] = value == null ? null : JsonSerializer.SerializeToNode(value, JsonOptions);
     }
+
+    private static void SetOrReplace(JsonObject node, string name, object? value)
+        => node[name] = value == null ? null : JsonSerializer.SerializeToNode(value, JsonOptions);
+
+    private static string? ReadString(JsonObject node, string name)
+        => node[name] is JsonValue value && value.TryGetValue<string>(out var text)
+            ? text
+            : null;
 
     private static string ExtractMessage(string content)
     {

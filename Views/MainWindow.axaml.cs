@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly CommandLineLaunchOptions _startupLaunchOptions;
     private IDisposable? _commandLineHandoffServer;
     private bool _isPointerOverFullScreenHintArea;
+    private bool _tabReorderHandlersAttached;
     private SessionInfo? _quickSessionContext;
     private SessionInfo? _quickSessionDragSession;
     private Avalonia.Controls.Control? _quickSessionDragControl;
@@ -34,15 +35,6 @@ public partial class MainWindow : Window
     private SessionInfo? _quickSessionDropTargetSession;
     private bool _quickSessionDropInsertAfter;
     private TerminalTabViewModel? _tabContext;
-    private TerminalTabViewModel? _tabDragTab;
-    private TerminalTabViewModel? _tabDropTargetTab;
-    private Avalonia.Controls.Control? _tabDragControl;
-    private Avalonia.Controls.Control? _tabDragCaptureControl;
-    private TabStrip? _tabDragStrip;
-    private Point _tabDragStart;
-    private bool _isTabDragging;
-    private bool _tabDragMoved;
-    private bool _tabDropInsertAfter;
     private bool _isDraggingSftpSplitter;
     private bool _isSftpPanelWidthApplyQueued;
     private bool _hasSftpSplitterPreviousCursor;
@@ -67,18 +59,9 @@ public partial class MainWindow : Window
     private const double QuickSessionDragGhostOffsetX = -22;
     private const double QuickSessionDragGhostOffsetY = -7;
     private const double QuickSessionDropVerticalTolerance = 8;
-    private const double TabDragThreshold = 6;
-    private const double TabDropIndicatorWidth = 2;
-    private const double TabDropIndicatorHeight = 24;
-    private const double TabDropIndicatorVerticalOffset = 3;
-    private const double TabDragGhostOffsetX = -22;
-    private const double TabDragGhostOffsetY = -7;
-    private const double TabDropVerticalTolerance = 24;
     private const string QuickSessionButtonClass = "quick-session-bar-button";
     private const string QuickSessionDraggingClass = "quick-session-dragging";
     private const string QuickSessionDragActiveClass = "quick-session-drag-active";
-    private const string SessionTabHeaderClass = "session-tab-header";
-    private const string SessionTabDraggingClass = "tab-dragging";
 
     public MainWindow()
         : this(Array.Empty<string>())
@@ -138,9 +121,6 @@ public partial class MainWindow : Window
         AddHandler(PointerMovedEvent, OnQuickSessionDragPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, OnQuickSessionDragPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnQuickSessionDragPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
-        AddHandler(PointerMovedEvent, OnTabDragPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(PointerReleasedEvent, OnTabDragPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
-        AddHandler(PointerCaptureLostEvent, OnTabDragPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(PointerMovedEvent, OnSftpSplitterPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, OnSftpSplitterPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnSftpSplitterPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
@@ -148,7 +128,6 @@ public partial class MainWindow : Window
         AddHandler(PointerReleasedEvent, OnAgentSplitterPointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerCaptureLostEvent, OnAgentSplitterPointerCaptureLost, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
-        AddHandler(PointerPressedEvent, OnPreviewPointerPressed, RoutingStrategies.Tunnel);
         QueueApplySftpPanelWidth(vm);
     }
 
@@ -161,6 +140,7 @@ public partial class MainWindow : Window
         ShowSessionManagerOnStartupIfNeeded();
         if (DataContext is MainWindowViewModel vm)
         {
+            AttachTabReorderHandlers();
             UpdateApplicationSuspension(vm);
             vm.StartAutomaticUpdateCheck(_startupArgs);
         }
@@ -168,11 +148,34 @@ public partial class MainWindow : Window
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
+        DetachTabReorderHandlers();
         if (DataContext is MainWindowViewModel vm)
             vm.SetApplicationSuspended(true);
         _commandLineHandoffServer?.Dispose();
         _commandLineHandoffServer = null;
         base.OnUnloaded(e);
+    }
+
+    private void AttachTabReorderHandlers()
+    {
+        if (_tabReorderHandlersAttached)
+            return;
+
+        foreach (var tabStrip in this.GetVisualDescendants().OfType<TabStrip>())
+            tabStrip.TabReordered += OnTabReordered;
+
+        _tabReorderHandlersAttached = true;
+    }
+
+    private void DetachTabReorderHandlers()
+    {
+        if (!_tabReorderHandlersAttached)
+            return;
+
+        foreach (var tabStrip in this.GetVisualDescendants().OfType<TabStrip>())
+            tabStrip.TabReordered -= OnTabReordered;
+
+        _tabReorderHandlersAttached = false;
     }
 
     private void UpdateApplicationSuspension(MainWindowViewModel vm)
@@ -363,66 +366,6 @@ public partial class MainWindow : Window
         {
             // Clipboard access can fail on some desktop backends.
         }
-    }
-
-    private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm ||
-            !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed ||
-            e.Source is not Avalonia.Controls.Control source)
-        {
-            return;
-        }
-
-        if (TryBeginTabHeaderDragFromPreview(source, e, vm))
-            return;
-
-        foreach (var current in EnumerateControlLineage(source))
-        {
-            if (current.DataContext is TerminalTabViewModel tab)
-            {
-                vm.SelectTabCommand.Execute(tab);
-                return;
-            }
-
-            if (current.DataContext is TerminalTabGroupViewModel group)
-            {
-                vm.SelectTabGroupCommand.Execute(group);
-                return;
-            }
-        }
-    }
-
-    private bool TryBeginTabHeaderDragFromPreview(
-        Avalonia.Controls.Control source,
-        PointerPressedEventArgs e,
-        MainWindowViewModel vm)
-    {
-        var properties = e.GetCurrentPoint(this).Properties;
-        if (!properties.IsLeftButtonPressed &&
-            properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed)
-        {
-            return false;
-        }
-
-        if (IsTabCloseButtonSource(source))
-            return false;
-
-        var tabItem = ResolveTabStripItem(source);
-        var tab = ResolveTabFromItem(tabItem);
-        var tabStrip = ResolveTabStrip(tabItem);
-        if (tabItem == null ||
-            tab == null ||
-            tabStrip == null)
-        {
-            return false;
-        }
-
-        var anchor = ResolveTabHeaderControl(source) ?? FindTabHeaderControl(tab) ?? tabItem;
-        BeginTabDrag(tab, anchor, tabStrip, e);
-        vm.SelectTabCommand.Execute(tab);
-        e.Handled = true;
-        return true;
     }
 
     private void OnQuickSessionTagPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -848,365 +791,11 @@ public partial class MainWindow : Window
         var properties = e.GetCurrentPoint(this).Properties;
         if (properties.IsRightButtonPressed || properties.PointerUpdateKind == PointerUpdateKind.RightButtonPressed)
         {
-            ResetTabDrag();
             _tabContext = tab;
             vm.SelectTabCommand.Execute(tab);
             ShowTabContextMenu(anchor, vm.AddCurrentSessionToQuickBarCommand.CanExecute(null));
             e.Handled = true;
         }
-    }
-
-    private void BeginTabDrag(TerminalTabViewModel tab, Avalonia.Controls.Control anchor, PointerPressedEventArgs e)
-    {
-        BeginTabDrag(tab, anchor, ResolveTabStrip(anchor), e);
-    }
-
-    private void BeginTabDrag(
-        TerminalTabViewModel tab,
-        Avalonia.Controls.Control anchor,
-        TabStrip? tabStrip,
-        PointerPressedEventArgs e)
-    {
-        if (tabStrip == null)
-            return;
-
-        _tabDragTab = tab;
-        _tabDragControl = anchor;
-        _tabDragCaptureControl = this;
-        _tabDragStrip = tabStrip;
-        _tabDropTargetTab = null;
-        _tabDropInsertAfter = false;
-        _tabDragStart = e.GetPosition(this);
-        _isTabDragging = false;
-        _tabDragMoved = false;
-        e.Pointer.Capture(this);
-    }
-
-    private void OnTabDragPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_tabDragTab == null)
-            return;
-
-        var position = e.GetPosition(this);
-        if (!_isTabDragging)
-        {
-            var delta = position - _tabDragStart;
-            if (Math.Abs(delta.X) < TabDragThreshold &&
-                Math.Abs(delta.Y) < TabDragThreshold)
-            {
-                return;
-            }
-
-            _isTabDragging = true;
-            _tabDragMoved = true;
-            RefreshTabDragVisuals();
-            ShowTabDragGhost(position);
-        }
-
-        ShowTabDragGhost(position);
-        UpdateTabDropTarget(position);
-        e.Handled = true;
-    }
-
-    private void OnTabDragPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (_tabDragTab == null)
-            return;
-
-        var dragTab = _tabDragTab;
-        var wasDragging = _isTabDragging || _tabDragMoved;
-        if (wasDragging)
-            UpdateTabDropTarget(e.GetPosition(this));
-
-        var dropTarget = _tabDropTargetTab;
-        var insertAfter = _tabDropInsertAfter;
-        e.Pointer.Capture(null);
-        ResetTabDrag();
-
-        if (wasDragging &&
-            dropTarget != null &&
-            dropTarget != dragTab &&
-            DataContext is MainWindowViewModel vm)
-        {
-            vm.MoveTabWithinSameStrip(dragTab, dropTarget, insertAfter);
-            e.Handled = true;
-        }
-        else if (wasDragging)
-        {
-            e.Handled = true;
-        }
-    }
-
-    private void OnTabDragPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-    {
-        if (_tabDragTab != null &&
-            _tabDragCaptureControl != null &&
-            ReferenceEquals(e.Source, _tabDragCaptureControl))
-        {
-            ResetTabDrag();
-        }
-    }
-
-    private void ResetTabDrag()
-    {
-        SetQuickSessionVisualClass(_tabDragControl, SessionTabDraggingClass, false);
-        HideTabDropIndicator();
-        HideTabDragGhost();
-        _tabDragTab = null;
-        _tabDropTargetTab = null;
-        _tabDragControl = null;
-        _tabDragCaptureControl = null;
-        _tabDragStrip = null;
-        _tabDragStart = default;
-        _isTabDragging = false;
-        _tabDragMoved = false;
-        _tabDropInsertAfter = false;
-    }
-
-    private void UpdateTabDropTarget(Point point)
-    {
-        if (_tabDragTab == null ||
-            _tabDragStrip == null)
-        {
-            _tabDropTargetTab = null;
-            _tabDropInsertAfter = false;
-            HideTabDropIndicator();
-            RefreshTabDragVisuals();
-            return;
-        }
-
-        var stripPoint = this.TranslatePoint(point, _tabDragStrip);
-        if (stripPoint == null ||
-            stripPoint.Value.Y < -TabDropVerticalTolerance ||
-            stripPoint.Value.Y > _tabDragStrip.Bounds.Height + TabDropVerticalTolerance)
-        {
-            _tabDropTargetTab = null;
-            _tabDropInsertAfter = false;
-            HideTabDropIndicator();
-            RefreshTabDragVisuals();
-            return;
-        }
-
-        var dropItems = GetTabDropItems(_tabDragStrip, _tabDragTab);
-        if (dropItems.Count == 0)
-        {
-            _tabDropTargetTab = null;
-            _tabDropInsertAfter = false;
-            HideTabDropIndicator();
-            RefreshTabDragVisuals();
-            return;
-        }
-
-        var overlayPoint = this.TranslatePoint(point, TabDropOverlay);
-        if (overlayPoint == null)
-        {
-            _tabDropTargetTab = null;
-            _tabDropInsertAfter = false;
-            HideTabDropIndicator();
-            RefreshTabDragVisuals();
-            return;
-        }
-
-        var insertIndex = ResolveTabDropIndex(dropItems, overlayPoint.Value.X);
-        var insertAfter = insertIndex >= dropItems.Count;
-        var targetItem = insertAfter
-            ? dropItems[^1]
-            : dropItems[insertIndex];
-        var indicatorX = ResolveTabDropIndicatorX(dropItems, insertIndex);
-        var indicatorY = ResolveTabDropIndicatorY(dropItems);
-
-        _tabDropTargetTab = targetItem.Tab;
-        _tabDropInsertAfter = insertAfter;
-        ShowTabDropIndicatorAt(indicatorX, indicatorY);
-        RefreshTabDragVisuals();
-    }
-
-    private void RefreshTabDragVisuals()
-    {
-        var dragControl = _tabDragTab != null
-            ? FindTabHeaderControl(_tabDragTab) ?? _tabDragControl
-            : null;
-
-        if (!ReferenceEquals(_tabDragControl, dragControl))
-        {
-            SetQuickSessionVisualClass(_tabDragControl, SessionTabDraggingClass, false);
-            _tabDragControl = dragControl;
-        }
-
-        SetQuickSessionVisualClass(_tabDragControl, SessionTabDraggingClass, _tabDragControl != null);
-    }
-
-    private List<TabDropItem> GetTabDropItems(TabStrip tabStrip, TerminalTabViewModel draggingTab)
-    {
-        var items = new List<TabDropItem>();
-        foreach (var item in this.GetVisualDescendants().OfType<TabStripItem>())
-        {
-            var tab = ResolveTabFromItem(item);
-            if (tab == null ||
-                tab == draggingTab ||
-                ResolveTabStrip(item) != tabStrip ||
-                item.Bounds.Width <= 0)
-            {
-                continue;
-            }
-
-            var topLeft = item.TranslatePoint(new Point(0, 0), TabDropOverlay);
-            if (topLeft == null)
-                continue;
-
-            items.Add(new TabDropItem(
-                tab,
-                topLeft.Value.X,
-                topLeft.Value.X + item.Bounds.Width,
-                topLeft.Value.Y,
-                topLeft.Value.Y + item.Bounds.Height));
-        }
-
-        items.Sort(static (left, right) => left.Left.CompareTo(right.Left));
-        return items;
-    }
-
-    private static int ResolveTabDropIndex(IReadOnlyList<TabDropItem> items, double pointerX)
-    {
-        for (var i = 0; i < items.Count; i++)
-        {
-            var itemCenter = items[i].Left + (items[i].Right - items[i].Left) / 2;
-            if (pointerX < itemCenter)
-                return i;
-        }
-
-        return items.Count;
-    }
-
-    private static double ResolveTabDropIndicatorX(IReadOnlyList<TabDropItem> items, int insertIndex)
-    {
-        if (insertIndex <= 0)
-            return items[0].Left;
-
-        if (insertIndex >= items.Count)
-            return items[^1].Right;
-
-        return (items[insertIndex - 1].Right + items[insertIndex].Left) / 2;
-    }
-
-    private static double ResolveTabDropIndicatorY(IReadOnlyList<TabDropItem> items)
-    {
-        var top = items.Min(static item => item.Top);
-        var bottom = items.Max(static item => item.Bottom);
-        return top + (bottom - top) / 2;
-    }
-
-    private void ShowTabDropIndicatorAt(double indicatorX, double indicatorY)
-    {
-        Avalonia.Controls.Canvas.SetLeft(
-            TabDropIndicator,
-            Math.Round(indicatorX - TabDropIndicatorWidth / 2));
-        Avalonia.Controls.Canvas.SetTop(
-            TabDropIndicator,
-            Math.Round(indicatorY - TabDropIndicatorHeight / 2 + TabDropIndicatorVerticalOffset));
-        TabDropIndicator.IsVisible = true;
-    }
-
-    private void ShowTabDragGhost(Point pointerPosition)
-    {
-        var overlayPoint = this.TranslatePoint(pointerPosition, TabDropOverlay);
-        if (overlayPoint == null)
-        {
-            HideTabDragGhost();
-            return;
-        }
-
-        Avalonia.Controls.Canvas.SetLeft(
-            TabDragGhost,
-            Math.Round(overlayPoint.Value.X + TabDragGhostOffsetX));
-        Avalonia.Controls.Canvas.SetTop(
-            TabDragGhost,
-            Math.Round(overlayPoint.Value.Y + TabDragGhostOffsetY));
-        TabDragGhost.IsVisible = true;
-    }
-
-    private void HideTabDragGhost()
-    {
-        TabDragGhost.IsVisible = false;
-    }
-
-    private readonly record struct TabDropItem(
-        TerminalTabViewModel Tab,
-        double Left,
-        double Right,
-        double Top,
-        double Bottom);
-
-    private void HideTabDropIndicator()
-    {
-        TabDropIndicator.IsVisible = false;
-    }
-
-    private Avalonia.Controls.Control? FindTabHeaderControl(TerminalTabViewModel tab)
-    {
-        return this.GetVisualDescendants()
-            .OfType<Avalonia.Controls.Control>()
-            .FirstOrDefault(control =>
-                control.Classes.Contains(SessionTabHeaderClass) &&
-                ReferenceEquals(control.DataContext, tab));
-    }
-
-    private TabStripItem? ResolveTabStripItemAt(Point point)
-    {
-        return this.GetVisualsAt(point)
-            .OfType<Avalonia.Controls.Control>()
-            .Select(ResolveTabStripItem)
-            .FirstOrDefault(item => item != null);
-    }
-
-    private static TerminalTabViewModel? ResolveTabFromItem(TabStripItem? item)
-    {
-        return item?.DataContext as TerminalTabViewModel ??
-               item?.Content as TerminalTabViewModel;
-    }
-
-    private static TabStripItem? ResolveTabStripItem(Avalonia.Controls.Control? source)
-    {
-        foreach (var current in EnumerateControlLineage(source))
-        {
-            if (current is TabStripItem item)
-                return item;
-        }
-
-        return null;
-    }
-
-    private static TabStrip? ResolveTabStrip(Avalonia.Controls.Control? source)
-    {
-        foreach (var current in EnumerateControlLineage(source))
-        {
-            if (current is TabStrip tabStrip)
-                return tabStrip;
-        }
-
-        return null;
-    }
-
-    private static Avalonia.Controls.Control? ResolveTabHeaderControl(Avalonia.Controls.Control? source)
-    {
-        foreach (var current in EnumerateControlLineage(source))
-        {
-            if (current.Classes.Contains(SessionTabHeaderClass))
-                return current;
-        }
-
-        return null;
-    }
-
-    private static bool IsTabCloseButtonSource(Avalonia.Controls.Control source)
-    {
-        foreach (var current in EnumerateControlLineage(source))
-        {
-            if (current.Name == "PART_ItemCloseButton")
-                return true;
-        }
-
-        return false;
     }
 
     private static IEnumerable<Avalonia.Controls.Control> EnumerateControlLineage(Avalonia.Controls.Control? source)
@@ -1231,6 +820,15 @@ public partial class MainWindow : Window
             return logicalParent;
 
         return null;
+    }
+
+    private void OnTabReordered(object? sender, TabReorderedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm &&
+            e.Item is TerminalTabViewModel tab)
+        {
+            vm.HandleTabReordered(tab);
+        }
     }
 
     private void OnTabStripClosing(object? sender, TabStripClosingEventArgs e)

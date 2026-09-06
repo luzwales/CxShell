@@ -8,7 +8,7 @@ The project is still moving quickly. Windows is currently the primary developmen
 
 ## Latest Release
 
-The latest release is [CxShell v0.1.46](https://github.com/xiaochengzjc/CxShell/releases/tag/v0.1.46). It includes VelaShell-inspired Agent session boundaries, resumable run checkpoints, unified tool result semantics, SFTP transfer lifecycle protection, SSH terminal buffer pooling, and persisted global panel settings.
+The latest release is [CxShell v0.1.48](https://github.com/xiaochengzjc/CxShell/releases/tag/v0.1.48). It includes explicit Agent target sessions, structured read-only diagnostics, reasoning-level model requests, unified tool results, shared HTTP proxy support, and more reliable terminal and panel behavior.
 
 Packages are available for Windows x64, macOS x64/arm64, and Linux x64/arm64. The release page provides Windows and macOS installers or portable archives, plus Linux AppImage and tar.gz packages.
 

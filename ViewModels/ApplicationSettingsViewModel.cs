@@ -73,9 +73,11 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     [ObservableProperty] private string _agentAllowedCommandPrefixes;
     [ObservableProperty] private string _agentBlockedCommandPrefixes;
     [ObservableProperty] private string _agentProviderName;
+    [ObservableProperty] private ISelectOption? _agentProviderTypeOption;
     [ObservableProperty] private string _agentBaseUrl;
     [ObservableProperty] private string _agentModel;
     [ObservableProperty] private ISelectOption? _agentModelOption;
+    [ObservableProperty] private bool _isAgentModelPickerOpen;
     [ObservableProperty] private string _agentApiKey;
     [ObservableProperty] private int _agentRequestTimeoutSeconds;
     [ObservableProperty] private bool _agentWebEnabled;
@@ -84,15 +86,23 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     [ObservableProperty] private string _agentAllowedPrivateHosts;
     [ObservableProperty] private int _agentWebMaxResults;
     [ObservableProperty] private int _agentWebMaxFetchCharacters;
+    [ObservableProperty] private bool _agentGlobalProxyEnabled;
+    [ObservableProperty] private ISelectOption? _agentGlobalProxyTypeOption;
+    [ObservableProperty] private string _agentGlobalProxyHost;
+    [ObservableProperty] private int _agentGlobalProxyPort;
+    [ObservableProperty] private string _agentGlobalProxyUsername;
+    [ObservableProperty] private string _agentGlobalProxyPassword;
     [ObservableProperty] private string _agentStatusText = string.Empty;
     [ObservableProperty] private bool _agentIsReady;
     [ObservableProperty] private string _agentModelCatalogStatus = string.Empty;
 
-    private readonly AgentModelCatalogClient _agentModelCatalogClient = new();
+    private readonly AgentModelCatalogClient _agentModelCatalogClient;
 
     public ObservableCollection<KnownSshHostKeyItemViewModel> KnownHosts { get; } = new();
     public ObservableCollection<ISelectOption> AgentPermissionModeOptions { get; } = new();
+    public ObservableCollection<ISelectOption> AgentProviderTypeOptions { get; } = new();
     public ObservableCollection<ISelectOption> AgentModelOptions { get; } = new();
+    public ObservableCollection<ISelectOption> AgentGlobalProxyTypeOptions { get; } = new();
 
     public string TitleText => Text("ApplicationSettings.Title");
     public string GeneralText => Text("ApplicationSettings.General");
@@ -140,9 +150,12 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     public string AgentBlockedCommandPrefixesText => Text("ApplicationSettings.AgentBlockedCommandPrefixes");
     public string AgentCommandPolicyDescriptionText => Text("ApplicationSettings.AgentCommandPolicyDescription");
     public string AgentProviderText => Text("ApplicationSettings.AgentProvider");
-    public string AgentProviderTypeText => AgentProviderConfiguration.IsResponsesProvider(EnsureAgentProvider())
-        ? Text("ApplicationSettings.AgentProviderTypeResponses")
-        : Text("ApplicationSettings.AgentProviderTypeChat");
+    public string AgentProviderTypeText => EnsureAgentProvider().Type switch
+    {
+        AgentProviderType.AnthropicMessages => Text("ApplicationSettings.AgentProviderTypeAnthropic"),
+        AgentProviderType.OpenAiResponses => Text("ApplicationSettings.AgentProviderTypeResponses"),
+        _ => Text("ApplicationSettings.AgentProviderTypeChat")
+    };
     public string AgentProviderNameText => Text("ApplicationSettings.AgentProviderName");
     public string AgentBaseUrlText => Text("ApplicationSettings.AgentBaseUrl");
     public string AgentModelText => Text("ApplicationSettings.AgentModel");
@@ -155,6 +168,9 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     public string AgentRequestTimeoutText => Text("ApplicationSettings.AgentRequestTimeout");
     public string AgentRefreshModelsText => Text("ApplicationSettings.AgentRefreshModels");
     public string AgentModelCatalogStatusText => AgentModelCatalogStatus;
+    public string AgentModelCatalogSummaryText => string.Format(
+        Text("ApplicationSettings.AgentModelCatalogSummary"),
+        AgentModelOptions.Count);
     public string AgentWebText => Text("ApplicationSettings.AgentWeb");
     public string AgentWebEnabledText => Text("ApplicationSettings.AgentWebEnabled");
     public string AgentSearxngBaseUrlText => Text("ApplicationSettings.AgentSearxngBaseUrl");
@@ -162,6 +178,13 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     public string AgentAllowedPrivateHostsText => Text("ApplicationSettings.AgentAllowedPrivateHosts");
     public string AgentWebMaxResultsText => Text("ApplicationSettings.AgentWebMaxResults");
     public string AgentWebMaxFetchCharactersText => Text("ApplicationSettings.AgentWebMaxFetchCharacters");
+    public string AgentGlobalProxyText => Text("ApplicationSettings.AgentGlobalProxy");
+    public string AgentGlobalProxyEnabledText => Text("ApplicationSettings.AgentGlobalProxyEnabled");
+    public string AgentGlobalProxyTypeText => Text("ApplicationSettings.AgentGlobalProxyType");
+    public string AgentGlobalProxyHostText => Text("ApplicationSettings.AgentGlobalProxyHost");
+    public string AgentGlobalProxyPortText => Text("ApplicationSettings.AgentGlobalProxyPort");
+    public string AgentGlobalProxyUsernameText => Text("ApplicationSettings.AgentGlobalProxyUsername");
+    public string AgentGlobalProxyPasswordText => Text("ApplicationSettings.AgentGlobalProxyPassword");
     public string AgentSecondsText => Text("ApplicationSettings.Seconds");
     public string AgentReadyText => Text("ApplicationSettings.AgentReady");
     public string AgentUseRoutinPresetText => Text("ApplicationSettings.AgentUseRoutinPreset");
@@ -220,6 +243,8 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         _saveSettings = saveSettings ?? throw new ArgumentNullException(nameof(saveSettings));
         _applyLanguage = applyLanguage ?? throw new ArgumentNullException(nameof(applyLanguage));
         _applyTheme = applyTheme ?? throw new ArgumentNullException(nameof(applyTheme));
+        _agentModelCatalogClient = new AgentModelCatalogClient(
+            globalProxyProvider: () => GetGlobalProxyIfEnabled());
 
         _showSessionManagerOnStartup = settings.ShowSessionManagerOnStartup;
         _showTabBar = settings.ShowTabBar;
@@ -249,6 +274,9 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         _agentAllowedCommandPrefixes = settings.AgentAllowedCommandPrefixes ?? string.Empty;
         _agentBlockedCommandPrefixes = settings.AgentBlockedCommandPrefixes ?? string.Empty;
         _agentProviderName = agentProvider.Name ?? string.Empty;
+        RebuildAgentProviderTypeOptions(agentProvider.Type);
+        _agentProviderTypeOption = AgentProviderTypeOptions.FirstOrDefault(option =>
+            option.Content is AgentProviderType type && type == agentProvider.Type);
         _agentBaseUrl = agentProvider.BaseUrl ?? string.Empty;
         _agentModel = AgentProviderConfiguration.GetEffectiveModelId(agentProvider);
         _agentApiKey = AgentProviderConfiguration.GetApiKey(agentProvider);
@@ -264,6 +292,13 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         _agentAllowedPrivateHosts = web.AllowedPrivateHosts;
         _agentWebMaxResults = web.MaxResults;
         _agentWebMaxFetchCharacters = web.MaxFetchCharacters;
+        var globalProxy = settings.GlobalProxy ??= new ProxySettings();
+        _agentGlobalProxyEnabled = globalProxy.Protocol != ProxyProtocol.None;
+        _agentGlobalProxyHost = globalProxy.Host ?? string.Empty;
+        _agentGlobalProxyPort = globalProxy.Port;
+        _agentGlobalProxyUsername = globalProxy.Username ?? string.Empty;
+        _agentGlobalProxyPassword = PasswordEncryptionService.DecryptEncrypted(globalProxy.Password);
+        RebuildAgentGlobalProxyTypeOptions(globalProxy.Protocol);
         _hostKeyTrust.Configure(settings);
         ReloadKnownHosts();
         RefreshAgentProviderStatus();
@@ -458,6 +493,20 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         PersistAgentProvider();
     }
 
+    partial void OnAgentProviderTypeOptionChanged(ISelectOption? value)
+    {
+        if (value?.Content is not AgentProviderType providerType)
+            return;
+
+        var provider = EnsureAgentProvider();
+        if (provider.Type == providerType)
+            return;
+
+        provider.Type = providerType;
+        PersistAgentProvider();
+        OnPropertyChanged(nameof(AgentProviderTypeText));
+    }
+
     partial void OnAgentBaseUrlChanged(string value)
     {
         EnsureAgentProvider().BaseUrl = value.Trim();
@@ -473,13 +522,19 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(active.Name))
             active.Name = provider.Model;
         RebuildAgentModelOptions();
+        AgentModelOption = AgentModelOptions.FirstOrDefault(option =>
+            string.Equals(option.Content?.ToString(), provider.Model, StringComparison.OrdinalIgnoreCase));
         PersistAgentProvider();
     }
 
     partial void OnAgentModelOptionChanged(ISelectOption? value)
     {
         var model = value?.Content?.ToString();
-        if (!string.IsNullOrWhiteSpace(model) && !string.Equals(model, AgentModel, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(model))
+            return;
+
+        IsAgentModelPickerOpen = false;
+        if (!string.Equals(model, AgentModel, StringComparison.Ordinal))
             AgentModel = model;
     }
 
@@ -573,8 +628,15 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         }
 
         RebuildAgentModelOptions();
+        OnPropertyChanged(nameof(AgentModelCatalogSummaryText));
         OnPropertyChanged(nameof(AgentModelCatalogStatusText));
         PersistAgentProvider();
+    }
+
+    [RelayCommand]
+    private void ToggleAgentModelPicker()
+    {
+        IsAgentModelPickerOpen = !IsAgentModelPickerOpen;
     }
 
     [RelayCommand]
@@ -584,6 +646,8 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         var provider = EnsureAgentProvider();
         provider.Type = preset.Type;
         provider.BuiltinId = preset.BuiltinId;
+        AgentProviderTypeOption = AgentProviderTypeOptions.FirstOrDefault(option =>
+            option.Content is AgentProviderType type && type == provider.Type);
         AgentEnabled = true;
         AgentProviderName = preset.Name;
         AgentBaseUrl = preset.BaseUrl;
@@ -597,6 +661,80 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     {
         RefreshAgentProviderStatus();
         Persist();
+    }
+
+    partial void OnAgentGlobalProxyEnabledChanged(bool value)
+    {
+        var proxy = EnsureGlobalProxy();
+        if (!value)
+            proxy.Protocol = ProxyProtocol.None;
+        else if (proxy.Protocol == ProxyProtocol.None)
+            proxy.Protocol = ProxyProtocol.Http;
+        Persist();
+    }
+
+    partial void OnAgentGlobalProxyTypeOptionChanged(ISelectOption? value)
+    {
+        if (value?.Content is not ProxyProtocol protocol)
+            return;
+
+        EnsureGlobalProxy().Protocol = protocol;
+        AgentGlobalProxyEnabled = protocol != ProxyProtocol.None;
+        Persist();
+    }
+
+    partial void OnAgentGlobalProxyHostChanged(string value)
+    {
+        EnsureGlobalProxy().Host = value?.Trim() ?? string.Empty;
+        Persist();
+    }
+
+    partial void OnAgentGlobalProxyPortChanged(int value)
+    {
+        var normalized = Math.Clamp(value, 0, 65535);
+        if (value != normalized)
+        {
+            AgentGlobalProxyPort = normalized;
+            return;
+        }
+
+        EnsureGlobalProxy().Port = normalized;
+        Persist();
+    }
+
+    partial void OnAgentGlobalProxyUsernameChanged(string value)
+    {
+        EnsureGlobalProxy().Username = value?.Trim() ?? string.Empty;
+        Persist();
+    }
+
+    partial void OnAgentGlobalProxyPasswordChanged(string value)
+    {
+        EnsureGlobalProxy().Password = PasswordEncryptionService.Encrypt(value?.Trim());
+        Persist();
+    }
+
+    private void RebuildAgentProviderTypeOptions(AgentProviderType preferredType)
+    {
+        AgentProviderTypeOptions.Clear();
+        AgentProviderTypeOptions.Add(new SelectOption
+        {
+            Header = Text("ApplicationSettings.AgentProviderTypeChat"),
+            Content = AgentProviderType.OpenAiChatCompatible
+        });
+        AgentProviderTypeOptions.Add(new SelectOption
+        {
+            Header = Text("ApplicationSettings.AgentProviderTypeResponses"),
+            Content = AgentProviderType.OpenAiResponses
+        });
+        AgentProviderTypeOptions.Add(new SelectOption
+        {
+            Header = Text("ApplicationSettings.AgentProviderTypeAnthropic"),
+            Content = AgentProviderType.AnthropicMessages
+        });
+        AgentProviderTypeOption = AgentProviderTypeOptions.FirstOrDefault(option =>
+            option.Content is AgentProviderType type && type == preferredType)
+            ?? AgentProviderTypeOptions[0];
     }
 
     private void RebuildAgentPermissionModeOptions(string? preferredMode = null)
@@ -638,6 +776,33 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         return _settings.AgentWeb ??= new AgentWebSettings();
     }
 
+    private ProxySettings EnsureGlobalProxy()
+        => _settings.GlobalProxy ??= new ProxySettings();
+
+    private ProxySettings? GetGlobalProxyIfEnabled()
+    {
+        var proxy = EnsureGlobalProxy();
+        return AgentGlobalProxyEnabled && proxy.IsEnabled ? proxy : null;
+    }
+
+    private void RebuildAgentGlobalProxyTypeOptions(ProxyProtocol preferred)
+    {
+        AgentGlobalProxyTypeOptions.Clear();
+        foreach (var protocol in new[]
+                 { ProxyProtocol.Http, ProxyProtocol.Socks4, ProxyProtocol.Socks4A, ProxyProtocol.Socks5, ProxyProtocol.None })
+        {
+            AgentGlobalProxyTypeOptions.Add(new SelectOption
+            {
+                Header = protocol == ProxyProtocol.None ? "None" : ProxySettings.GetTypeDisplay(protocol),
+                Content = protocol
+            });
+        }
+
+        AgentGlobalProxyTypeOption = AgentGlobalProxyTypeOptions.FirstOrDefault(option =>
+            option.Content is ProxyProtocol protocol && protocol == preferred)
+            ?? AgentGlobalProxyTypeOptions[0];
+    }
+
     private void RebuildAgentModelOptions()
     {
         AgentModelOptions.Clear();
@@ -653,6 +818,8 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         {
             AgentModelOptions.Add(new SelectOption { Header = model, Content = model });
         }
+
+        OnPropertyChanged(nameof(AgentModelCatalogSummaryText));
     }
 
     private void RefreshAgentProviderStatus()
@@ -734,6 +901,7 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(AgentRequestTimeoutText));
         OnPropertyChanged(nameof(AgentRefreshModelsText));
         OnPropertyChanged(nameof(AgentModelCatalogStatusText));
+        OnPropertyChanged(nameof(AgentModelCatalogSummaryText));
         OnPropertyChanged(nameof(AgentWebText));
         OnPropertyChanged(nameof(AgentWebEnabledText));
         OnPropertyChanged(nameof(AgentSearxngBaseUrlText));
@@ -744,6 +912,15 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(AgentSecondsText));
         OnPropertyChanged(nameof(AgentReadyText));
         OnPropertyChanged(nameof(AgentUseRoutinPresetText));
+        OnPropertyChanged(nameof(AgentGlobalProxyText));
+        OnPropertyChanged(nameof(AgentGlobalProxyEnabledText));
+        OnPropertyChanged(nameof(AgentGlobalProxyTypeText));
+        OnPropertyChanged(nameof(AgentGlobalProxyHostText));
+        OnPropertyChanged(nameof(AgentGlobalProxyPortText));
+        OnPropertyChanged(nameof(AgentGlobalProxyUsernameText));
+        OnPropertyChanged(nameof(AgentGlobalProxyPasswordText));
+        RebuildAgentProviderTypeOptions(EnsureAgentProvider().Type);
+        RebuildAgentGlobalProxyTypeOptions(EnsureGlobalProxy().Protocol);
         RefreshAgentProviderStatus();
         OnPropertyChanged(nameof(ChineseText));
         OnPropertyChanged(nameof(EnglishText));

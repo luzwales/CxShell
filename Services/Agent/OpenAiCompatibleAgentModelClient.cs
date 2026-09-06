@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using CxShell.Models;
+using CxShell.Services;
 
 namespace CxShell.Services.Agent;
 
@@ -19,9 +20,13 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
     private static readonly HttpClient SharedHttpClient = new();
     private readonly HttpClient _httpClient;
 
-    public OpenAiCompatibleAgentModelClient(HttpClient? httpClient = null)
+    public OpenAiCompatibleAgentModelClient(
+        HttpClient? httpClient = null,
+        Func<ProxySettings?>? globalProxyProvider = null)
     {
-        _httpClient = httpClient ?? SharedHttpClient;
+        _httpClient = httpClient ?? (globalProxyProvider == null
+            ? SharedHttpClient
+            : NetworkProxyHttpClientFactory.Create(globalProxyProvider));
     }
 
     public async Task<AgentModelResponse> CompleteAsync(
@@ -33,6 +38,12 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
         ArgumentNullException.ThrowIfNull(request);
 
         ValidateRequest(provider, request);
+
+        if (AgentProviderConfiguration.IsAnthropicProvider(provider))
+        {
+            return await CompleteAnthropicAsync(provider, request, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         if (AgentProviderConfiguration.IsResponsesProvider(provider, request.Model))
         {
@@ -47,6 +58,7 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
             stream = false,
             temperature = request.Temperature,
             max_tokens = request.MaxTokens,
+            reasoning_effort = ToWireReasoningEffort(request.ReasoningEffort),
             tools = request.Tools?.Select(ToWireTool),
             tool_choice = request.Tools is { Count: > 0 } ? "auto" : null
         };
@@ -110,6 +122,11 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
         ArgumentNullException.ThrowIfNull(onChunk);
         ValidateRequest(provider, request);
 
+        if (AgentProviderConfiguration.IsAnthropicProvider(provider))
+        {
+            return CompleteAnthropicStreamingAsync(provider, request, onChunk, cancellationToken);
+        }
+
         return AgentProviderConfiguration.IsResponsesProvider(provider, request.Model)
             ? CompleteResponsesStreamingAsync(provider, request, onChunk, cancellationToken)
             : CompleteChatStreamingAsync(provider, request, onChunk, cancellationToken);
@@ -129,6 +146,7 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
             stream_options = new { include_usage = true },
             temperature = request.Temperature,
             max_tokens = request.MaxTokens,
+            reasoning_effort = ToWireReasoningEffort(request.ReasoningEffort),
             tools = request.Tools?.Select(ToWireTool),
             tool_choice = request.Tools is { Count: > 0 } ? "auto" : null
         };
@@ -214,6 +232,7 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
             store = false,
             temperature = request.Temperature,
             max_output_tokens = request.MaxTokens,
+            reasoning = BuildResponsesReasoning(request.ReasoningEffort),
             tools = request.Tools?.Select(ToResponsesTool),
             tool_choice = request.Tools is { Count: > 0 } ? "auto" : null
         };
@@ -384,6 +403,465 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
             inputTokens,
             outputTokens,
             toolCalls.Length == 0 ? null : toolCalls);
+    }
+
+    private async Task<AgentModelResponse> CompleteAnthropicAsync(
+        AgentProviderSettings provider,
+        AgentModelRequest request,
+        CancellationToken cancellationToken)
+    {
+        var body = BuildAnthropicRequestBody(provider, request, stream: false);
+        using var httpRequest = CreateAnthropicRequest(provider, body, "application/json");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(provider.RequestTimeoutSeconds));
+        try
+        {
+            using var response = await _httpClient.SendAsync(
+                    httpRequest,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeout.Token)
+                .ConfigureAwait(false);
+            var responseText = await ReadResponseTextAsync(response, timeout.Token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw AgentProviderException.FromStatusCode(
+                    (int)response.StatusCode,
+                    httpRequest.RequestUri?.ToString(),
+                    GetRetryAfter(response));
+            }
+
+            return ParseAnthropicResponse(responseText, provider);
+        }
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
+        {
+            throw AgentProviderException.Timeout(httpRequest.RequestUri?.ToString(), exception);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw AgentProviderException.Protocol(
+                "Provider returned invalid UTF-8 response data.",
+                exception);
+        }
+        catch (HttpRequestException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw AgentProviderException.Network(exception, httpRequest.RequestUri?.ToString());
+        }
+    }
+
+    private async Task<AgentModelResponse> CompleteAnthropicStreamingAsync(
+        AgentProviderSettings provider,
+        AgentModelRequest request,
+        Action<AgentModelStreamChunk> onChunk,
+        CancellationToken cancellationToken)
+    {
+        var body = BuildAnthropicRequestBody(provider, request, stream: true);
+        using var httpRequest = CreateAnthropicRequest(provider, body, "text/event-stream");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(provider.RequestTimeoutSeconds));
+        try
+        {
+            using var response = await _httpClient.SendAsync(
+                    httpRequest,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeout.Token)
+                .ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                _ = await ReadResponseTextAsync(response, timeout.Token).ConfigureAwait(false);
+                throw AgentProviderException.FromStatusCode(
+                    (int)response.StatusCode,
+                    httpRequest.RequestUri?.ToString(),
+                    GetRetryAfter(response));
+            }
+
+            return await ReadAnthropicStreamAsync(
+                    response,
+                    provider,
+                    onChunk,
+                    timeout.Token)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
+        {
+            throw AgentProviderException.Timeout(httpRequest.RequestUri?.ToString(), exception);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw AgentProviderException.Protocol(
+                "Provider returned invalid UTF-8 streaming data.",
+                exception);
+        }
+        catch (HttpRequestException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw AgentProviderException.Network(exception, httpRequest.RequestUri?.ToString());
+        }
+    }
+
+    private static HttpRequestMessage CreateAnthropicRequest(
+        AgentProviderSettings provider,
+        object body,
+        string accept)
+    {
+        var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            AgentProviderConfiguration.BuildAnthropicMessagesUri(provider));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
+        var apiKey = AgentProviderConfiguration.GetApiKey(provider);
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
+        request.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
+        request.Content = new StringContent(
+            SerializeRequest(body),
+            Encoding.UTF8,
+            "application/json");
+        return request;
+    }
+
+    private static object BuildAnthropicRequestBody(
+        AgentProviderSettings provider,
+        AgentModelRequest request,
+        bool stream)
+    {
+        var system = request.Messages
+            .Where(message => string.Equals(message.Role, "system", StringComparison.OrdinalIgnoreCase))
+            .Select(message => message.Content)
+            .Where(content => !string.IsNullOrWhiteSpace(content))
+            .ToArray();
+        return new
+        {
+            model = AgentProviderConfiguration.GetEffectiveModelId(provider, request.Model),
+            max_tokens = request.MaxTokens is > 0 ? request.MaxTokens.Value : 4096,
+            system = system.Length == 0 ? null : string.Join("\n\n", system),
+            messages = request.Messages
+                .Where(message => !string.Equals(message.Role, "system", StringComparison.OrdinalIgnoreCase))
+                .Select(ToAnthropicMessage),
+            stream,
+            temperature = request.Temperature,
+            tools = request.Tools?.Select(ToAnthropicTool),
+            thinking = BuildAnthropicThinking(request.ReasoningEffort),
+            tool_choice = request.Tools is { Count: > 0 } ? new { type = "auto" } : null
+        };
+    }
+
+    private static string? ToWireReasoningEffort(AgentReasoningEffort effort)
+        => effort switch
+        {
+            AgentReasoningEffort.Low => "low",
+            AgentReasoningEffort.Medium => "medium",
+            AgentReasoningEffort.High => "high",
+            _ => null
+        };
+
+    private static object? BuildResponsesReasoning(AgentReasoningEffort effort)
+        => effort == AgentReasoningEffort.None
+            ? null
+            : new { effort = ToWireReasoningEffort(effort) };
+
+    private static object? BuildAnthropicThinking(AgentReasoningEffort effort)
+        => effort == AgentReasoningEffort.None
+            ? null
+            : new
+            {
+                type = "enabled",
+                budget_tokens = effort switch
+                {
+                    AgentReasoningEffort.Low => 1024,
+                    AgentReasoningEffort.Medium => 4096,
+                    _ => 8192
+                }
+            };
+
+    private static object ToAnthropicMessage(AgentChatMessage message)
+    {
+        var role = message.Role.Trim().ToLowerInvariant();
+        if (role == "tool")
+        {
+            return new
+            {
+                role = "user",
+                content = new[]
+                {
+                    new
+                    {
+                        type = "tool_result",
+                        tool_use_id = message.ToolCallId,
+                        content = message.Content
+                    }
+                }
+            };
+        }
+
+        if (role == "assistant" && message.ToolCalls is { Count: > 0 })
+        {
+            var blocks = new List<object>();
+            if (!string.IsNullOrWhiteSpace(message.Content))
+                blocks.Add(new { type = "text", text = message.Content });
+            foreach (var call in message.ToolCalls)
+            {
+                blocks.Add(new
+                {
+                    type = "tool_use",
+                    id = call.Id,
+                    name = call.Name,
+                    input = ParseToolArguments(call.Arguments)
+                });
+            }
+
+            return new { role = "assistant", content = blocks };
+        }
+
+        if (message.ContentParts is { Count: > 0 })
+        {
+            var blocks = new List<object>();
+            if (!string.IsNullOrWhiteSpace(message.Content))
+                blocks.Add(new { type = "text", text = message.Content });
+            foreach (var part in message.ContentParts)
+            {
+                if (string.Equals(part.Type, "image", StringComparison.OrdinalIgnoreCase))
+                {
+                    blocks.Add(new
+                    {
+                        type = "image",
+                        source = new
+                        {
+                            type = "base64",
+                            media_type = part.MediaType ?? "image/png",
+                            data = part.Data
+                        }
+                    });
+                }
+                else
+                {
+                    blocks.Add(new { type = "text", text = FormatTextPart(part) });
+                }
+            }
+
+            return new { role = role == "assistant" ? "assistant" : "user", content = blocks };
+        }
+
+        return new { role = role == "assistant" ? "assistant" : "user", content = message.Content };
+    }
+
+    private static object ToAnthropicTool(AgentToolDefinition tool)
+        => new
+        {
+            name = tool.Name,
+            description = tool.Description,
+            input_schema = tool.Parameters
+        };
+
+    private static JsonElement ParseToolArguments(string arguments)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(arguments) ? "{}" : arguments);
+            return document.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return JsonDocument.Parse("{}").RootElement.Clone();
+        }
+    }
+
+    private static async Task<AgentModelResponse> ReadAnthropicStreamAsync(
+        HttpResponseMessage response,
+        AgentProviderSettings provider,
+        Action<AgentModelStreamChunk> onChunk,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = await response.Content
+            .ReadAsStreamAsync(cancellationToken)
+            .ConfigureAwait(false);
+        using var reader = new StreamReader(
+            stream,
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: 16 * 1024);
+        var text = new StringBuilder();
+        var toolBuffers = new Dictionary<int, StreamingToolCallBuffer>();
+        var rawResponse = new StringBuilder();
+        var dataBuilder = new StringBuilder();
+        var eventType = string.Empty;
+        var sawSsePayload = false;
+        var model = AgentProviderConfiguration.GetEffectiveModelId(provider);
+        int? inputTokens = null;
+        int? outputTokens = null;
+
+        async Task ProcessDataAsync()
+        {
+            if (dataBuilder.Length == 0)
+                return;
+            ProcessAnthropicStreamData(
+                eventType,
+                dataBuilder.ToString(),
+                toolBuffers,
+                text,
+                ref model,
+                ref inputTokens,
+                ref outputTokens,
+                onChunk);
+            dataBuilder.Clear();
+            eventType = string.Empty;
+            await Task.CompletedTask;
+        }
+
+        string? line;
+        while ((line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false)) is not null)
+        {
+            if (line.Length == 0)
+            {
+                await ProcessDataAsync().ConfigureAwait(false);
+                continue;
+            }
+
+            if (line.StartsWith("event:", StringComparison.Ordinal))
+            {
+                eventType = line[6..].Trim();
+                sawSsePayload = true;
+                continue;
+            }
+
+            if (line.StartsWith("data:", StringComparison.Ordinal))
+            {
+                if (dataBuilder.Length > 0)
+                    dataBuilder.Append('\n');
+                dataBuilder.Append(line[5..].TrimStart());
+                sawSsePayload = true;
+                continue;
+            }
+
+            if (!sawSsePayload)
+            {
+                if (rawResponse.Length > 0)
+                    rawResponse.Append('\n');
+                rawResponse.Append(line);
+            }
+        }
+
+        await ProcessDataAsync().ConfigureAwait(false);
+        if (!sawSsePayload && rawResponse.Length > 0)
+        {
+            var fallback = ParseAnthropicResponse(rawResponse.ToString(), provider);
+            if (!string.IsNullOrEmpty(fallback.Text))
+                onChunk(new AgentModelStreamChunk(fallback.Text));
+            return fallback;
+        }
+
+        var toolCalls = toolBuffers.Values
+            .OrderBy(buffer => buffer.Index)
+            .Where(buffer => !string.IsNullOrWhiteSpace(buffer.Id) ||
+                             !string.IsNullOrWhiteSpace(buffer.Name) ||
+                             buffer.Arguments.Length > 0)
+            .Select(buffer => CreateValidatedToolCall(
+                buffer.Id,
+                buffer.Name,
+                buffer.Arguments.ToString()))
+            .ToArray();
+        return new AgentModelResponse(
+            text.ToString(),
+            model,
+            provider.BuiltinId,
+            inputTokens,
+            outputTokens,
+            toolCalls.Length == 0 ? null : toolCalls);
+    }
+
+    private static void ProcessAnthropicStreamData(
+        string eventType,
+        string data,
+        Dictionary<int, StreamingToolCallBuffer> toolBuffers,
+        StringBuilder text,
+        ref string model,
+        ref int? inputTokens,
+        ref int? outputTokens,
+        Action<AgentModelStreamChunk> onChunk)
+    {
+        if (data == "[DONE]")
+            return;
+
+        using var document = JsonDocument.Parse(data);
+        var root = document.RootElement;
+        var effectiveType = string.IsNullOrWhiteSpace(eventType)
+            ? ReadString(root, "type")
+            : eventType;
+        if (effectiveType == "message_start" &&
+            root.TryGetProperty("message", out var message) &&
+            message.ValueKind == JsonValueKind.Object)
+        {
+            model = ReadString(message, "model") is { Length: > 0 } value ? value : model;
+            if (message.TryGetProperty("usage", out var usage))
+                inputTokens = ReadInt(usage, "input_tokens") ?? inputTokens;
+            return;
+        }
+
+        if (effectiveType == "content_block_start" &&
+            root.TryGetProperty("content_block", out var block) &&
+            block.ValueKind == JsonValueKind.Object &&
+            ReadString(block, "type").Equals("tool_use", StringComparison.OrdinalIgnoreCase))
+        {
+            var index = root.TryGetProperty("index", out var indexElement) &&
+                        indexElement.TryGetInt32(out var parsedIndex)
+                ? parsedIndex
+                : toolBuffers.Count;
+            if (toolBuffers.Count >= MaximumToolCalls && !toolBuffers.ContainsKey(index))
+                throw AgentProviderException.Protocol(
+                    $"Provider response contained more than {MaximumToolCalls} tool calls.");
+            if (!toolBuffers.TryGetValue(index, out var buffer))
+            {
+                buffer = new StreamingToolCallBuffer(index);
+                toolBuffers[index] = buffer;
+            }
+            buffer.Id = ReadString(block, "id");
+            buffer.Name = ReadString(block, "name");
+            if (block.TryGetProperty("input", out var input) &&
+                (input.ValueKind != JsonValueKind.Object || input.EnumerateObject().Any()))
+            {
+                buffer.Arguments.Append(input.GetRawText());
+            }
+            return;
+        }
+
+        if (effectiveType == "content_block_delta" &&
+            root.TryGetProperty("delta", out var delta) &&
+            delta.ValueKind == JsonValueKind.Object)
+        {
+            var index = root.TryGetProperty("index", out var indexElement) &&
+                        indexElement.TryGetInt32(out var parsedIndex)
+                ? parsedIndex
+                : 0;
+            var deltaType = ReadString(delta, "type");
+            if (deltaType.Equals("text_delta", StringComparison.OrdinalIgnoreCase))
+            {
+                var value = ReadString(delta, "text");
+                if (!string.IsNullOrEmpty(value))
+                {
+                    text.Append(value);
+                    EnsureStreamingResponseSize(text.Length);
+                    onChunk(new AgentModelStreamChunk(value));
+                }
+            }
+            else if (deltaType.Equals("input_json_delta", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!toolBuffers.TryGetValue(index, out var buffer))
+                {
+                    if (toolBuffers.Count >= MaximumToolCalls)
+                        throw AgentProviderException.Protocol(
+                            $"Provider response contained more than {MaximumToolCalls} tool calls.");
+                    buffer = new StreamingToolCallBuffer(index);
+                    toolBuffers[index] = buffer;
+                }
+                buffer.Arguments.Append(ReadString(delta, "partial_json"));
+            }
+            return;
+        }
+
+        if (effectiveType == "message_delta" &&
+            root.TryGetProperty("usage", out var messageUsage))
+        {
+            outputTokens = ReadInt(messageUsage, "output_tokens") ?? outputTokens;
+        }
     }
 
     private static bool ProcessChatStreamData(
@@ -729,6 +1207,7 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
             store = false,
             temperature = request.Temperature,
             max_output_tokens = request.MaxTokens,
+            reasoning = BuildResponsesReasoning(request.ReasoningEffort),
             tools = request.Tools?.Select(ToResponsesTool),
             tool_choice = request.Tools is { Count: > 0 } ? "auto" : null
         };
@@ -808,6 +1287,81 @@ public sealed class OpenAiCompatibleAgentModelClient : IAgentModelClient, IAgent
         {
             throw AgentProviderException.Protocol(
                 "Provider returned an invalid Chat Completions response.",
+                exception);
+        }
+    }
+
+    private static AgentModelResponse ParseAnthropicResponse(
+        string responseText,
+        AgentProviderSettings provider)
+    {
+        try
+        {
+            if (responseText.Length > MaximumResponseCharacters)
+                throw AgentProviderException.Protocol("Provider response is too large.");
+
+            using var document = JsonDocument.Parse(responseText);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("content", out var content) ||
+                content.ValueKind != JsonValueKind.Array)
+            {
+                throw AgentProviderException.Protocol(
+                    "Provider response did not contain Anthropic content blocks.");
+            }
+
+            var text = new StringBuilder();
+            var toolCalls = new List<AgentToolCall>();
+            foreach (var block in content.EnumerateArray())
+            {
+                if (block.ValueKind != JsonValueKind.Object)
+                    continue;
+
+                var type = ReadString(block, "type");
+                if (type.Equals("text", StringComparison.OrdinalIgnoreCase))
+                {
+                    text.Append(ReadString(block, "text"));
+                    EnsureStreamingResponseSize(text.Length);
+                    continue;
+                }
+
+                if (type.Equals("tool_use", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (toolCalls.Count >= MaximumToolCalls)
+                        throw AgentProviderException.Protocol(
+                            $"Provider response contained more than {MaximumToolCalls} tool calls.");
+
+                    var input = block.TryGetProperty("input", out var inputElement)
+                        ? inputElement.GetRawText()
+                        : "{}";
+                    toolCalls.Add(CreateValidatedToolCall(
+                        ReadString(block, "id"),
+                        ReadString(block, "name"),
+                        input));
+                }
+            }
+
+            var model = ReadString(root, "model");
+            if (string.IsNullOrWhiteSpace(model))
+                model = AgentProviderConfiguration.GetEffectiveModelId(provider);
+            var usage = root.TryGetProperty("usage", out var usageElement)
+                ? usageElement
+                : default;
+            return new AgentModelResponse(
+                text.ToString(),
+                model,
+                provider.BuiltinId,
+                ReadInt(usage, "input_tokens"),
+                ReadInt(usage, "output_tokens"),
+                toolCalls.Count == 0 ? null : toolCalls);
+        }
+        catch (AgentProviderException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException)
+        {
+            throw AgentProviderException.Protocol(
+                "Provider returned an invalid Anthropic Messages response.",
                 exception);
         }
     }

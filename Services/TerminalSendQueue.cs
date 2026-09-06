@@ -146,6 +146,21 @@ public sealed class TerminalSendQueue : IDisposable
             }
         }
 
-        _cancellation.Dispose();
+        // A connection write can be inside a platform stream call that does
+        // not observe cancellation immediately. Keep the token source alive
+        // until the worker has actually stopped.
+        if (_worker.IsCompleted)
+        {
+            _cancellation.Dispose();
+        }
+        else
+        {
+            _ = _worker.ContinueWith(
+                static (_, state) => ((CancellationTokenSource)state!).Dispose(),
+                _cancellation,
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
     }
 }

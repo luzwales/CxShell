@@ -38,6 +38,7 @@ public sealed class AgentSessionGateway : IAgentSessionGateway, IDisposable
         => new()
         {
             SupportsCommandOutputCapture = GetEndpoints().Any(endpoint => endpoint.SupportsCommandOutputCapture),
+            SupportsSftpRead = GetEndpoints().Any(endpoint => endpoint.SupportsSftpRead),
             SupportsReadOnlyDiagnostics = GetEndpoints().Any(endpoint => endpoint.SupportsCommandOutputCapture),
             SupportsSavedSessionManagement = HasSavedSessionManagement,
             RequiresApprovalForSessionOpen = HasSavedSessionManagement,
@@ -66,6 +67,208 @@ public sealed class AgentSessionGateway : IAgentSessionGateway, IDisposable
             return null;
 
             return GetSessions().FirstOrDefault(session => session.SessionId == sessionId);
+    }
+
+    public bool TryGetTerminalText(Guid sessionId, out string terminalText)
+    {
+        ThrowIfDisposed();
+        terminalText = string.Empty;
+        var endpoint = FindEndpoint(sessionId);
+        if (endpoint == null ||
+            !endpoint.SupportsTerminalText ||
+            endpoint.Snapshot.Protocol != SessionProtocol.SSH ||
+            !endpoint.Snapshot.IsConnected)
+        {
+            return false;
+        }
+
+        try
+        {
+            terminalText = endpoint.GetTerminalText();
+            return true;
+        }
+        catch
+        {
+            terminalText = string.Empty;
+            return false;
+        }
+    }
+
+    public bool TryGetWorkingDirectory(Guid sessionId, out string workingDirectory)
+    {
+        ThrowIfDisposed();
+        workingDirectory = string.Empty;
+        var endpoint = FindEndpoint(sessionId);
+        if (endpoint == null ||
+            !endpoint.SupportsWorkingDirectory ||
+            endpoint.Snapshot.Protocol != SessionProtocol.SSH ||
+            !endpoint.Snapshot.IsConnected)
+        {
+            return false;
+        }
+
+        try
+        {
+            workingDirectory = endpoint.GetWorkingDirectory()?.Trim() ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(workingDirectory);
+        }
+        catch
+        {
+            workingDirectory = string.Empty;
+            return false;
+        }
+    }
+
+    public async Task<AgentRemoteDirectoryResult> ListRemoteDirectoryAsync(
+        Guid sessionId,
+        string path,
+        int maxEntries,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        if (!AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                path,
+                AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName,
+                out var normalizedPath,
+                out var pathError))
+        {
+            return new(false, path ?? string.Empty, [], Error: pathError, ErrorCode: "invalid_path");
+        }
+
+        if (maxEntries is < 1 or > AgentReadOnlyToolCatalog.MaximumRemoteDirectoryEntries)
+        {
+            return new(
+                false,
+                normalizedPath,
+                [],
+                Error: $"maxEntries must be between 1 and {AgentReadOnlyToolCatalog.MaximumRemoteDirectoryEntries}.",
+                ErrorCode: "invalid_limit");
+        }
+
+        var endpoint = FindEndpoint(sessionId);
+        if (endpoint == null)
+            return new(false, normalizedPath, [], Error: "The requested session is not open.", ErrorCode: "session_not_found");
+
+        var snapshot = endpoint.Snapshot;
+        if (!snapshot.IsConnected)
+            return new(false, normalizedPath, [], Error: "The requested session is not connected.", ErrorCode: "session_not_connected");
+        if (snapshot.Protocol != SessionProtocol.SSH)
+            return new(false, normalizedPath, [], Error: "Only SSH sessions support SFTP reads.", ErrorCode: "unsupported_protocol");
+        if (!endpoint.SupportsSftpRead)
+            return AgentRemoteDirectoryResult.Unsupported(normalizedPath);
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await endpoint.ListRemoteDirectoryAsync(normalizedPath, maxEntries, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new(false, normalizedPath, [], Error: TrimException(ex), ErrorCode: "sftp_failed");
+        }
+    }
+
+    public async Task<AgentRemoteFileReadResult> ReadRemoteFileAsync(
+        Guid sessionId,
+        string path,
+        int maxCharacters,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        if (!AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                path,
+                AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+                out var normalizedPath,
+                out var pathError))
+        {
+            return new(false, path ?? string.Empty, string.Empty, 0, pathError, "invalid_path");
+        }
+
+        if (maxCharacters is < 1 or > AgentReadOnlyToolCatalog.MaximumRemoteFileCharacters)
+        {
+            return new(
+                false,
+                normalizedPath,
+                string.Empty,
+                0,
+                $"maxCharacters must be between 1 and {AgentReadOnlyToolCatalog.MaximumRemoteFileCharacters}.",
+                "invalid_limit");
+        }
+
+        var endpoint = FindEndpoint(sessionId);
+        if (endpoint == null)
+            return new(false, normalizedPath, string.Empty, 0, "The requested session is not open.", "session_not_found");
+
+        var snapshot = endpoint.Snapshot;
+        if (!snapshot.IsConnected)
+            return new(false, normalizedPath, string.Empty, 0, "The requested session is not connected.", "session_not_connected");
+        if (snapshot.Protocol != SessionProtocol.SSH)
+            return new(false, normalizedPath, string.Empty, 0, "Only SSH sessions support SFTP reads.", "unsupported_protocol");
+        if (!endpoint.SupportsSftpRead)
+            return AgentRemoteFileReadResult.Unsupported(normalizedPath);
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await endpoint.ReadRemoteFileAsync(normalizedPath, maxCharacters, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new(false, normalizedPath, string.Empty, 0, TrimException(ex), "sftp_failed");
+        }
+    }
+
+    public async Task<AgentRemotePathResult> StatRemotePathAsync(
+        Guid sessionId,
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        if (!AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                path,
+                AgentReadOnlyToolCatalog.StatRemotePathToolName,
+                out var normalizedPath,
+                out var pathError))
+        {
+            return new(false, path ?? string.Empty, Error: pathError, ErrorCode: "invalid_path");
+        }
+
+        var endpoint = FindEndpoint(sessionId);
+        if (endpoint == null)
+            return new(false, normalizedPath, Error: "The requested session is not open.", ErrorCode: "session_not_found");
+
+        var snapshot = endpoint.Snapshot;
+        if (!snapshot.IsConnected)
+            return new(false, normalizedPath, Error: "The requested session is not connected.", ErrorCode: "session_not_connected");
+        if (snapshot.Protocol != SessionProtocol.SSH)
+            return new(false, normalizedPath, Error: "Only SSH sessions support SFTP reads.", ErrorCode: "unsupported_protocol");
+        if (!endpoint.SupportsSftpRead)
+            return AgentRemotePathResult.Unsupported(normalizedPath);
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await endpoint.StatRemotePathAsync(normalizedPath, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return new(false, normalizedPath, Error: TrimException(ex), ErrorCode: "sftp_failed");
+        }
     }
 
     public async Task<IReadOnlyList<AgentSavedSessionSnapshot>> ListSavedSessionsAsync(

@@ -47,12 +47,13 @@ public class SshConnectionService : ITerminalConnectionService
     private Encoding _terminalEncoding = Encoding.UTF8;
     private Decoder _terminalDecoder = Encoding.UTF8.GetDecoder();
     private SessionInfo? _session;
-    private bool _connectionClosedRaised;
+    private readonly ConnectionLifecycle _connectionLifecycle = new();
     private DateTimeOffset _startupEchoSuppressUntil = DateTimeOffset.MinValue;
     private const string Utf8LocaleBootstrapCommand =
         "unset LC_ALL; [ \"${LANG:-C}\" = C ] && LANG=en_US.UTF-8; export LANG; export LC_CTYPE=$LANG\r";
     private static readonly TimeSpan StartupEchoSuppressWindow = TimeSpan.FromSeconds(8);
     private const int StartupEchoSuppressMaxBufferLength = 8192;
+    private const int TerminalReadBufferSize = 16 * 1024;
 
     public bool SupportsPosixShellFeatures { get; private set; } = true;
     public bool IsConnected => _sshClient?.IsConnected ?? false;
@@ -72,7 +73,7 @@ public class SshConnectionService : ITerminalConnectionService
     {
         Disconnect();
         _x11StatusMessage = null;
-        _connectionClosedRaised = false;
+        var connectionInstanceId = _connectionLifecycle.Begin();
         _session = session;
         SupportsPosixShellFeatures = true;
         _terminalEncoding = TerminalSessionOptions.GetEncoding(session);
@@ -136,7 +137,9 @@ public class SshConnectionService : ITerminalConnectionService
             SendRemoteCommand(session.SshRemoteCommand);
             _terminalDecoder.Reset();
             _readCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            _readTask = Task.Run(() => ReadLoop(_readCts.Token), _readCts.Token);
+            _readTask = Task.Run(
+                () => ReadLoop(connectionInstanceId, _readCts.Token),
+                _readCts.Token);
             EmitStartupStatus();
         }
         catch (Exception ex)
@@ -907,9 +910,9 @@ public class SshConnectionService : ITerminalConnectionService
         }
     }
 
-    private void ReadLoop(CancellationToken ct)
+    private void ReadLoop(long connectionInstanceId, CancellationToken ct)
     {
-        var buffer = ArrayPool<byte>.Shared.Rent(16 * 1024);
+        var buffer = ArrayPool<byte>.Shared.Rent(TerminalReadBufferSize);
 
         try
         {
@@ -918,20 +921,34 @@ public class SshConnectionService : ITerminalConnectionService
                 var bytesRead = _shellStream.Read(buffer, 0, buffer.Length);
                 if (bytesRead > 0)
                 {
-                    var data = new byte[bytesRead];
-                    Buffer.BlockCopy(buffer, 0, data, 0, bytesRead);
-                    if (BinaryDataReceived?.Invoke(data) == true)
-                        continue;
+                    // Binary consumers may retain the chunk while a transfer is
+                    // active, so keep an owned copy for that boundary. Ordinary
+                    // terminal decoding below reads directly from the pooled
+                    // input buffer and no longer allocates a second byte array.
+                    if (BinaryDataReceived != null)
+                    {
+                        var binaryData = new byte[bytesRead];
+                        Buffer.BlockCopy(buffer, 0, binaryData, 0, bytesRead);
+                        if (BinaryDataReceived.Invoke(binaryData))
+                            continue;
+                    }
 
                     TraceSshPacket($"received {bytesRead} byte(s)");
-                    var charCount = _terminalDecoder.GetCharCount(data, 0, data.Length);
+                    var charCount = _terminalDecoder.GetCharCount(buffer, 0, bytesRead);
                     if (charCount > 0)
                     {
-                        var chars = new char[charCount];
-                        var charsRead = _terminalDecoder.GetChars(data, 0, data.Length, chars, 0);
-                        var text = SuppressStartupCommandEchoes(new string(chars, 0, charsRead));
-                        if (!string.IsNullOrEmpty(text))
-                            DataReceived?.Invoke(text);
+                        var chars = ArrayPool<char>.Shared.Rent(charCount);
+                        try
+                        {
+                            var charsRead = _terminalDecoder.GetChars(buffer, 0, bytesRead, chars, 0);
+                            var text = SuppressStartupCommandEchoes(new string(chars, 0, charsRead));
+                            if (!string.IsNullOrEmpty(text))
+                                DataReceived?.Invoke(text);
+                        }
+                        finally
+                        {
+                            ArrayPool<char>.Shared.Return(chars);
+                        }
                     }
                 }
                 else
@@ -955,12 +972,13 @@ public class SshConnectionService : ITerminalConnectionService
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
-            RaiseConnectionClosedOnce("Connection closed.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection closed.");
         }
     }
 
     public void SendData(string data)
     {
+        var connectionInstanceId = _connectionLifecycle.ActiveInstanceId;
         try
         {
             lock (_writeLock)
@@ -977,20 +995,21 @@ public class SshConnectionService : ITerminalConnectionService
         }
         catch (ObjectDisposedException)
         {
-            RaiseConnectionClosedOnce("Connection closed.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection closed.");
         }
         catch (System.IO.IOException)
         {
-            RaiseConnectionClosedOnce("Connection lost.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection lost.");
         }
         catch (SshConnectionException)
         {
-            RaiseConnectionClosedOnce("Connection lost.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection lost.");
         }
     }
 
     public void SendBytes(byte[] data)
     {
+        var connectionInstanceId = _connectionLifecycle.ActiveInstanceId;
         try
         {
             lock (_writeLock)
@@ -1002,24 +1021,23 @@ public class SshConnectionService : ITerminalConnectionService
         }
         catch (ObjectDisposedException)
         {
-            RaiseConnectionClosedOnce("Connection closed.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection closed.");
         }
         catch (System.IO.IOException)
         {
-            RaiseConnectionClosedOnce("Connection lost.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection lost.");
         }
         catch (SshConnectionException)
         {
-            RaiseConnectionClosedOnce("Connection lost.");
+            RaiseConnectionClosedOnce(connectionInstanceId, "Connection lost.");
         }
     }
 
-    private void RaiseConnectionClosedOnce(string reason)
+    private void RaiseConnectionClosedOnce(long connectionInstanceId, string reason)
     {
-        if (_connectionClosedRaised)
+        if (!_connectionLifecycle.TryClaimClosed(connectionInstanceId))
             return;
 
-        _connectionClosedRaised = true;
         ConnectionClosed?.Invoke(reason);
     }
 
@@ -1106,19 +1124,24 @@ public class SshConnectionService : ITerminalConnectionService
         Encoding? outputEncoding = null,
         string? inputText = null)
     {
-        if (_sshClient == null || !_sshClient.IsConnected)
+        var connectionInstanceId = _connectionLifecycle.ActiveInstanceId;
+        var sshClient = _sshClient;
+        if (sshClient == null || !sshClient.IsConnected)
             throw new InvalidOperationException("SSH connection is not connected.");
 
         await _commandGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            if (!IsActiveConnection(connectionInstanceId, sshClient))
+                throw new InvalidOperationException("SSH connection changed before the command started.");
+
             return await Task.Run(async () =>
             {
-                if (_sshClient == null || !_sshClient.IsConnected)
-                    throw new InvalidOperationException("SSH connection is not connected.");
+                if (!IsActiveConnection(connectionInstanceId, sshClient))
+                    throw new InvalidOperationException("SSH connection changed before the command started.");
 
                 var commandEncoding = outputEncoding ?? _terminalEncoding;
-                using var command = _sshClient.CreateCommand(commandText, commandEncoding);
+                using var command = sshClient.CreateCommand(commandText, commandEncoding);
                 command.CommandTimeout = timeout;
                 var executeTask = command.ExecuteAsync(cancellationToken);
                 var streamedOutputTask = ReadCommandOutputAsync(
@@ -1146,6 +1169,9 @@ public class SshConnectionService : ITerminalConnectionService
                 await executeTask.ConfigureAwait(false);
                 var output = await streamedOutputTask.ConfigureAwait(false);
                 var error = await streamedErrorTask.ConfigureAwait(false);
+                if (!IsActiveConnection(connectionInstanceId, sshClient))
+                    throw new InvalidOperationException("SSH connection changed while the command was running.");
+
                 return new SshCommandExecutionResult(
                     output,
                     error,
@@ -1157,6 +1183,14 @@ public class SshConnectionService : ITerminalConnectionService
         {
             _commandGate.Release();
         }
+    }
+
+    private bool IsActiveConnection(long connectionInstanceId, SshClient sshClient)
+    {
+        return connectionInstanceId != 0 &&
+               connectionInstanceId == _connectionLifecycle.ActiveInstanceId &&
+               ReferenceEquals(_sshClient, sshClient) &&
+               sshClient.IsConnected;
     }
 
     private static void ThrowIfCommandFailed(SshCommandExecutionResult result)
@@ -1257,6 +1291,7 @@ public class SshConnectionService : ITerminalConnectionService
 
     public void Disconnect()
     {
+        _connectionLifecycle.Invalidate();
         _readCts?.Cancel();
 
         try

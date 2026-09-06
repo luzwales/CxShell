@@ -773,6 +773,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Agent.ModeChat"] = "Chat";
         EnglishTexts["Agent.ModePlan"] = "Plan";
         EnglishTexts["Agent.ModeAgent"] = "Agent";
+        EnglishTexts["Agent.ReasoningEffort"] = "Thinking";
+        EnglishTexts["Agent.ReasoningEffortNone"] = "Default";
+        EnglishTexts["Agent.ReasoningEffortLow"] = "Low";
+        EnglishTexts["Agent.ReasoningEffortMedium"] = "Medium";
+        EnglishTexts["Agent.ReasoningEffortHigh"] = "High";
         EnglishTexts["Agent.Prompt"] = "Task";
         EnglishTexts["Agent.PromptPlaceholder"] = "Describe what you want to inspect or troubleshoot...";
         EnglishTexts["Agent.AttachFile"] = "Attach file";
@@ -980,6 +985,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["ApplicationSettings.AgentProvider"] = "Provider";
         EnglishTexts["ApplicationSettings.AgentProviderTypeChat"] = "OpenAI Chat Completions compatible";
         EnglishTexts["ApplicationSettings.AgentProviderTypeResponses"] = "OpenAI Responses compatible";
+        EnglishTexts["ApplicationSettings.AgentProviderTypeAnthropic"] = "Anthropic Messages compatible";
         EnglishTexts["ApplicationSettings.AgentProviderName"] = "Name";
         EnglishTexts["ApplicationSettings.AgentBaseUrl"] = "Base URL";
         EnglishTexts["ApplicationSettings.AgentModel"] = "Model";
@@ -993,6 +999,8 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["ApplicationSettings.AgentModelCatalogLoading"] = "Loading models...";
         EnglishTexts["ApplicationSettings.AgentModelCatalogLoaded"] = "Loaded {0} models.";
         EnglishTexts["ApplicationSettings.AgentModelCatalogFailed"] = "Could not load models.";
+        EnglishTexts["ApplicationSettings.AgentModelCatalog"] = "Model catalog";
+        EnglishTexts["ApplicationSettings.AgentModelCatalogSummary"] = "{0} models loaded";
         EnglishTexts["ApplicationSettings.AgentWeb"] = "Web access";
         EnglishTexts["ApplicationSettings.AgentWebEnabled"] = "Enable web access";
         EnglishTexts["ApplicationSettings.AgentSearxngBaseUrl"] = "SearXNG base URL";
@@ -1000,6 +1008,13 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["ApplicationSettings.AgentAllowedPrivateHosts"] = "Private host allow list";
         EnglishTexts["ApplicationSettings.AgentWebMaxResults"] = "Maximum search results";
         EnglishTexts["ApplicationSettings.AgentWebMaxFetchCharacters"] = "Maximum fetched characters";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxy"] = "Global network proxy";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyEnabled"] = "Use a global proxy for Agent network access";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyType"] = "Proxy type";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyHost"] = "Proxy host";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyPort"] = "Proxy port";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyUsername"] = "Proxy username";
+        EnglishTexts["ApplicationSettings.AgentGlobalProxyPassword"] = "Proxy password";
         EnglishTexts["ApplicationSettings.Seconds"] = "seconds";
         EnglishTexts["ApplicationSettings.AgentReady"] = "Configuration is ready.";
         EnglishTexts["ApplicationSettings.AgentUseRoutinPreset"] = "Use Routin AI Plan";
@@ -1271,6 +1286,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Agent.ModeChat"] = "\u5bf9\u8bdd";
         ChineseTexts["Agent.ModePlan"] = "\u8ba1\u5212";
         ChineseTexts["Agent.ModeAgent"] = "Agent \u6267\u884c";
+        ChineseTexts["Agent.ReasoningEffort"] = "\u601d\u8003\u6863\u4f4d";
+        ChineseTexts["Agent.ReasoningEffortNone"] = "\u9ed8\u8ba4";
+        ChineseTexts["Agent.ReasoningEffortLow"] = "\u4f4e";
+        ChineseTexts["Agent.ReasoningEffortMedium"] = "\u4e2d";
+        ChineseTexts["Agent.ReasoningEffortHigh"] = "\u9ad8";
         ChineseTexts["Agent.Prompt"] = "\u4efb\u52a1";
         ChineseTexts["Agent.PromptPlaceholder"] = "\u8bf7\u63cf\u8ff0\u4f60\u60f3\u68c0\u67e5\u6216\u6392\u67e5\u7684\u95ee\u9898\u2026";
         ChineseTexts["Agent.AttachFile"] = "\u6dfb\u52a0\u6587\u4ef6";
@@ -1478,6 +1498,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["ApplicationSettings.AgentProvider"] = "\u670d\u52a1\u5546";
         ChineseTexts["ApplicationSettings.AgentProviderTypeChat"] = "\u517c\u5bb9 OpenAI Chat Completions";
         ChineseTexts["ApplicationSettings.AgentProviderTypeResponses"] = "\u517c\u5bb9 OpenAI Responses";
+        ChineseTexts["ApplicationSettings.AgentProviderTypeAnthropic"] = "\u517c\u5bb9 Anthropic Messages";
         ChineseTexts["ApplicationSettings.AgentProviderName"] = "\u540d\u79f0";
         ChineseTexts["ApplicationSettings.AgentBaseUrl"] = "Base URL";
         ChineseTexts["ApplicationSettings.AgentModel"] = "\u6a21\u578b";
@@ -1491,6 +1512,8 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["ApplicationSettings.AgentModelCatalogLoading"] = "\u6b63\u5728\u52a0\u8f7d\u6a21\u578b...";
         ChineseTexts["ApplicationSettings.AgentModelCatalogLoaded"] = "\u5df2\u52a0\u8f7d {0} \u4e2a\u6a21\u578b\u3002";
         ChineseTexts["ApplicationSettings.AgentModelCatalogFailed"] = "\u65e0\u6cd5\u52a0\u8f7d\u6a21\u578b\u3002";
+        ChineseTexts["ApplicationSettings.AgentModelCatalog"] = "模型目录";
+        ChineseTexts["ApplicationSettings.AgentModelCatalogSummary"] = "已加载 {0} 个模型";
         ChineseTexts["ApplicationSettings.AgentWeb"] = "Web \u8bbf\u95ee";
         ChineseTexts["ApplicationSettings.AgentWebEnabled"] = "\u542f\u7528 Web \u8bbf\u95ee";
         ChineseTexts["ApplicationSettings.AgentSearxngBaseUrl"] = "SearXNG \u57fa\u7840\u5730\u5740";
@@ -1498,6 +1521,13 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["ApplicationSettings.AgentAllowedPrivateHosts"] = "\u79c1\u6709\u4e3b\u673a\u5141\u8bb8\u5217\u8868";
         ChineseTexts["ApplicationSettings.AgentWebMaxResults"] = "\u641c\u7d22\u7ed3\u679c\u4e0a\u9650";
         ChineseTexts["ApplicationSettings.AgentWebMaxFetchCharacters"] = "\u6293\u53d6\u5b57\u7b26\u4e0a\u9650";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxy"] = "\u5168\u5c40\u7f51\u7edc\u4ee3\u7406";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyEnabled"] = "Agent \u7f51\u7edc\u8bbf\u95ee\u4f7f\u7528\u5168\u5c40\u4ee3\u7406";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyType"] = "\u4ee3\u7406\u7c7b\u578b";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyHost"] = "\u4ee3\u7406\u4e3b\u673a";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyPort"] = "\u4ee3\u7406\u7aef\u53e3";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyUsername"] = "\u4ee3\u7406\u7528\u6237\u540d";
+        ChineseTexts["ApplicationSettings.AgentGlobalProxyPassword"] = "\u4ee3\u7406\u5bc6\u7801";
         ChineseTexts["ApplicationSettings.Seconds"] = "\u79d2";
         ChineseTexts["ApplicationSettings.AgentReady"] = "\u914d\u7f6e\u5df2\u5c31\u7eea\u3002";
         ChineseTexts["ApplicationSettings.AgentUseRoutinPreset"] = "\u4f7f\u7528 Routin AI Plan";

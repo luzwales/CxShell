@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -354,6 +355,9 @@ public partial class TerminalViewModel : ObservableObject
                 throw new InvalidOperationException("Current terminal connection does not support remote commands.");
 
             var generation = _connectionGeneration;
+            if (!IsCurrentConnection(generation, connection))
+                throw new InvalidOperationException("The SSH connection changed before the Agent command started.");
+
             AppendAgentCommandStarted(generation, displayCommand ?? commandText);
             try
             {
@@ -366,26 +370,35 @@ public partial class TerminalViewModel : ObservableObject
                     chunk =>
                     {
                         AppendAgentCommandOutput(generation, chunk);
-                        progressReceived?.Invoke(new AgentCommandProgress(
-                            requestId,
-                            _session?.Id ?? Guid.Empty,
-                            chunk,
-                            IsError: false,
-                            ElapsedMs: ElapsedMilliseconds()));
+                        if (IsCurrentConnection(generation, connection))
+                        {
+                            progressReceived?.Invoke(new AgentCommandProgress(
+                                requestId,
+                                _session?.Id ?? Guid.Empty,
+                                chunk,
+                                IsError: false,
+                                ElapsedMs: ElapsedMilliseconds()));
+                        }
                     },
                     error =>
                     {
                         AppendAgentCommandOutput(generation, error);
-                        progressReceived?.Invoke(new AgentCommandProgress(
-                            requestId,
-                            _session?.Id ?? Guid.Empty,
-                            error,
-                            IsError: true,
-                            ElapsedMs: ElapsedMilliseconds()));
+                        if (IsCurrentConnection(generation, connection))
+                        {
+                            progressReceived?.Invoke(new AgentCommandProgress(
+                                requestId,
+                                _session?.Id ?? Guid.Empty,
+                                error,
+                                IsError: true,
+                                ElapsedMs: ElapsedMilliseconds()));
+                        }
                     },
                     cancellationToken,
                     connection.SupportsPosixShellFeatures ? null : Encoding.UTF8,
                     sensitiveInput).ConfigureAwait(false);
+                if (!IsCurrentConnection(generation, connection))
+                    throw new InvalidOperationException("The SSH connection changed while the Agent command was running.");
+
                 AppendAgentCommandFinished(
                     generation,
                     execution.Succeeded,
@@ -724,18 +737,20 @@ public partial class TerminalViewModel : ObservableObject
                 EnqueueTerminalOutput(generation, connection, data);
             };
 
-            connection.BinaryDataReceived += bytes => HandleBinaryData(generation, bytes);
+            connection.BinaryDataReceived += bytes => HandleBinaryData(generation, connection, bytes);
 
             connection.ConnectionClosed += reason =>
             {
-                Dispatcher.UIThread.Post(() => HandleConnectionClosed(generation, reason));
+                Dispatcher.UIThread.Post(() => HandleConnectionClosed(generation, connection, reason));
             };
 
             connection.ErrorOccurred += error =>
             {
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (generation != _connectionGeneration || _manualDisconnect)
+                    if (generation != _connectionGeneration ||
+                        _manualDisconnect ||
+                        !ReferenceEquals(_connection, connection))
                         return;
 
                     AppendStatusMessage($"[Connection error: {error}]", "31");
@@ -885,7 +900,10 @@ public partial class TerminalViewModel : ObservableObject
         HandleLoginScriptData(pending.Generation, pending.Connection, terminalData);
         HandleTerminalTriggerData(pending.Generation, pending.Connection, terminalData);
         TryDetectPendingXymodemUploadFromOutput(terminalData);
-        TryStartPendingXymodemDownloadFromOutput(pending.Generation, terminalData);
+        TryStartPendingXymodemDownloadFromOutput(
+            pending.Generation,
+            pending.Connection,
+            terminalData);
         Parser.Process(terminalData);
         return true;
     }
@@ -1168,9 +1186,14 @@ public partial class TerminalViewModel : ObservableObject
     [DllImport("winmm.dll", CharSet = CharSet.Unicode)]
     private static extern bool PlaySound(string? pszSound, IntPtr hmod, uint fdwSound);
 
-    private void HandleConnectionClosed(int generation, string reason)
+    private void HandleConnectionClosed(
+        int generation,
+        ITerminalConnectionService connection,
+        string reason)
     {
-        if (generation != _connectionGeneration || _manualDisconnect)
+        if (generation != _connectionGeneration ||
+            _manualDisconnect ||
+            !ReferenceEquals(_connection, connection))
             return;
 
         IsConnected = false;
@@ -2054,15 +2077,18 @@ public partial class TerminalViewModel : ObservableObject
         return NormalizeScriptSendText(command.ToString()) + "\r";
     }
 
-    private bool HandleBinaryData(int generation, byte[] bytes)
+    private bool HandleBinaryData(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
-        if (generation != _connectionGeneration)
+        if (!IsCurrentConnection(generation, connection))
             return false;
 
-        if (TrySuppressLateZmodemOverAndOut(bytes))
+        if (TrySuppressLateZmodemOverAndOut(generation, connection, bytes))
             return true;
 
-        if (TrySuppressXymodemResidual(bytes))
+        if (TrySuppressXymodemResidual(generation, connection, bytes))
             return true;
 
         ZmodemTransfer? transfer = null;
@@ -2105,7 +2131,7 @@ public partial class TerminalViewModel : ObservableObject
             return true;
         }
 
-        var pendingDownloadAction = HandlePendingXymodemDownloadBytes(generation, bytes);
+        var pendingDownloadAction = HandlePendingXymodemDownloadBytes(generation, connection, bytes);
         if (pendingDownloadAction == PendingXymodemDownloadByteAction.Consume)
         {
             lock (_zmodemLock)
@@ -2141,7 +2167,7 @@ public partial class TerminalViewModel : ObservableObject
 
         if (!ZmodemTransfer.TryFindStartupHeader(scanBytes, out var index, out var direction))
         {
-            if (TryStartPendingXymodemUpload(generation, scanBytes))
+            if (TryStartPendingXymodemUpload(generation, connection, scanBytes))
                 return true;
 
             var keep = GetZmodemStartupPrefixSuffixLength(scanBytes);
@@ -2150,7 +2176,7 @@ public partial class TerminalViewModel : ObservableObject
 
             var terminalLength = scanBytes.Length - keep;
             if (terminalLength > 0)
-                ProcessTerminalBytes(scanBytes[..terminalLength]);
+                ProcessTerminalBytes(generation, connection, scanBytes[..terminalLength]);
 
             lock (_zmodemLock)
             {
@@ -2163,7 +2189,7 @@ public partial class TerminalViewModel : ObservableObject
         }
 
         if (index > 0 && !ShouldSuppressZmodemPreamble(direction, scanBytes[..index]))
-            ProcessTerminalBytes(scanBytes[..index]);
+            ProcessTerminalBytes(generation, connection, scanBytes[..index]);
 
         lock (_zmodemLock)
         {
@@ -2174,11 +2200,14 @@ public partial class TerminalViewModel : ObservableObject
             _zmodemPendingBytes.Add(scanBytes[index..]);
         }
 
-        _ = BeginZmodemTransferAsync(generation, direction);
+        _ = BeginZmodemTransferAsync(generation, connection, direction);
         return true;
     }
 
-    private PendingXymodemDownloadByteAction HandlePendingXymodemDownloadBytes(int generation, byte[] bytes)
+    private PendingXymodemDownloadByteAction HandlePendingXymodemDownloadBytes(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
         lock (_xymodemLock)
         {
@@ -2195,7 +2224,7 @@ public partial class TerminalViewModel : ObservableObject
             if (ZmodemTransfer.TryFindStartupHeader(bytes, out _, out _))
             {
                 ClearPendingXymodemDownload();
-                TrySendBytes(_connection, new[] { (byte)24, (byte)24, (byte)24, (byte)24, (byte)24 });
+                TrySendBytes(generation, connection, new[] { (byte)24, (byte)24, (byte)24, (byte)24, (byte)24 });
                 PostStatusMessage("[YMODEM download cancelled: remote started ZMODEM; use sz for ZMODEM download]", "33");
                 return PendingXymodemDownloadByteAction.Consume;
             }
@@ -2234,7 +2263,10 @@ public partial class TerminalViewModel : ObservableObject
         return MatchesConfiguredCommandText(text, _session?.FileTransferZmodemUploadCommand, "rz");
     }
 
-    private bool TryStartPendingXymodemUpload(int generation, byte[] bytes)
+    private bool TryStartPendingXymodemUpload(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
         XymodemProtocol? protocol;
         lock (_xymodemLock)
@@ -2251,7 +2283,7 @@ public partial class TerminalViewModel : ObservableObject
             return false;
 
         if (index > 0)
-            ProcessTerminalBytes(bytes[..index]);
+            ProcessTerminalBytes(generation, connection, bytes[..index]);
 
         lock (_xymodemLock)
         {
@@ -2264,11 +2296,14 @@ public partial class TerminalViewModel : ObservableObject
             _xymodemPendingBytes.Add(bytes[index..]);
         }
 
-        _ = BeginXymodemUploadAsync(generation, protocol.Value);
+        _ = BeginXymodemUploadAsync(generation, connection, protocol.Value);
         return true;
     }
 
-    private async Task BeginZmodemTransferAsync(int generation, ZmodemTransferDirection direction)
+    private async Task BeginZmodemTransferAsync(
+        int generation,
+        ITerminalConnectionService connection,
+        ZmodemTransferDirection direction)
     {
         try
         {
@@ -2315,10 +2350,10 @@ public partial class TerminalViewModel : ObservableObject
 
                 transfer = new ZmodemTransfer(
                     direction,
-                    SendZmodemBytes,
-                    ProcessTerminalBytes,
+                    bytes => TrySendBytes(generation, connection, bytes),
+                    bytes => ProcessTerminalBytes(generation, connection, bytes),
                     PostStatusMessage,
-                    ClearZmodemTransfer,
+                    () => ClearZmodemTransfer(generation),
                     downloadFolder,
                     _session?.FileTransferDuplicateAction,
                     uploadFiles);
@@ -2339,7 +2374,10 @@ public partial class TerminalViewModel : ObservableObject
         }
     }
 
-    private async Task BeginXymodemUploadAsync(int generation, XymodemProtocol protocol)
+    private async Task BeginXymodemUploadAsync(
+        int generation,
+        ITerminalConnectionService connection,
+        XymodemProtocol protocol)
     {
         try
         {
@@ -2367,10 +2405,10 @@ public partial class TerminalViewModel : ObservableObject
                 transfer = new XymodemTransfer(
                     protocol,
                     XymodemTransferDirection.Upload,
-                    SendXymodemBytes,
-                    ProcessTerminalBytes,
+                    bytes => TrySendBytes(generation, connection, bytes),
+                    bytes => ProcessTerminalBytes(generation, connection, bytes),
                     PostStatusMessage,
-                    ClearXymodemTransfer,
+                    () => ClearXymodemTransfer(generation),
                     uploadFiles: uploadFiles,
                     uploadBlockSize: _session?.FileTransferXymodemBlockSize ?? 128);
 
@@ -2390,7 +2428,11 @@ public partial class TerminalViewModel : ObservableObject
         }
     }
 
-    private async Task BeginXymodemDownloadAsync(int generation, XymodemProtocol protocol, string? suggestedFileName)
+    private async Task BeginXymodemDownloadAsync(
+        int generation,
+        ITerminalConnectionService connection,
+        XymodemProtocol protocol,
+        string? suggestedFileName)
     {
         try
         {
@@ -2406,7 +2448,7 @@ public partial class TerminalViewModel : ObservableObject
             if (string.IsNullOrWhiteSpace(downloadFolder))
             {
                 PostStatusMessage($"[{GetXymodemName(protocol)} download cancelled]", "33");
-                TrySendBytes(_connection, new[] { (byte)24, (byte)24, (byte)24 });
+                TrySendBytes(generation, connection, new[] { (byte)24, (byte)24, (byte)24 });
                 return;
             }
 
@@ -2419,10 +2461,10 @@ public partial class TerminalViewModel : ObservableObject
                 transfer = new XymodemTransfer(
                     protocol,
                     XymodemTransferDirection.Download,
-                    SendXymodemBytes,
-                    ProcessTerminalBytes,
+                    bytes => TrySendBytes(generation, connection, bytes),
+                    bytes => ProcessTerminalBytes(generation, connection, bytes),
                     PostStatusMessage,
-                    ClearXymodemTransfer,
+                    () => ClearXymodemTransfer(generation),
                     downloadFolder,
                     _session?.FileTransferDuplicateAction,
                     suggestedDownloadFileName: suggestedFileName);
@@ -2435,7 +2477,7 @@ public partial class TerminalViewModel : ObservableObject
         catch (Exception ex)
         {
             PostStatusMessage($"[{GetXymodemName(protocol)} failed: {ex.Message}]", "31");
-            TrySendBytes(_connection, new[] { (byte)24, (byte)24, (byte)24 });
+            TrySendBytes(generation, connection, new[] { (byte)24, (byte)24, (byte)24 });
         }
     }
 
@@ -2463,7 +2505,8 @@ public partial class TerminalViewModel : ObservableObject
             _zmodemProbeBytes.Clear();
         }
 
-        TrySendBytes(_connection, new byte[] { 24, 24, 24, 24, 24, 8, 8, 8, 8, 8 });
+        if (TryGetCurrentConnection(generation, out var connection))
+            TrySendBytes(generation, connection, new byte[] { 24, 24, 24, 24, 24, 8, 8, 8, 8, 8 });
         PostStatusMessage(message, "33");
     }
 
@@ -2479,12 +2522,16 @@ public partial class TerminalViewModel : ObservableObject
             _pendingXymodemUploadProtocol = null;
         }
 
-        TrySendBytes(_connection, new[] { (byte)24, (byte)24, (byte)24 });
+        if (TryGetCurrentConnection(generation, out var connection))
+            TrySendBytes(generation, connection, new[] { (byte)24, (byte)24, (byte)24 });
         PostStatusMessage(message, "33");
     }
 
-    private void ClearZmodemTransfer()
+    private void ClearZmodemTransfer(int? generation = null)
     {
+        if (generation.HasValue && generation.Value != _connectionGeneration)
+            return;
+
         lock (_zmodemLock)
         {
             _zmodemTransfer?.Dispose();
@@ -2497,7 +2544,10 @@ public partial class TerminalViewModel : ObservableObject
         }
     }
 
-    private bool TrySuppressLateZmodemOverAndOut(byte[] bytes)
+    private bool TrySuppressLateZmodemOverAndOut(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
         if (bytes.Length == 0 || DateTimeOffset.UtcNow > _suppressZmodemOverAndOutUntil)
         {
@@ -2514,11 +2564,11 @@ public partial class TerminalViewModel : ObservableObject
             _pendingZmodemOverAndOutO = false;
             if (index < bytes.Length && bytes[index] == (byte)'O')
             {
-                ProcessTerminalBytes(bytes[(index + 1)..]);
+                ProcessTerminalBytes(generation, connection, bytes[(index + 1)..]);
                 return true;
             }
 
-            ProcessTerminalBytes(new[] { (byte)'O' });
+            ProcessTerminalBytes(generation, connection, new[] { (byte)'O' });
             return false;
         }
 
@@ -2537,7 +2587,7 @@ public partial class TerminalViewModel : ObservableObject
         if (bytes[index + 1] != (byte)'O')
             return false;
 
-        ProcessTerminalBytes(bytes[(index + 2)..]);
+        ProcessTerminalBytes(generation, connection, bytes[(index + 2)..]);
         return true;
     }
 
@@ -2546,8 +2596,11 @@ public partial class TerminalViewModel : ObservableObject
         return value is 0x11 or 0x13 or 0x91 or 0x93 or 0x8a or 0x8d;
     }
 
-    private void ClearXymodemTransfer()
+    private void ClearXymodemTransfer(int? generation = null)
     {
+        if (generation.HasValue && generation.Value != _connectionGeneration)
+            return;
+
         lock (_xymodemLock)
         {
             _xymodemTransfer?.Dispose();
@@ -2560,7 +2613,10 @@ public partial class TerminalViewModel : ObservableObject
         }
     }
 
-    private bool TrySuppressXymodemResidual(byte[] bytes)
+    private bool TrySuppressXymodemResidual(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
         if (bytes.Length == 0 || DateTimeOffset.UtcNow > _suppressXymodemResidualUntil)
             return false;
@@ -2570,7 +2626,7 @@ public partial class TerminalViewModel : ObservableObject
 
         var terminalStart = FindLikelyTerminalTextStart(bytes);
         if (terminalStart >= 0)
-            ProcessTerminalBytes(bytes[terminalStart..]);
+            ProcessTerminalBytes(generation, connection, bytes[terminalStart..]);
 
         return true;
     }
@@ -2618,9 +2674,42 @@ public partial class TerminalViewModel : ObservableObject
         return -1;
     }
 
+    private bool IsCurrentConnection(int generation, ITerminalConnectionService connection)
+    {
+        return generation == Volatile.Read(ref _connectionGeneration) &&
+               ReferenceEquals(_connection, connection) &&
+               connection.IsConnected &&
+               !_manualDisconnect;
+    }
+
+    private bool TryGetCurrentConnection(
+        int generation,
+        out ITerminalConnectionService connection)
+    {
+        if (_connection is { } current)
+        {
+            connection = current;
+            return IsCurrentConnection(generation, current);
+        }
+
+        connection = null!;
+        return false;
+    }
+
     private bool TrySendData(ITerminalConnectionService? connection, string data)
     {
-        if (connection == null || string.IsNullOrEmpty(data) || !connection.IsConnected)
+        if (connection == null)
+            return false;
+
+        return TrySendData(_connectionGeneration, connection, data);
+    }
+
+    private bool TrySendData(
+        int generation,
+        ITerminalConnectionService connection,
+        string data)
+    {
+        if (!IsCurrentConnection(generation, connection) || string.IsNullOrEmpty(data))
             return false;
 
         var queue = _sendQueue;
@@ -2629,7 +2718,8 @@ public partial class TerminalViewModel : ObservableObject
 
         return queue.TryEnqueue(_ =>
         {
-            if (ReferenceEquals(_connection, connection) && connection.IsConnected)
+            if (IsCurrentConnection(generation, connection) &&
+                ReferenceEquals(_sendQueue, queue))
                 connection.SendData(data);
 
             return Task.CompletedTask;
@@ -2638,7 +2728,18 @@ public partial class TerminalViewModel : ObservableObject
 
     private bool TrySendBytes(ITerminalConnectionService? connection, byte[] bytes)
     {
-        if (connection == null || bytes.Length == 0 || !connection.IsConnected)
+        if (connection == null)
+            return false;
+
+        return TrySendBytes(_connectionGeneration, connection, bytes);
+    }
+
+    private bool TrySendBytes(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
+    {
+        if (!IsCurrentConnection(generation, connection) || bytes.Length == 0)
             return false;
 
         var queue = _sendQueue;
@@ -2648,7 +2749,8 @@ public partial class TerminalViewModel : ObservableObject
         var payload = bytes.ToArray();
         return queue.TryEnqueue(_ =>
         {
-            if (ReferenceEquals(_connection, connection) && connection.IsConnected)
+            if (IsCurrentConnection(generation, connection) &&
+                ReferenceEquals(_sendQueue, queue))
                 connection.SendBytes(payload);
 
             return Task.CompletedTask;
@@ -2657,7 +2759,14 @@ public partial class TerminalViewModel : ObservableObject
 
     private bool TrySendKeepAlive(ITerminalConnectionService connection)
     {
-        if (!connection.IsConnected)
+        return TrySendKeepAlive(_connectionGeneration, connection);
+    }
+
+    private bool TrySendKeepAlive(
+        int generation,
+        ITerminalConnectionService connection)
+    {
+        if (!IsCurrentConnection(generation, connection))
             return false;
 
         var queue = _sendQueue;
@@ -2666,21 +2775,12 @@ public partial class TerminalViewModel : ObservableObject
 
         return queue.TryEnqueue(_ =>
         {
-            if (ReferenceEquals(_connection, connection) && connection.IsConnected)
+            if (IsCurrentConnection(generation, connection) &&
+                ReferenceEquals(_sendQueue, queue))
                 connection.SendKeepAlive();
 
             return Task.CompletedTask;
         });
-    }
-
-    private void SendZmodemBytes(byte[] bytes)
-    {
-        TrySendBytes(_connection, bytes);
-    }
-
-    private void SendXymodemBytes(byte[] bytes)
-    {
-        TrySendBytes(_connection, bytes);
     }
 
     private static string GetXymodemName(XymodemProtocol protocol)
@@ -2688,21 +2788,35 @@ public partial class TerminalViewModel : ObservableObject
         return protocol == XymodemProtocol.Ymodem ? "YMODEM" : "XMODEM";
     }
 
-    private void ProcessTerminalBytes(byte[] bytes)
+    private void ProcessTerminalBytes(
+        int generation,
+        ITerminalConnectionService connection,
+        byte[] bytes)
     {
-        if (bytes.Length == 0)
+        if (!IsCurrentConnection(generation, connection) || bytes.Length == 0)
             return;
 
         var charCount = _terminalByteDecoder.GetCharCount(bytes, 0, bytes.Length);
         if (charCount == 0)
             return;
 
-        var chars = new char[charCount];
-        var charsRead = _terminalByteDecoder.GetChars(bytes, 0, bytes.Length, chars, 0);
-        var text = new string(chars, 0, charsRead);
+        var chars = ArrayPool<char>.Shared.Rent(charCount);
+        string text;
+        try
+        {
+            var charsRead = _terminalByteDecoder.GetChars(bytes, 0, bytes.Length, chars, 0);
+            text = new string(chars, 0, charsRead);
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(chars);
+        }
         Dispatcher.UIThread.Post(() =>
         {
-            text = ProcessAnswerback(text, _connection);
+            if (!IsCurrentConnection(generation, connection))
+                return;
+
+            text = ProcessAnswerback(text, connection);
             Parser.Process(text);
             Buffer.MarkAllDirty();
             BufferChanged?.Invoke();
@@ -3111,7 +3225,10 @@ public partial class TerminalViewModel : ObservableObject
         }
     }
 
-    private void TryStartPendingXymodemDownloadFromOutput(int generation, string output)
+    private void TryStartPendingXymodemDownloadFromOutput(
+        int generation,
+        ITerminalConnectionService connection,
+        string output)
     {
         if (string.IsNullOrEmpty(output))
             return;
@@ -3146,7 +3263,11 @@ public partial class TerminalViewModel : ObservableObject
             ClearPendingXymodemDownload();
         }
 
-        _ = BeginXymodemDownloadAsync(generation, protocol.Value, suggestedFileName);
+        _ = BeginXymodemDownloadAsync(
+            generation,
+            connection,
+            protocol.Value,
+            suggestedFileName);
     }
 
     private void TryDetectPendingXymodemUploadFromOutput(string output)
@@ -3489,7 +3610,7 @@ public partial class TerminalViewModel : ObservableObject
                     var now = DateTimeOffset.UtcNow;
                     if (sendSessionKeepAlive && now - lastSessionKeepAliveAt >= sessionInterval)
                     {
-                        TrySendKeepAlive(connection);
+                        TrySendKeepAlive(generation, connection);
                         lastSessionKeepAliveAt = now;
                     }
 
@@ -3497,7 +3618,7 @@ public partial class TerminalViewModel : ObservableObject
                         now - _lastUserInputAt >= idleInterval &&
                         now - lastIdleStringAt >= idleInterval)
                     {
-                        TrySendData(connection, session.IdleString);
+                        TrySendData(generation, connection, session.IdleString);
                         lastIdleStringAt = now;
                     }
                 }

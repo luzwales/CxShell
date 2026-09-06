@@ -18,6 +18,7 @@ public sealed record AgentRunRequest
     public string? Model { get; init; }
     public double? Temperature { get; init; }
     public int? MaxTokens { get; init; }
+    public AgentReasoningEffort ReasoningEffort { get; init; }
     public AgentChatMode Mode { get; init; } = AgentChatMode.Agent;
     public TimeSpan Timeout { get; init; } = AgentRunCoordinator.DefaultRunTimeout;
 }
@@ -98,6 +99,9 @@ public sealed record AgentRunRecoveryState(
     [property: JsonPropertyName("expiresAtUtc")] DateTimeOffset? ExpiresAtUtc = null,
     [property: JsonPropertyName("checkpoint")] AgentRunCheckpoint? Checkpoint = null)
 {
+    [JsonPropertyName("reasoningEffort")]
+    public AgentReasoningEffort ReasoningEffort { get; init; }
+
     [JsonPropertyName("context")]
     public AgentContextEstimate? Context { get; init; }
 }

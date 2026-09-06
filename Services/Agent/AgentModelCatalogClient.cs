@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using CxShell.Models;
+using CxShell.Services;
 
 namespace CxShell.Services.Agent;
 
@@ -9,16 +10,20 @@ public sealed record AgentModelCatalogResult(
     IReadOnlyList<string> Models,
     string? Error = null);
 
-/// <summary>Reads a bounded OpenAI-compatible /models catalog without exposing API keys.</summary>
+/// <summary>Reads a bounded provider model catalog without exposing API keys.</summary>
 public sealed class AgentModelCatalogClient
 {
     private const int MaximumResponseBytes = 2 * 1024 * 1024;
     private static readonly HttpClient SharedHttpClient = new();
     private readonly HttpClient _httpClient;
 
-    public AgentModelCatalogClient(HttpClient? httpClient = null)
+    public AgentModelCatalogClient(
+        HttpClient? httpClient = null,
+        Func<ProxySettings?>? globalProxyProvider = null)
     {
-        _httpClient = httpClient ?? SharedHttpClient;
+        _httpClient = httpClient ?? (globalProxyProvider == null
+            ? SharedHttpClient
+            : NetworkProxyHttpClientFactory.Create(globalProxyProvider));
     }
 
     public async Task<AgentModelCatalogResult> FetchAsync(
@@ -36,7 +41,17 @@ public sealed class AgentModelCatalogClient
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         var apiKey = AgentProviderConfiguration.GetApiKey(provider);
         if (!string.IsNullOrWhiteSpace(apiKey))
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        {
+            if (AgentProviderConfiguration.IsAnthropicProvider(provider))
+            {
+                request.Headers.TryAddWithoutValidation("x-api-key", apiKey);
+                request.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
+            }
+            else
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            }
+        }
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Min(provider.RequestTimeoutSeconds, 30)));
@@ -59,14 +74,12 @@ public sealed class AgentModelCatalogClient
             using var document = JsonDocument.Parse(
                 body,
                 new JsonDocumentOptions { MaxDepth = 16 });
-            if (!document.RootElement.TryGetProperty("data", out var data) ||
-                data.ValueKind != JsonValueKind.Array)
+            var data = FindModelArray(document.RootElement);
+            if (data.ValueKind != JsonValueKind.Array)
                 return new(false, [], "The provider returned an unsupported model catalog format.");
 
             var models = data.EnumerateArray()
-                .Select(item => item.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String
-                    ? id.GetString()
-                    : null)
+                .Select(ReadModelId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Select(id => id!.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -86,6 +99,42 @@ public sealed class AgentModelCatalogClient
         {
             return new(false, [], $"Model catalog request failed: {exception.Message}");
         }
+    }
+
+    private static JsonElement FindModelArray(JsonElement root)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+            return root;
+
+        if (root.ValueKind != JsonValueKind.Object)
+            return default;
+
+        foreach (var propertyName in new[] { "data", "models" })
+        {
+            if (root.TryGetProperty(propertyName, out var value) &&
+                value.ValueKind == JsonValueKind.Array)
+                return value;
+        }
+
+        return default;
+    }
+
+    private static string? ReadModelId(JsonElement item)
+    {
+        if (item.ValueKind == JsonValueKind.String)
+            return item.GetString();
+
+        if (item.ValueKind != JsonValueKind.Object)
+            return null;
+
+        foreach (var propertyName in new[] { "id", "model", "name" })
+        {
+            if (item.TryGetProperty(propertyName, out var value) &&
+                value.ValueKind == JsonValueKind.String)
+                return value.GetString();
+        }
+
+        return null;
     }
 
     private static async Task<byte[]?> ReadBoundedAsync(

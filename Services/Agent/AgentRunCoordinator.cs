@@ -51,8 +51,23 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
     public const string DiagnosticRunToolName = "diagnostic_run";
     public const string RunbookRunToolName = "runbook_run";
     public const string FleetDiagnosticToolName = "fleet_diagnostic";
+    public const string SearchTerminalToolName = "search_terminal";
     public static readonly TimeSpan CredentialRequestLifetime = TimeSpan.FromMinutes(5);
     private const int MaximumCredentialCharacters = 4096;
+
+    private static readonly object OptionalSessionIdSchema = new
+    {
+        type = "string",
+        format = "uuid",
+        description = "Optional runtime sessionId from list_connected_sessions. When omitted, use the session selected for this Agent run."
+    };
+    private static readonly object RemotePathSchema = new
+    {
+        type = "string",
+        minLength = 1,
+        maxLength = AgentReadOnlyToolCatalog.MaximumRemotePathLength,
+        description = "Remote path to inspect. Credential and private-key paths are blocked by CxShell."
+    };
 
     private static readonly AgentToolDefinition SessionCommandTool = new(
         SessionCommandToolName,
@@ -63,6 +78,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 command = new
                 {
                     type = "string",
@@ -86,7 +102,115 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         JsonSerializer.SerializeToElement(new
         {
             type = "object",
-            properties = new { },
+            properties = new
+            {
+                sessionId = OptionalSessionIdSchema
+            },
+            additionalProperties = false
+        }));
+
+    private static readonly AgentToolDefinition SearchTerminalTool = new(
+        SearchTerminalToolName,
+        "Search the captured text of the selected SSH terminal without sending a command. " +
+        "Returns bounded matching lines and never changes the remote host.",
+        JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                sessionId = OptionalSessionIdSchema,
+                query = new
+                {
+                    type = "string",
+                    minLength = 1,
+                    maxLength = 256,
+                    description = "Case-insensitive text to find in terminal scrollback."
+                },
+                maxResults = new
+                {
+                    type = "integer",
+                    minimum = 1,
+                    maximum = 50,
+                    @default = 20
+                }
+            },
+            required = new[] { "query" },
+            additionalProperties = false
+        }));
+
+    private static readonly AgentToolDefinition WorkingDirectoryTool = new(
+        AgentReadOnlyToolCatalog.WorkingDirectoryToolName,
+        "Read the remote shell working directory for the selected SSH session.",
+        JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new { sessionId = OptionalSessionIdSchema },
+            additionalProperties = false
+        }));
+
+    private static readonly AgentToolDefinition ListRemoteDirectoryTool = new(
+        AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName,
+        "List a bounded remote directory through the SSH session's SFTP channel. This is read-only.",
+        JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                sessionId = OptionalSessionIdSchema,
+                path = RemotePathSchema,
+                maxEntries = new
+                {
+                    type = "integer",
+                    minimum = 1,
+                    maximum = AgentReadOnlyToolCatalog.MaximumRemoteDirectoryEntries,
+                    @default = 100
+                }
+            },
+            required = new[] { "path" },
+            additionalProperties = false
+        }));
+
+    private static readonly AgentToolDefinition StatRemotePathTool = new(
+        AgentReadOnlyToolCatalog.StatRemotePathToolName,
+        "Read metadata for one remote file or directory. This is read-only and credential paths are blocked.",
+        JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                sessionId = OptionalSessionIdSchema,
+                path = RemotePathSchema
+            },
+            required = new[] { "path" },
+            additionalProperties = false
+        }));
+
+    private static readonly AgentToolDefinition ReadRemoteFileTool = new(
+        AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+        "Read a bounded number of lines from one remote text file. Credential and private-key paths are blocked.",
+        JsonSerializer.SerializeToElement(new
+        {
+            type = "object",
+            properties = new
+            {
+                sessionId = OptionalSessionIdSchema,
+                path = RemotePathSchema,
+                lines = new
+                {
+                    type = "integer",
+                    minimum = 1,
+                    maximum = AgentReadOnlyToolCatalog.MaximumRemoteFileLines,
+                    @default = 120
+                },
+                maxCharacters = new
+                {
+                    type = "integer",
+                    minimum = 1,
+                    maximum = AgentReadOnlyToolCatalog.MaximumRemoteFileCharacters,
+                    description = "Maximum UTF-8 text characters to read when the SFTP channel is available."
+                }
+            },
+            required = new[] { "path" },
             additionalProperties = false
         }));
 
@@ -99,6 +223,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 input = new
                 {
                     type = "string",
@@ -234,6 +359,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 scope = new
                 {
                     type = "string",
@@ -254,6 +380,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 scope = new
                 {
                     type = "string",
@@ -294,6 +421,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 source = new
                 {
                     type = "string",
@@ -320,6 +448,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 port = new
                 {
                     type = "integer",
@@ -340,6 +469,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 service = new
                 {
                     type = "string",
@@ -360,6 +490,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 target = new
                 {
                     type = "string",
@@ -387,6 +518,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 name = new
                 {
                     type = "string",
@@ -408,6 +540,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 runtime = new
                 {
                     type = "string",
@@ -428,6 +561,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             type = "object",
             properties = new
             {
+                sessionId = OptionalSessionIdSchema,
                 scope = new
                 {
                     type = "string",
@@ -565,6 +699,11 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         var tools = new List<AgentToolDefinition>
         {
             SessionInfoTool,
+            SearchTerminalTool,
+            WorkingDirectoryTool,
+            ListRemoteDirectoryTool,
+            StatRemotePathTool,
+            ReadRemoteFileTool,
             ConnectedSessionListTool,
             SavedSessionListTool,
             DiagnosticRunTool,
@@ -607,9 +746,6 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         }
 
         var runId = NormalizeRunId(request.RunId);
-        if (request.SessionId == Guid.Empty && request.Mode != AgentChatMode.Agent)
-            return new(false, runId, "A valid SSH sessionId is required.");
-
         if (request.Messages == null || request.Messages.Count == 0)
             return new(false, runId, "At least one chat message is required.");
 
@@ -823,6 +959,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             Model = recovery.Snapshot.Model,
             Temperature = recovery.Temperature,
             MaxTokens = recovery.MaxTokens,
+            ReasoningEffort = recovery.ReasoningEffort,
             Mode = recovery.Snapshot.Mode,
             Timeout = timeout
         });
@@ -1087,7 +1224,8 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                                 request.Model,
                                 request.Temperature,
                                 request.MaxTokens,
-                                GetToolDefinitions(request.Mode)),
+                                GetToolDefinitions(request.Mode),
+                                request.ReasoningEffort),
                             cancellationToken,
                             chunk =>
                             {
@@ -1112,6 +1250,15 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                     var toolInput = AgentSensitiveDataRedactor.Redact(
                         NormalizeToolInput(toolCall.Arguments));
                     var toolStartedAt = DateTimeOffset.UtcNow;
+                    var toolResultSessionId = activeRun.SessionId;
+                    if (TryReadOptionalSessionIdArgument(
+                            toolCall.Arguments,
+                            out var requestedToolSessionId,
+                            out _) &&
+                        requestedToolSessionId is { } explicitToolSessionId)
+                    {
+                        toolResultSessionId = explicitToolSessionId;
+                    }
                     var beforeTool = activeRun.EventHistory.ToSnapshot();
                     var toolStartCheckpoint = activeRun.EventHistory.SetCheckpoint(
                         beforeTool.ToolCallCount + 1,
@@ -1158,20 +1305,40 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                                 request,
                                 cancellationToken)
                             .ConfigureAwait(false);
-                        toolResult = toolResult with
-                        {
-                            Content = AgentToolResultEnvelope.Merge(
-                                toolResult.Content,
-                                toolResult.IsSuccess,
-                                activeRun.SessionId.ToString("D"),
-                                Math.Max(0, (long)(DateTimeOffset.UtcNow - toolStartedAt).TotalMilliseconds))
-                        };
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        // A tool failure belongs in the model conversation as a
+                        // stable result. One broken command must not tear down
+                        // the entire Agent run before the model can reassess it.
+                        var safeMessage = AgentSensitiveDataRedactor.Redact(TrimException(ex));
+                        toolResult = new(
+                            false,
+                            JsonSerializer.Serialize(new
+                            {
+                                message = "The tool failed before it returned a result.",
+                                error = safeMessage,
+                                errorType = "ToolExecutionException"
+                            }));
                     }
                     finally
                     {
                         progressCancellation.Cancel();
                         await progressTask.ConfigureAwait(false);
                     }
+
+                    toolResult = toolResult with
+                    {
+                        Content = AgentToolResultEnvelope.Merge(
+                            toolResult.Content,
+                            toolResult.IsSuccess,
+                            toolResultSessionId.ToString("D"),
+                            Math.Max(0, (long)(DateTimeOffset.UtcNow - toolStartedAt).TotalMilliseconds))
+                    };
 
                     var toolCheckpointMetadata = ReadToolCheckpointMetadata(
                         toolResult.Content,
@@ -1732,7 +1899,9 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 true,
                 JsonSerializer.Serialize(new
                 {
-                    sessions = _gateway.GetSessions().Select(session => new
+                    sessions = _gateway.GetSessions()
+                        .Where(session => session.IsConnected && session.Protocol == SessionProtocol.SSH)
+                        .Select(session => new
                     {
                         sessionId = session.SessionId.ToString("D"),
                         session.Name,
@@ -1750,6 +1919,9 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
 
         if (string.Equals(toolCall.Name, "web_fetch", StringComparison.Ordinal))
             return await ExecuteWebFetchAsync(toolCall, cancellationToken).ConfigureAwait(false);
+
+        if (string.Equals(toolCall.Name, SearchTerminalToolName, StringComparison.Ordinal))
+            return ExecuteSearchTerminal(activeRun, toolCall);
 
         if (string.Equals(toolCall.Name, RunOnSessionsToolName, StringComparison.Ordinal))
         {
@@ -1770,14 +1942,12 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         if (string.Equals(toolCall.Name, CloseSessionToolName, StringComparison.Ordinal))
             return await ExecuteCloseSessionAsync(toolCall, cancellationToken).ConfigureAwait(false);
 
-        EnsureSessionIsConnected(activeRun.SessionId);
-
         if (string.Equals(toolCall.Name, SessionInfoToolName, StringComparison.Ordinal))
         {
-            var session = _gateway.GetSession(request.SessionId);
-            return session == null
-                ? new(false, "The selected SSH session is no longer available.")
-                : new(true, JsonSerializer.Serialize(new
+            if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+                return sessionError!;
+
+            return new(true, JsonSerializer.Serialize(new
                 {
                     sessionId = session.SessionId.ToString("D"),
                     session.Name,
@@ -1814,6 +1984,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 .ConfigureAwait(false);
 
         if (toolCall.Name is AgentReadOnlyToolCatalog.LogsToolName or
+            AgentReadOnlyToolCatalog.WorkingDirectoryToolName or
+            AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName or
+            AgentReadOnlyToolCatalog.StatRemotePathToolName or
+            AgentReadOnlyToolCatalog.ReadRemoteFileToolName or
             AgentReadOnlyToolCatalog.PortCheckToolName or
             AgentReadOnlyToolCatalog.ServiceDetailToolName or
             AgentReadOnlyToolCatalog.FilePreviewToolName or
@@ -1833,8 +2007,13 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         {
             return new(
                 false,
-                $"Unknown tool '{toolCall.Name}'. Available tools: {SessionInfoToolName}, {DiagnosticRunToolName}, {RunbookRunToolName}, {FleetDiagnosticToolName}, {AgentReadOnlyToolCatalog.LogsToolName}, {AgentReadOnlyToolCatalog.PortCheckToolName}, {AgentReadOnlyToolCatalog.ServiceDetailToolName}, {AgentReadOnlyToolCatalog.FilePreviewToolName}, {AgentReadOnlyToolCatalog.PackageQueryToolName}, {AgentReadOnlyToolCatalog.RuntimeCheckToolName}, {AgentReadOnlyToolCatalog.DiskCleanupAdviceToolName}, {SessionCommandToolName}.");
+                $"Unknown tool '{toolCall.Name}'. Available tools: {SessionInfoToolName}, {SearchTerminalToolName}, {AgentReadOnlyToolCatalog.WorkingDirectoryToolName}, {AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName}, {AgentReadOnlyToolCatalog.StatRemotePathToolName}, {AgentReadOnlyToolCatalog.ReadRemoteFileToolName}, {DiagnosticRunToolName}, {RunbookRunToolName}, {FleetDiagnosticToolName}, {AgentReadOnlyToolCatalog.LogsToolName}, {AgentReadOnlyToolCatalog.PortCheckToolName}, {AgentReadOnlyToolCatalog.ServiceDetailToolName}, {AgentReadOnlyToolCatalog.FilePreviewToolName}, {AgentReadOnlyToolCatalog.PackageQueryToolName}, {AgentReadOnlyToolCatalog.RuntimeCheckToolName}, {AgentReadOnlyToolCatalog.DiskCleanupAdviceToolName}, {SessionCommandToolName}.");
         }
+
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var commandSession, out var commandSessionError))
+            return commandSessionError!;
+
+        request = request with { SessionId = commandSession.SessionId };
 
         if (!TryReadToolArguments(
                 toolCall.Arguments,
@@ -1941,7 +2120,12 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         var repeatedFailureGuidance = activeRun.RecordCommandOutcome(command, result.IsSuccess);
         return new(
             result.IsSuccess,
-            SerializeCommandResult(activeRun, result, repeatedFailureGuidance, sensitiveInputs));
+            SerializeCommandResult(
+                activeRun,
+                result,
+                repeatedFailureGuidance,
+                sensitiveInputs,
+                request.SessionId));
     }
 
     private async Task<AgentToolExecutionResult> ExecuteSavedSessionListAsync(
@@ -1964,6 +2148,70 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                     session.IsOpen,
                     openSessionId = session.OpenSessionId?.ToString("D")
                 })
+            }));
+    }
+
+    private AgentToolExecutionResult ExecuteSearchTerminal(
+        ActiveRun activeRun,
+        AgentToolCall toolCall)
+    {
+        if (!TryReadSearchTerminalArguments(
+                toolCall.Arguments,
+                out var query,
+                out var maxResults,
+                out var error))
+        {
+            return CreateToolFailure("InvalidArguments", error ?? "The search query is invalid.");
+        }
+
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+            return sessionError!;
+
+        if (!_gateway.TryGetTerminalText(session.SessionId, out var terminalText))
+        {
+            return CreateToolFailure(
+                "TerminalTextUnavailable",
+                $"Terminal scrollback is not available for the SSH session '{session.Name}'.",
+                session.SessionId);
+        }
+
+        const int maximumSearchTextCharacters = 512 * 1024;
+        var textWasTruncated = terminalText.Length > maximumSearchTextCharacters;
+        if (textWasTruncated)
+            terminalText = terminalText[^maximumSearchTextCharacters..];
+
+        var lines = terminalText
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Split('\n');
+        var matches = lines
+            .Select((line, index) => new { Line = line, Number = index + 1 })
+            .Where(item => item.Line.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var returnedMatches = matches
+            .Take(maxResults)
+            .Select(item => new
+            {
+                line = item.Number,
+                text = item.Line.Length <= 2048 ? item.Line : item.Line[..2048] + "..."
+            })
+            .ToArray();
+
+        return new(
+            true,
+            JsonSerializer.Serialize(new
+            {
+                tool = SearchTerminalToolName,
+                sessionId = session.SessionId.ToString("D"),
+                query,
+                matchCount = matches.Length,
+                returnedCount = returnedMatches.Length,
+                hasMore = matches.Length > returnedMatches.Length,
+                textWasTruncated,
+                message = returnedMatches.Length == 0
+                    ? "No matching terminal lines were found."
+                    : $"Found {matches.Length} matching terminal line(s).",
+                matches = returnedMatches
             }));
     }
 
@@ -2263,9 +2511,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             return new(false, error!);
         }
 
-        var session = _gateway.GetSession(request.SessionId);
-        if (session == null || !session.IsConnected)
-            return new(false, "The selected SSH session is no longer connected.");
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+            return sessionError!;
+
+        request = request with { SessionId = session.SessionId };
 
         var commandRequest = new AgentCommandRequest
         {
@@ -2369,7 +2618,8 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             .ToDictionary(session => session.SessionId);
         var missing = sessionIds.Where(sessionId =>
                 !sessions.TryGetValue(sessionId, out var session) ||
-                !session.IsConnected)
+                !session.IsConnected ||
+                session.Protocol != SessionProtocol.SSH)
             .ToArray();
         if (missing.Length > 0)
         {
@@ -2378,8 +2628,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 JsonSerializer.Serialize(new
                 {
                     status = "rejected",
+                    errorType = "SessionUnavailable",
                     message = "Every target must be a currently connected SSH session.",
-                    unavailableSessionIds = missing.Select(id => id.ToString("D"))
+                    unavailableSessionIds = missing.Select(id => id.ToString("D")),
+                    retrySafe = true
                 }));
         }
 
@@ -3065,6 +3317,86 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
     private static bool ContainsAny(string value, params string[] fragments)
         => fragments.Any(fragment => value.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
+    private bool TryResolveToolSession(
+        ActiveRun activeRun,
+        string? arguments,
+        out AgentSessionSnapshot session,
+        out AgentToolExecutionResult? error)
+    {
+        session = null!;
+        error = null;
+
+        if (!TryReadOptionalSessionIdArgument(arguments, out var requestedSessionId, out var argumentError))
+        {
+            error = CreateToolFailure(
+                "InvalidArguments",
+                argumentError ?? "The sessionId argument is invalid.");
+            return false;
+        }
+
+        var targetSessionId = requestedSessionId ?? activeRun.SessionId;
+        if (targetSessionId == Guid.Empty)
+        {
+            error = CreateToolFailure(
+                "SessionUnavailable",
+                "No SSH session is selected. Call list_connected_sessions or open_session first.");
+            return false;
+        }
+
+        var target = _gateway.GetSession(targetSessionId);
+        if (target == null)
+        {
+            error = CreateToolFailure(
+                "SessionNotFound",
+                $"The target session '{targetSessionId:D}' is no longer open.",
+                targetSessionId);
+            return false;
+        }
+
+        if (target.Protocol != SessionProtocol.SSH)
+        {
+            error = CreateToolFailure(
+                "UnsupportedProtocol",
+                $"The target session '{target.Name}' is not an SSH terminal session.",
+                targetSessionId);
+            return false;
+        }
+
+        if (!target.IsConnected)
+        {
+            error = CreateToolFailure(
+                "SessionUnavailable",
+                $"The target SSH session '{target.Name}' is not connected.",
+                targetSessionId);
+            return false;
+        }
+
+        session = target;
+        return true;
+    }
+
+    private static AgentToolExecutionResult CreateToolFailure(
+        string errorType,
+        string message,
+        Guid sessionId = default,
+        bool retrySafe = true)
+        => new(
+            false,
+            JsonSerializer.Serialize(new
+            {
+                success = false,
+                status = "failed",
+                executionState = "Failed",
+                outcomeCertain = false,
+                remoteCompletionConfirmed = false,
+                errorType,
+                message,
+                error = message,
+                sessionId = sessionId == Guid.Empty ? null : sessionId.ToString("D"),
+                retrySafe,
+                durationMs = 0
+            }));
+
     private static bool TryValidateToolCall(
         AgentToolCall? toolCall,
         out string error)
@@ -3109,6 +3441,93 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         return true;
     }
 
+    private static bool TryReadOptionalSessionIdArgument(
+        string? arguments,
+        out Guid? sessionId,
+        out string? error)
+    {
+        sessionId = null;
+        error = null;
+        try
+        {
+            using var document = JsonDocument.Parse(arguments ?? "{}");
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                error = "Tool arguments must be a JSON object.";
+                return false;
+            }
+
+            var hasSessionId = root.TryGetProperty("sessionId", out var idElement) ||
+                               root.TryGetProperty("session_id", out idElement);
+            if (!hasSessionId)
+                return true;
+
+            if (idElement.ValueKind != JsonValueKind.String ||
+                !Guid.TryParse(idElement.GetString(), out var parsed) ||
+                parsed == Guid.Empty)
+            {
+                error = "sessionId must be a non-empty UUID returned by list_connected_sessions.";
+                return false;
+            }
+
+            sessionId = parsed;
+            return true;
+        }
+        catch (JsonException)
+        {
+            error = "Tool arguments must be valid JSON.";
+            return false;
+        }
+    }
+
+    private static bool TryReadSearchTerminalArguments(
+        string? arguments,
+        out string query,
+        out int maxResults,
+        out string? error)
+    {
+        query = string.Empty;
+        maxResults = 20;
+        error = null;
+        try
+        {
+            using var document = JsonDocument.Parse(arguments ?? "{}");
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("query", out var queryElement) ||
+                queryElement.ValueKind != JsonValueKind.String ||
+                string.IsNullOrWhiteSpace(queryElement.GetString()))
+            {
+                error = $"{SearchTerminalToolName} requires a non-empty query.";
+                return false;
+            }
+
+            query = queryElement.GetString()!.Trim();
+            if (query.Length > 256)
+            {
+                error = $"{SearchTerminalToolName} query cannot exceed 256 characters.";
+                return false;
+            }
+
+            if (root.TryGetProperty("maxResults", out var maxResultsElement))
+            {
+                if (!maxResultsElement.TryGetInt32(out maxResults) || maxResults is < 1 or > 50)
+                {
+                    error = $"{SearchTerminalToolName} maxResults must be between 1 and 50.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            error = $"{SearchTerminalToolName} arguments must be valid JSON.";
+            return false;
+        }
+    }
+
     private async Task<AgentToolExecutionResult> ExecuteDiagnosticAsync(
         ActiveRun activeRun,
         AgentToolCall toolCall,
@@ -3118,9 +3537,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         if (!TryReadDiagnosticScope(toolCall.Arguments, out var scope, out var error))
             return new(false, error!);
 
-        var session = _gateway.GetSession(request.SessionId);
-        if (session == null)
-            return new(false, "The selected SSH session is no longer available.");
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+            return sessionError!;
+
+        request = request with { SessionId = session.SessionId };
 
         if (!AgentDiagnosticCatalog.TryCreatePlan(session, scope, out var plan, out error))
             return new(false, error!);
@@ -3160,7 +3580,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 status = result.Status.ToString(),
                 message = result.Message,
                 requestId = result.RequestId.ToString("D"),
-                sessionId = activeRun.SessionId.ToString("D"),
+                sessionId = request.SessionId.ToString("D"),
                 remoteCompletionConfirmed = result.RemoteCompletionConfirmed,
                 output = LimitToolResultOutput(result.Output)
             }));
@@ -3172,9 +3592,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         AgentRunRequest request,
         CancellationToken cancellationToken)
     {
-        var session = _gateway.GetSession(request.SessionId);
-        if (session == null)
-            return new(false, "The selected SSH session is no longer available.");
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+            return sessionError!;
+
+        request = request with { SessionId = session.SessionId };
 
         using var arguments = JsonDocument.Parse(toolCall.Arguments ?? "{}");
         if (!AgentReadOnlyToolCatalog.TryCreatePlan(
@@ -3185,6 +3606,130 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 out var error))
         {
             return new(false, error ?? "The read-only tool arguments are invalid.");
+        }
+
+        if (toolCall.Name == AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName)
+        {
+            if (!TryReadRemoteDirectoryArguments(toolCall.Arguments, out var directoryPath, out var maxEntries, out error))
+                return new(false, error!);
+
+            var directory = await _gateway.ListRemoteDirectoryAsync(
+                    request.SessionId,
+                    directoryPath,
+                    maxEntries,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return new(
+                directory.Success,
+                JsonSerializer.Serialize(new
+                {
+                    tool = toolCall.Name,
+                    path = directory.Path,
+                    success = directory.Success,
+                    status = directory.Success ? "completed" : "failed",
+                    sessionId = request.SessionId.ToString("D"),
+                    toolCallId = toolCall.Id,
+                    truncated = directory.Truncated,
+                    errorCode = directory.ErrorCode,
+                    error = directory.Error,
+                    entries = directory.Entries.Select(entry => new
+                    {
+                        name = entry.Name,
+                        fullPath = entry.FullPath,
+                        isDirectory = entry.IsDirectory,
+                        size = entry.Size,
+                        lastModified = entry.LastModified,
+                        permissions = entry.Permissions,
+                        isSymbolicLink = entry.IsSymbolicLink
+                    })
+                }));
+        }
+
+        if (toolCall.Name == AgentReadOnlyToolCatalog.WorkingDirectoryToolName &&
+            _gateway.TryGetWorkingDirectory(request.SessionId, out var currentDirectory))
+        {
+            return new(
+                true,
+                JsonSerializer.Serialize(new
+                {
+                    tool = toolCall.Name,
+                    success = true,
+                    sessionId = request.SessionId.ToString("D"),
+                    workingDirectory = currentDirectory,
+                    source = "terminal"
+                }));
+        }
+
+        if (toolCall.Name == AgentReadOnlyToolCatalog.ReadRemoteFileToolName)
+        {
+            if (!TryReadRemoteFileArguments(toolCall.Arguments, out var remotePath, out var maxCharacters, out error))
+                return new(false, error!);
+
+            var readResult = await _gateway.ReadRemoteFileAsync(
+                    request.SessionId,
+                    remotePath,
+                    maxCharacters,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (readResult.ErrorCode != "sftp_unsupported")
+            {
+                return new(
+                    readResult.Success,
+                    JsonSerializer.Serialize(new
+                    {
+                        tool = toolCall.Name,
+                        path = readResult.Path,
+                        success = readResult.Success,
+                        status = readResult.Success ? "completed" : "failed",
+                        sessionId = request.SessionId.ToString("D"),
+                        toolCallId = toolCall.Id,
+                        characters = readResult.Characters,
+                        content = readResult.Content,
+                        errorCode = readResult.ErrorCode,
+                        error = readResult.Error,
+                        source = "sftp"
+                    }));
+            }
+        }
+
+        if (toolCall.Name == AgentReadOnlyToolCatalog.StatRemotePathToolName)
+        {
+            if (!TryReadRemotePathArgument(toolCall.Arguments, out var remotePath, out error))
+                return new(false, error!);
+
+            var statResult = await _gateway.StatRemotePathAsync(
+                    request.SessionId,
+                    remotePath,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (statResult.ErrorCode != "sftp_unsupported")
+            {
+                var entry = statResult.Entry;
+                return new(
+                    statResult.Success,
+                    JsonSerializer.Serialize(new
+                    {
+                        tool = toolCall.Name,
+                        path = statResult.Path,
+                        success = statResult.Success,
+                        status = statResult.Success ? "completed" : "failed",
+                        sessionId = request.SessionId.ToString("D"),
+                        toolCallId = toolCall.Id,
+                        entry = entry == null ? null : new
+                        {
+                            name = entry.Name,
+                            fullPath = entry.FullPath,
+                            isDirectory = entry.IsDirectory,
+                            size = entry.Size,
+                            lastModified = entry.LastModified,
+                            permissions = entry.Permissions,
+                            isSymbolicLink = entry.IsSymbolicLink
+                        },
+                        errorCode = statResult.ErrorCode,
+                        error = statResult.Error,
+                        source = "sftp"
+                    }));
+            }
         }
 
         var commandRequest = new AgentCommandRequest
@@ -3208,10 +3753,124 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 status = result.Status.ToString(),
                 message = result.Message,
                 requestId = result.RequestId.ToString("D"),
-                sessionId = activeRun.SessionId.ToString("D"),
+                sessionId = request.SessionId.ToString("D"),
                 remoteCompletionConfirmed = result.RemoteCompletionConfirmed,
                 output = LimitToolResultOutput(result.Output)
             }));
+    }
+
+    private static bool TryReadRemotePathArgument(
+        string? arguments,
+        out string path,
+        out string? error)
+    {
+        path = string.Empty;
+        error = null;
+        try
+        {
+            using var document = JsonDocument.Parse(arguments ?? "{}");
+            var root = document.RootElement;
+            var value = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("path", out var pathElement) &&
+                        pathElement.ValueKind == JsonValueKind.String
+                ? pathElement.GetString()
+                : null;
+            return AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                value,
+                AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+                out path,
+                out error);
+        }
+        catch (JsonException)
+        {
+            error = "Tool arguments must be valid JSON.";
+            return false;
+        }
+    }
+
+    private static bool TryReadRemoteDirectoryArguments(
+        string? arguments,
+        out string path,
+        out int maxEntries,
+        out string? error)
+    {
+        path = string.Empty;
+        maxEntries = 100;
+        error = null;
+        try
+        {
+            using var document = JsonDocument.Parse(arguments ?? "{}");
+            var root = document.RootElement;
+            var value = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("path", out var pathElement) &&
+                        pathElement.ValueKind == JsonValueKind.String
+                ? pathElement.GetString()
+                : null;
+            if (!AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                    value,
+                    AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName,
+                    out path,
+                    out error))
+            {
+                return false;
+            }
+
+            if (root.TryGetProperty("maxEntries", out var maxElement) &&
+                (!maxElement.TryGetInt32(out maxEntries) ||
+                 maxEntries is < 1 or > AgentReadOnlyToolCatalog.MaximumRemoteDirectoryEntries))
+            {
+                error = $"{AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName} maxEntries must be between 1 and {AgentReadOnlyToolCatalog.MaximumRemoteDirectoryEntries}.";
+                return false;
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            error = "Tool arguments must be valid JSON.";
+            return false;
+        }
+    }
+
+    private static bool TryReadRemoteFileArguments(
+        string? arguments,
+        out string path,
+        out int maxCharacters,
+        out string? error)
+    {
+        path = string.Empty;
+        maxCharacters = 64 * 1024;
+        error = null;
+        try
+        {
+            using var document = JsonDocument.Parse(arguments ?? "{}");
+            var root = document.RootElement;
+            var value = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("path", out var pathElement) &&
+                        pathElement.ValueKind == JsonValueKind.String
+                ? pathElement.GetString()
+                : null;
+            if (!AgentReadOnlyToolCatalog.TryValidateRemotePath(
+                    value,
+                    AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+                    out path,
+                    out error))
+            {
+                return false;
+            }
+
+            if (root.TryGetProperty("maxCharacters", out var maxElement) &&
+                (!maxElement.TryGetInt32(out maxCharacters) ||
+                 maxCharacters is < 1 or > AgentReadOnlyToolCatalog.MaximumRemoteFileCharacters))
+            {
+                error = $"maxCharacters must be between 1 and {AgentReadOnlyToolCatalog.MaximumRemoteFileCharacters}.";
+                return false;
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            error = "Tool arguments must be valid JSON.";
+            return false;
+        }
     }
 
     private async Task<AgentToolExecutionResult> ExecuteRunbookAsync(
@@ -3230,9 +3889,10 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             return new(false, error!);
         }
 
-        var session = _gateway.GetSession(request.SessionId);
-        if (session == null)
-            return new(false, "The selected SSH session is no longer available.");
+        if (!TryResolveToolSession(activeRun, toolCall.Arguments, out var session, out var sessionError))
+            return sessionError!;
+
+        request = request with { SessionId = session.SessionId };
 
         if (!AgentDiagnosticRunbookCatalog.TryCreatePlan(session, scope, out var plan, out error))
             return new(false, error!);
@@ -3259,7 +3919,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                 status = result.Status.ToString(),
                 message = result.Message,
                 requestId = result.RequestId.ToString("D"),
-                sessionId = activeRun.SessionId.ToString("D"),
+                sessionId = request.SessionId.ToString("D"),
                 remoteCompletionConfirmed = result.RemoteCompletionConfirmed,
                 output = LimitToolResultOutput(result.Output)
             }));
@@ -3321,7 +3981,8 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         ActiveRun activeRun,
         AgentCommandResult result,
         string? agentGuidance = null,
-        IReadOnlyList<string>? sensitiveInputs = null)
+        IReadOnlyList<string>? sensitiveInputs = null,
+        Guid? targetSessionId = null)
     {
         var message = AgentSensitiveDataRedactor.Redact(result.Message, sensitiveInputs);
         var output = AgentSensitiveDataRedactor.Redact(result.Output, sensitiveInputs);
@@ -3332,7 +3993,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             status = result.Status.ToString(),
             message,
             requestId = result.RequestId.ToString("D"),
-            sessionId = activeRun.SessionId.ToString("D"),
+            sessionId = (targetSessionId ?? activeRun.SessionId).ToString("D"),
             remoteCompletionConfirmed = result.RemoteCompletionConfirmed,
             risk = result.Risk.ToString(),
             executionState = result.ExecutionState.ToString(),
@@ -3905,7 +4566,8 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             DateTimeOffset.UtcNow + RecoveryLifetime,
             snapshot.Checkpoint)
         {
-            Context = AgentContextEstimator.Estimate(request.Messages)
+            Context = AgentContextEstimator.Estimate(request.Messages),
+            ReasoningEffort = request.ReasoningEffort
         };
     }
 

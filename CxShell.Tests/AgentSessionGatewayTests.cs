@@ -211,6 +211,77 @@ public sealed class AgentSessionGatewayTests
     }
 
     [Fact]
+    public async Task SftpReadGatewayReturnsBoundedDirectoryFileAndStatResults()
+    {
+        var snapshot = CreateSnapshot(SessionProtocol.SSH, isConnected: true);
+        var endpoint = new AgentSessionEndpoint(
+            () => snapshot,
+            (_, _) => Task.CompletedTask,
+            runCommand: null,
+            runCommandResult: null,
+            runCommandProgressResult: null,
+            remoteDirectoryProvider: (path, maxEntries, _) => Task.FromResult(
+                new AgentRemoteDirectoryResult(
+                    true,
+                    path,
+                    [new AgentRemoteFileEntry("nginx.conf", "/etc/nginx/nginx.conf", false, 42, DateTime.UnixEpoch, "-rw-r--r--", false)],
+                    false)),
+            remoteFileProvider: (path, _, _) => Task.FromResult(
+                new AgentRemoteFileReadResult(true, path, "server {}", 9)),
+            remotePathProvider: (path, _) => Task.FromResult(
+                new AgentRemotePathResult(
+                    true,
+                    path,
+                    new AgentRemoteFileEntry("nginx.conf", path, false, 42, DateTime.UnixEpoch, "-rw-r--r--", false))),
+            workingDirectoryProvider: () => "/srv/app");
+        using var gateway = new AgentSessionGateway(
+            new DelegateAgentSessionHost(() => [endpoint]));
+
+        var directory = await gateway.ListRemoteDirectoryAsync(
+            snapshot.SessionId,
+            "/etc/nginx",
+            10);
+        var file = await gateway.ReadRemoteFileAsync(
+            snapshot.SessionId,
+            "/etc/nginx/nginx.conf",
+            256);
+        var stat = await gateway.StatRemotePathAsync(
+            snapshot.SessionId,
+            "/etc/nginx/nginx.conf");
+
+        Assert.True(gateway.Capabilities.SupportsSftpRead);
+        Assert.True(directory.Success);
+        Assert.Single(directory.Entries);
+        Assert.True(file.Success);
+        Assert.Equal("server {}", file.Content);
+        Assert.True(stat.Success);
+        Assert.Equal(42, stat.Entry!.Size);
+        Assert.True(gateway.TryGetWorkingDirectory(snapshot.SessionId, out var workingDirectory));
+        Assert.Equal("/srv/app", workingDirectory);
+    }
+
+    [Fact]
+    public async Task SftpReadGatewayRejectsSensitivePathsAndUnsupportedEndpointsStructurally()
+    {
+        var snapshot = CreateSnapshot(SessionProtocol.SSH, isConnected: true);
+        using var gateway = CreateGateway(snapshot);
+
+        var sensitive = await gateway.ReadRemoteFileAsync(
+            snapshot.SessionId,
+            "/home/operator/.ssh/id_ed25519",
+            100);
+        var unsupported = await gateway.ListRemoteDirectoryAsync(
+            snapshot.SessionId,
+            "/etc",
+            20);
+
+        Assert.False(sensitive.Success);
+        Assert.Equal("invalid_path", sensitive.ErrorCode);
+        Assert.False(unsupported.Success);
+        Assert.Equal("sftp_unsupported", unsupported.ErrorCode);
+    }
+
+    [Fact]
     public async Task CapturedRemoteFailurePreservesExitCodeStdoutAndStderr()
     {
         var snapshot = CreateSnapshot(SessionProtocol.SSH, isConnected: true);

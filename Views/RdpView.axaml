@@ -5,10 +5,12 @@
              x:Class="CxShell.Views.RdpView"
              x:DataType="vm:RdpViewModel"
              Focusable="True"
+             Cursor="Arrow"
              Background="{atom:SharedTokenResource ColorBgLayout}">
     <Grid>
         <Border x:Name="RdpViewport"
                 Background="#111111"
+                Cursor="Arrow"
                 ClipToBounds="True"
                 SizeChanged="OnViewportSizeChanged">
             <Image x:Name="FramebufferImage"
@@ -16,6 +18,7 @@
                    Stretch="Uniform"
                    HorizontalAlignment="Stretch"
                    VerticalAlignment="Stretch"
+                   Cursor="Arrow"
                    Focusable="True"
                    PointerMoved="OnFramebufferPointerMoved"
                    PointerPressed="OnFramebufferPointerPressed"

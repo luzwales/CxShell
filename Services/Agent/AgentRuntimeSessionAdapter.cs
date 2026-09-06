@@ -290,6 +290,7 @@ public sealed class AgentRuntimeSessionAdapter :
             "agent.session.command.batch" => _gateway.Capabilities.SupportsTerminalCommandDispatch &&
                                                _gateway.Capabilities.AllowsCommandExecution,
             "agent.session.command.output" => _gateway.Capabilities.SupportsCommandOutputCapture,
+            "agent.session.sftp.read" => _gateway.Capabilities.SupportsSftpRead,
             "agent.diagnostics" => _gateway.Capabilities.SupportsReadOnlyDiagnostics,
             "agent.diagnostic.run" => _gateway.Capabilities.SupportsReadOnlyDiagnostics &&
                                        _gateway.Capabilities.AllowsCommandExecution,
@@ -784,6 +785,13 @@ public sealed class AgentRuntimeSessionAdapter :
                 : (false, "Saved session management is not available in the current gateway.");
         }
 
+        if (string.Equals(toolName, AgentReadOnlyToolCatalog.ListRemoteDirectoryToolName, StringComparison.Ordinal))
+        {
+            return capabilities.SupportsSftpRead
+                ? (true, null)
+                : (false, "SFTP directory reads are not available for the current gateway.");
+        }
+
         return capabilities.SupportsReadOnlyDiagnostics && capabilities.AllowsCommandExecution
             ? (true, null)
             : (false, "Read-only diagnostic execution is not available in the current gateway.");
@@ -871,7 +879,8 @@ public sealed class AgentRuntimeSessionAdapter :
             messages,
             GetString(parameters, "model"),
             GetDouble(parameters, "temperature"),
-            GetIntNullable(parameters, "maxTokens"));
+            GetIntNullable(parameters, "maxTokens"),
+            ReasoningEffort: ParseReasoningEffort(parameters));
         var response = await _modelClient.CompleteAsync(
             provider,
             modelRequest,
@@ -901,6 +910,7 @@ public sealed class AgentRuntimeSessionAdapter :
             Model = GetString(parameters, "model"),
             Temperature = GetDouble(parameters, "temperature"),
             MaxTokens = GetIntNullable(parameters, "maxTokens"),
+            ReasoningEffort = ParseReasoningEffort(parameters),
             Mode = mode,
             Timeout = TimeSpan.FromMilliseconds(timeoutMs)
         });
@@ -917,6 +927,15 @@ public sealed class AgentRuntimeSessionAdapter :
                 start.RunId,
                 sessionId.ToString("D"),
                 mode));
+    }
+
+    private static AgentReasoningEffort ParseReasoningEffort(JsonElement parameters)
+    {
+        var value = GetString(parameters, "reasoningEffort") ??
+                    GetString(parameters, "reasoning_effort");
+        return Enum.TryParse<AgentReasoningEffort>(value, true, out var effort)
+            ? effort
+            : AgentReasoningEffort.None;
     }
 
     private AgentRuntimeResponse CancelRun(string requestId, JsonElement parameters)

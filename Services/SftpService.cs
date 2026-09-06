@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CxShell.Models;
@@ -139,13 +140,16 @@ public class SftpService : IFileTransferService, IDisposable
         return await Task.Run(() => _client.WorkingDirectory);
     }
 
-    public async Task<List<SftpFileItem>> ListDirectoryAsync(string path)
+    public async Task<List<SftpFileItem>> ListDirectoryAsync(
+        string path,
+        CancellationToken cancellationToken = default)
     {
         if (_client == null || !_client.IsConnected)
             return new List<SftpFileItem>();
 
         return await Task.Run(() =>
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var entries = _client.ListDirectory(path);
             var items = new List<SftpFileItem>();
 
@@ -180,7 +184,87 @@ public class SftpService : IFileTransferService, IDisposable
                 .OrderByDescending(i => i.IsDirectory)
                 .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-        });
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads bounded metadata for Agent diagnostics without exposing the SSH.NET
+    /// client or the UI file-browser model to the Agent runtime.
+    /// </summary>
+    public async Task<SftpFileItem> GetItemForAgentAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        if (_client == null || !_client.IsConnected)
+            throw new InvalidOperationException("SFTP 未连接");
+
+        return await Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var attributes = _client.GetAttributes(path);
+            return new SftpFileItem
+            {
+                Name = GetRemoteName(path),
+                FullPath = path,
+                IsDirectory = attributes.IsDirectory,
+                Size = attributes.IsDirectory ? 0 : attributes.Size,
+                LastModified = attributes.LastWriteTime,
+                Permissions = FormatPermissions(attributes),
+                IsSymLink = false
+            };
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads a UTF-8 text file with a byte cap. This method is intentionally
+    /// separate from the transfer/editing APIs so Agent reads stay read-only.
+    /// </summary>
+    public async Task<string> ReadTextFileForAgentAsync(
+        string remotePath,
+        int maxCharacters,
+        CancellationToken cancellationToken = default)
+    {
+        if (_client == null || !_client.IsConnected)
+            throw new InvalidOperationException("SFTP 未连接");
+        if (maxCharacters < 1)
+            throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+
+        var maxBytes = checked(Math.Min(maxCharacters * 4L + 4L, 1024L * 1024L));
+        return await Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var attributes = _client.GetAttributes(remotePath);
+            if (attributes.IsDirectory)
+                throw new InvalidOperationException("The requested remote path is a directory.");
+            if (attributes.Size > maxBytes)
+                throw new InvalidOperationException($"The remote file exceeds the {maxCharacters} character read limit.");
+
+            using var remoteStream = _client.OpenRead(remotePath);
+            using var buffer = new MemoryStream();
+            var chunk = new byte[8192];
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var read = remoteStream.Read(chunk, 0, chunk.Length);
+                if (read == 0)
+                    break;
+
+                buffer.Write(chunk, 0, read);
+                if (buffer.Length > maxBytes)
+                    throw new InvalidOperationException($"The remote file exceeds the {maxCharacters} character read limit.");
+            }
+
+            try
+            {
+                var content = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
+                    .GetString(buffer.ToArray());
+                return content.Length <= maxCharacters ? content : content[..maxCharacters];
+            }
+            catch (DecoderFallbackException ex)
+            {
+                throw new InvalidDataException("The remote file is not valid UTF-8 text.", ex);
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UploadFileAsync(
@@ -473,6 +557,13 @@ public class SftpService : IFileTransferService, IDisposable
                    $"{(attrs.OthersCanRead ? 'r' : '-')}{(attrs.OthersCanWrite ? 'w' : '-')}{(attrs.OthersCanExecute ? 'x' : '-')}";
         }
         catch { return ""; }
+    }
+
+    private static string GetRemoteName(string path)
+    {
+        var normalized = path.Replace('\\', '/').TrimEnd('/');
+        var separator = normalized.LastIndexOf('/');
+        return separator >= 0 ? normalized[(separator + 1)..] : normalized;
     }
 
     public void Dispose() => Disconnect();

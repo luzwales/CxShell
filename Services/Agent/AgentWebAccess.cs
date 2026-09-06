@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CxShell.Models;
+using CxShell.Services;
 
 namespace CxShell.Services.Agent;
 
@@ -33,10 +34,13 @@ public sealed class AgentWebAccess
 
     public AgentWebAccess(
         Func<AgentWebSettings?>? settings = null,
-        HttpClient? httpClient = null)
+        HttpClient? httpClient = null,
+        Func<ProxySettings?>? globalProxyProvider = null)
     {
         _settings = settings ?? (() => null);
-        _httpClient = httpClient ?? SharedHttpClient;
+        _httpClient = httpClient ?? (globalProxyProvider == null
+            ? SharedHttpClient
+            : NetworkProxyHttpClientFactory.Create(globalProxyProvider));
     }
 
     public async Task<AgentWebResult> SearchAsync(

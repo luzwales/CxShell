@@ -128,6 +128,258 @@ public sealed class AgentProviderTests
     }
 
     [Fact]
+    public async Task AnthropicModelCatalogUsesV1EndpointAndApiKeyHeader()
+    {
+        HttpRequestMessage? captured = null;
+        var handler = new DelegateHttpMessageHandler(request =>
+        {
+            captured = request;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"models\":[{\"id\":\"claude-sonnet\"},{\"id\":\"claude-haiku\"}]}" ,
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new AgentModelCatalogClient(httpClient);
+        var settings = new AgentProviderSettings
+        {
+            Enabled = true,
+            Type = AgentProviderType.AnthropicMessages,
+            BaseUrl = "https://api.anthropic.com",
+            Model = "claude-sonnet"
+        };
+        AgentProviderConfiguration.SetApiKey(settings, "anthropic-secret");
+
+        var result = await client.FetchAsync(settings);
+
+        Assert.True(result.Success);
+        Assert.Equal(["claude-sonnet", "claude-haiku"], result.Models);
+        Assert.Equal("https://api.anthropic.com/v1/models", captured?.RequestUri?.ToString());
+        Assert.Equal("anthropic-secret", captured?.Headers.GetValues("x-api-key").Single());
+        Assert.Equal("2023-06-01", captured?.Headers.GetValues("anthropic-version").Single());
+        Assert.Null(captured?.Headers.Authorization);
+    }
+
+    [Fact]
+    public async Task ChatRequestIncludesSelectedReasoningEffort()
+    {
+        var capturedBody = string.Empty;
+        var handler = new DelegateHttpMessageHandler(request =>
+        {
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? string.Empty;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"choices\":[{\"message\":{\"content\":\"ok\"}}]}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new OpenAiCompatibleAgentModelClient(httpClient);
+        var settings = new AgentProviderSettings
+        {
+            Enabled = true,
+            BaseUrl = "https://api.example/v1",
+            Model = "reasoning-chat"
+        };
+        AgentProviderConfiguration.SetApiKey(settings, "secret-key");
+
+        await client.CompleteAsync(
+            settings,
+            new AgentModelRequest(
+                [new AgentChatMessage("user", "think")],
+                ReasoningEffort: AgentReasoningEffort.High));
+
+        using var document = JsonDocument.Parse(capturedBody);
+        Assert.Equal("high", document.RootElement.GetProperty("reasoning_effort").GetString());
+    }
+
+    [Fact]
+    public async Task ResponsesRequestIncludesSelectedReasoningEffort()
+    {
+        var capturedBody = string.Empty;
+        var handler = new DelegateHttpMessageHandler(request =>
+        {
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? string.Empty;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"model\":\"gpt-5.4\",\"output_text\":\"ok\",\"output\":[]}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new OpenAiCompatibleAgentModelClient(httpClient);
+        var settings = AgentProviderPresets.CreateRoutinPlan();
+        settings.Enabled = true;
+        settings.BaseUrl = "https://api.example/plan/v1";
+        AgentProviderConfiguration.SetApiKey(settings, "plan-key");
+
+        await client.CompleteAsync(
+            settings,
+            new AgentModelRequest(
+                [new AgentChatMessage("user", "think")],
+                ReasoningEffort: AgentReasoningEffort.Medium));
+
+        using var document = JsonDocument.Parse(capturedBody);
+        Assert.Equal(
+            "medium",
+            document.RootElement.GetProperty("reasoning").GetProperty("effort").GetString());
+    }
+
+    [Fact]
+    public async Task AnthropicRequestIncludesThinkingBudgetForSelectedReasoningEffort()
+    {
+        var capturedBody = string.Empty;
+        var handler = new DelegateHttpMessageHandler(request =>
+        {
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? string.Empty;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"model\":\"claude-sonnet\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new OpenAiCompatibleAgentModelClient(httpClient);
+        var settings = new AgentProviderSettings
+        {
+            Enabled = true,
+            Type = AgentProviderType.AnthropicMessages,
+            BaseUrl = "https://api.anthropic.com",
+            Model = "claude-sonnet"
+        };
+        AgentProviderConfiguration.SetApiKey(settings, "anthropic-secret");
+
+        await client.CompleteAsync(
+            settings,
+            new AgentModelRequest(
+                [new AgentChatMessage("user", "think")],
+                ReasoningEffort: AgentReasoningEffort.Medium));
+
+        using var document = JsonDocument.Parse(capturedBody);
+        var thinking = document.RootElement.GetProperty("thinking");
+        Assert.Equal("enabled", thinking.GetProperty("type").GetString());
+        Assert.Equal(4096, thinking.GetProperty("budget_tokens").GetInt32());
+        Assert.True(AgentProviderConfiguration.GetCapabilities(settings).SupportsReasoning);
+    }
+
+    [Fact]
+    public async Task AnthropicClientSendsMessagesHeadersAndParsesToolUse()
+    {
+        HttpRequestMessage? captured = null;
+        var capturedBody = string.Empty;
+        var handler = new DelegateHttpMessageHandler(request =>
+        {
+            captured = request;
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult() ?? string.Empty;
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"id\":\"msg-1\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"claude-sonnet\",\"content\":[{\"type\":\"text\",\"text\":\"I will inspect it.\"},{\"type\":\"tool_use\",\"id\":\"tool-1\",\"name\":\"run_command\",\"input\":{\"command\":\"uname -a\"}}],\"usage\":{\"input_tokens\":11,\"output_tokens\":8}}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new OpenAiCompatibleAgentModelClient(httpClient);
+        var settings = new AgentProviderSettings
+        {
+            Enabled = true,
+            Type = AgentProviderType.AnthropicMessages,
+            BuiltinId = "anthropic",
+            BaseUrl = "https://api.anthropic.com/v1",
+            Model = "claude-sonnet"
+        };
+        AgentProviderConfiguration.SetApiKey(settings, "anthropic-secret");
+
+        var response = await client.CompleteAsync(
+            settings,
+            new AgentModelRequest(
+                [
+                    new AgentChatMessage("system", "You are an operator assistant."),
+                    new AgentChatMessage("user", "Inspect the server.")
+                ],
+                Tools:
+                [
+                    new AgentToolDefinition(
+                        "run_command",
+                        "Run a command.",
+                        JsonSerializer.SerializeToElement(new { type = "object" }))
+                ]));
+
+        Assert.Equal("I will inspect it.", response.Text);
+        Assert.Equal("claude-sonnet", response.Model);
+        Assert.Equal(11, response.InputTokens);
+        Assert.Equal(8, response.OutputTokens);
+        var toolCall = Assert.Single(response.ToolCalls!);
+        Assert.Equal("tool-1", toolCall.Id);
+        Assert.Equal("run_command", toolCall.Name);
+        Assert.Equal("{\"command\":\"uname -a\"}", toolCall.Arguments);
+        Assert.Equal("https://api.anthropic.com/v1/messages", captured?.RequestUri?.ToString());
+        Assert.Equal("anthropic-secret", captured?.Headers.GetValues("x-api-key").Single());
+        Assert.Equal("2023-06-01", captured?.Headers.GetValues("anthropic-version").Single());
+        Assert.Null(captured?.Headers.Authorization);
+        Assert.DoesNotContain("anthropic-secret", capturedBody, StringComparison.Ordinal);
+        using var body = JsonDocument.Parse(capturedBody);
+        Assert.Equal("You are an operator assistant.", body.RootElement.GetProperty("system").GetString());
+        Assert.Equal("run_command", body.RootElement.GetProperty("tools")[0].GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task AnthropicClientStreamsTextAndToolArguments()
+    {
+        var handler = new DelegateHttpMessageHandler(_ =>
+        {
+            var sse = string.Join(
+                "\n\n",
+                "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"model\":\"claude-stream\",\"usage\":{\"input_tokens\":5}}}",
+                "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}",
+                "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"hello\"}}",
+                "event: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"tool-2\",\"name\":\"run_command\",\"input\":{}}}",
+                "event: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"command\\\":\\\"pwd\\\"}\"}}",
+                "event: message_delta\ndata: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":4}}",
+                "event: message_stop\ndata: {\"type\":\"message_stop\"}");
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(sse, Encoding.UTF8, "text/event-stream")
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var client = new OpenAiCompatibleAgentModelClient(httpClient);
+        var settings = new AgentProviderSettings
+        {
+            Enabled = true,
+            Type = AgentProviderType.AnthropicMessages,
+            BaseUrl = "https://api.anthropic.com",
+            Model = "claude-stream"
+        };
+        AgentProviderConfiguration.SetApiKey(settings, "anthropic-secret");
+        var chunks = new List<AgentModelStreamChunk>();
+
+        var response = await client.CompleteStreamingAsync(
+            settings,
+            new AgentModelRequest([new AgentChatMessage("user", "check")]),
+            chunks.Add);
+
+        Assert.Equal("hello", response.Text);
+        Assert.Equal("claude-stream", response.Model);
+        Assert.Equal(5, response.InputTokens);
+        Assert.Equal(4, response.OutputTokens);
+        var toolCall = Assert.Single(response.ToolCalls!);
+        Assert.Equal("tool-2", toolCall.Id);
+        Assert.Equal("{\"command\":\"pwd\"}", toolCall.Arguments);
+        Assert.Equal(["hello"], chunks.Select(chunk => chunk.Text));
+    }
+
+    [Fact]
     public async Task OpenAiCompatibleClientSendsBearerKeyAndParsesResponse()
     {
         HttpRequestMessage? captured = null;

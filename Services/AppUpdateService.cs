@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using CxShell.Models;
 using Velopack;
 using Velopack.Sources;
 
@@ -64,6 +65,12 @@ public sealed class AppUpdateService
 {
     private const string ReleaseDownloadBaseUrl = "https://github.com/xiaochengzjc/CxShell/releases/latest/download";
     private const double UpdateDownloadTimeoutMinutes = 15;
+    private readonly Func<ProxySettings?>? _globalProxyProvider;
+
+    public AppUpdateService(Func<ProxySettings?>? globalProxyProvider = null)
+    {
+        _globalProxyProvider = globalProxyProvider;
+    }
 
     public async Task<AppUpdateCheckResult> CheckForUpdatesAsync(
         bool includePrerelease,
@@ -145,13 +152,13 @@ public sealed class AppUpdateService
             canWriteInstallDirectory);
     }
 
-    private static UpdateManager CreateManager(bool includePrerelease)
+    private UpdateManager CreateManager(bool includePrerelease)
     {
         _ = includePrerelease;
 
         var source = new SimpleWebSource(
             ReleaseDownloadBaseUrl,
-            new RetryingFileDownloader(),
+            new RetryingFileDownloader(_globalProxyProvider),
             timeout: UpdateDownloadTimeoutMinutes);
         var options = new UpdateOptions
         {
@@ -225,6 +232,25 @@ public sealed class AppUpdateService
     private sealed class RetryingFileDownloader : HttpClientFileDownloader
     {
         private const int MaxAttempts = 3;
+        private readonly Func<ProxySettings?>? _globalProxyProvider;
+
+        public RetryingFileDownloader(Func<ProxySettings?>? globalProxyProvider)
+        {
+            _globalProxyProvider = globalProxyProvider;
+        }
+
+        protected override HttpClientHandler CreateHttpClientHandler()
+        {
+            var handler = base.CreateHttpClientHandler();
+            var proxy = NetworkProxyHttpClientFactory.CreateHttpProxy(_globalProxyProvider?.Invoke());
+            if (proxy != null)
+            {
+                handler.UseProxy = true;
+                handler.Proxy = proxy;
+            }
+
+            return handler;
+        }
 
         public override async Task DownloadFile(
             string url,

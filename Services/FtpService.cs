@@ -66,10 +66,13 @@ public sealed class FtpService : IFileTransferService, IDisposable
         return await _client!.GetWorkingDirectory(CancellationToken.None);
     }
 
-    public async Task<List<SftpFileItem>> ListDirectoryAsync(string path)
+    public async Task<List<SftpFileItem>> ListDirectoryAsync(
+        string path,
+        CancellationToken cancellationToken = default)
     {
         EnsureConnected();
-        var entries = await _client!.GetListing(path, FtpListOption.Modify | FtpListOption.Size, CancellationToken.None);
+        cancellationToken.ThrowIfCancellationRequested();
+        var entries = await _client!.GetListing(path, FtpListOption.Modify | FtpListOption.Size, cancellationToken);
 
         return entries
             .Where(entry => entry.Name is not "." and not "..")

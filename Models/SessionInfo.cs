@@ -306,7 +306,7 @@ public class ApplicationSettings
 {
     public const string DarkThemeMode = "Dark";
     public const string LightThemeMode = "Light";
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string UiLanguage { get; set; } = "zh-CN";
@@ -316,6 +316,7 @@ public class ApplicationSettings
     public bool IncludePrereleaseUpdates { get; set; }
     public AgentProviderSettings AgentProvider { get; set; } = new();
     public AgentWebSettings AgentWeb { get; set; } = new();
+    public ProxySettings GlobalProxy { get; set; } = new();
     public bool AgentAllowCommandExecution { get; set; } = true;
     public string AgentPermissionMode { get; set; } = "risk";
     public bool AgentRequireApprovalForDangerousCommands { get; set; } = true;

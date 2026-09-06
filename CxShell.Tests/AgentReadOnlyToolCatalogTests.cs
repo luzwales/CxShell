@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using CxShell.Models;
 using CxShell.Services.Agent;
 
@@ -97,6 +98,79 @@ public sealed class AgentReadOnlyToolCatalogTests
             out _,
             out error));
         Assert.Contains("not available", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RemotePathToolsAreBoundedAndRejectCredentialPaths()
+    {
+        var linux = CreateSession("Linux/Unix");
+
+        Assert.True(AgentReadOnlyToolCatalog.TryCreatePlan(
+            linux,
+            AgentReadOnlyToolCatalog.WorkingDirectoryToolName,
+            JsonDocument.Parse("{}").RootElement,
+            out var workingDirectory,
+            out var error), error);
+        Assert.Contains("pwd -P", workingDirectory.Command, StringComparison.Ordinal);
+
+        Assert.True(AgentReadOnlyToolCatalog.TryCreatePlan(
+            linux,
+            AgentReadOnlyToolCatalog.StatRemotePathToolName,
+            Json(new { path = "/var/log/nginx/access.log" }),
+            out var stat,
+            out error), error);
+        Assert.Contains("stat --", stat.Command, StringComparison.Ordinal);
+        Assert.Contains("/var/log/nginx/access.log", stat.Command, StringComparison.Ordinal);
+
+        Assert.True(AgentReadOnlyToolCatalog.TryCreatePlan(
+            linux,
+            AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+            Json(new { path = "/etc/nginx/nginx.conf", lines = 25 }),
+            out var read,
+            out error), error);
+        Assert.Contains("sed -n '1,25p'", read.Command, StringComparison.Ordinal);
+
+        Assert.False(AgentReadOnlyToolCatalog.TryCreatePlan(
+            linux,
+            AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+            Json(new { path = "/home/operator/.ssh/id_ed25519" }),
+            out _,
+            out error));
+        Assert.Contains("private keys", error, StringComparison.OrdinalIgnoreCase);
+
+        Assert.False(AgentReadOnlyToolCatalog.TryCreatePlan(
+            linux,
+            AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+            Json(new { path = "/etc/hosts", lines = 401 }),
+            out _,
+            out error));
+        Assert.Contains("400", error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void WindowsRemotePathToolsUseLiteralPathPowerShellCommands()
+    {
+        var windows = CreateSession("Windows");
+
+        Assert.True(AgentReadOnlyToolCatalog.TryCreatePlan(
+            windows,
+            AgentReadOnlyToolCatalog.StatRemotePathToolName,
+            Json(new { path = "C:\\ProgramData\\app\\config.json" }),
+            out var stat,
+            out var error), error);
+        var statScript = DecodePowerShell(stat.Command);
+        Assert.Contains("Test-Path -LiteralPath", statScript, StringComparison.Ordinal);
+        Assert.Contains("Get-Item -LiteralPath", statScript, StringComparison.Ordinal);
+
+        Assert.True(AgentReadOnlyToolCatalog.TryCreatePlan(
+            windows,
+            AgentReadOnlyToolCatalog.ReadRemoteFileToolName,
+            Json(new { path = "C:\\ProgramData\\app\\config.json", lines = 30 }),
+            out var read,
+            out error), error);
+        var readScript = DecodePowerShell(read.Command);
+        Assert.Contains("Get-Content -LiteralPath", readScript, StringComparison.Ordinal);
+        Assert.Contains("-TotalCount 30", readScript, StringComparison.Ordinal);
     }
 
     private static System.Text.Json.JsonElement Json(object value)

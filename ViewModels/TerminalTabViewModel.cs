@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using CxShell.Models;
 using CxShell.Services;
+using CxShell.Services.Agent;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -33,6 +34,11 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
     public RdpViewModel? Rdp { get; }
     public SftpViewModel? FileTransfer { get; }
     public SftpViewModel CompanionSftp { get; }
+    /// <summary>
+    /// Isolated, lazy SFTP channel used by Agent read-only tools. It is not
+    /// the visible SFTP panel and therefore does not change its browsing state.
+    /// </summary>
+    public AgentSftpReadSession AgentSftpReadSession { get; } = new();
     public ServerMonitorViewModel Monitor { get; } = new();
     public bool IsVncSession => Vnc != null;
     public bool IsRdpSession => Rdp != null;
@@ -278,6 +284,7 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         if (FileTransfer != null)
             _ = DisposeFileTransferAsync(FileTransfer);
         CompanionSftp.Dispose();
+        _ = DisposeAgentSftpReadSessionAsync(AgentSftpReadSession);
         Monitor.Dispose();
         _lifetimeCancellation.Dispose();
     }
@@ -291,6 +298,18 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SFTP tab cleanup failed: {ex.Message}");
+        }
+    }
+
+    private static async Task DisposeAgentSftpReadSessionAsync(AgentSftpReadSession session)
+    {
+        try
+        {
+            await session.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Agent SFTP cleanup failed: {ex.Message}");
         }
     }
 }

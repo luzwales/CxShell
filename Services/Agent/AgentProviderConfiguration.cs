@@ -67,7 +67,9 @@ public static class AgentProviderConfiguration
         if (settings == null || !settings.Enabled)
             return new(AgentProviderValidationStatus.Disabled, "Agent provider is disabled.");
 
-        if (settings.Type is not (AgentProviderType.OpenAiChatCompatible or AgentProviderType.OpenAiResponses))
+        if (settings.Type is not (AgentProviderType.OpenAiChatCompatible or
+            AgentProviderType.OpenAiResponses or
+            AgentProviderType.AnthropicMessages))
             return new(AgentProviderValidationStatus.UnsupportedProvider, "The provider type is not supported yet.");
 
         if (string.IsNullOrWhiteSpace(settings.BaseUrl))
@@ -128,7 +130,9 @@ public static class AgentProviderConfiguration
     public static AgentProviderCapabilities GetCapabilities(AgentProviderSettings? settings)
     {
         if (settings == null || !settings.Enabled ||
-            settings.Type is not (AgentProviderType.OpenAiChatCompatible or AgentProviderType.OpenAiResponses))
+            settings.Type is not (AgentProviderType.OpenAiChatCompatible or
+                AgentProviderType.OpenAiResponses or
+                AgentProviderType.AnthropicMessages))
             return new();
 
         return new AgentProviderCapabilities
@@ -141,7 +145,10 @@ public static class AgentProviderConfiguration
             SupportsDocumentInput = true,
             SupportsResponsesApi = settings.Type == AgentProviderType.OpenAiResponses,
             SupportsTokenUsage = true,
-            SupportsReasoning = settings.Type == AgentProviderType.OpenAiResponses
+            // CxShell sends the selected effort only when it is non-default;
+            // all supported provider adapters can therefore opt into the
+            // per-request reasoning control without changing saved settings.
+            SupportsReasoning = true
         };
     }
 
@@ -273,6 +280,17 @@ public static class AgentProviderConfiguration
     {
         ArgumentNullException.ThrowIfNull(settings);
         var baseUrl = settings.BaseUrl.Trim().TrimEnd('/');
+        if (settings.Type == AgentProviderType.AnthropicMessages)
+        {
+            if (baseUrl.EndsWith("/models", StringComparison.OrdinalIgnoreCase))
+                return new Uri(baseUrl, UriKind.Absolute);
+
+            if (!baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+                baseUrl += "/v1";
+
+            return new Uri(baseUrl + "/models", UriKind.Absolute);
+        }
+
         foreach (var suffix in new[] { "/chat/completions", "/responses", "/models" })
         {
             if (baseUrl.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
@@ -280,6 +298,25 @@ public static class AgentProviderConfiguration
         }
 
         return new Uri(baseUrl + "/models", UriKind.Absolute);
+    }
+
+    public static Uri BuildAnthropicMessagesUri(AgentProviderSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var baseUrl = settings.BaseUrl.Trim().TrimEnd('/');
+        if (baseUrl.EndsWith("/messages", StringComparison.OrdinalIgnoreCase))
+            return new Uri(baseUrl, UriKind.Absolute);
+
+        if (!baseUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+            baseUrl += "/v1";
+
+        return new Uri(baseUrl + "/messages", UriKind.Absolute);
+    }
+
+    public static bool IsAnthropicProvider(AgentProviderSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return settings.Type == AgentProviderType.AnthropicMessages;
     }
 
     public static bool IsResponsesProvider(AgentProviderSettings settings)

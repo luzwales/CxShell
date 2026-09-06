@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CxShell.Models;
 using CxShell.Services.Agent;
 
@@ -557,7 +558,270 @@ public sealed class AgentRunCoordinatorTests
         Assert.Equal("uname -a", executedCommand);
         Assert.Equal(2, callCount);
         Assert.Contains("Linux agent-host 6.8", toolResult, StringComparison.Ordinal);
-        Assert.Contains("Sent", toolResult, StringComparison.Ordinal);
+        Assert.Contains("\"status\":\"completed\"", toolResult, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ToolExceptionsAreReturnedAsAStableResultAndDoNotEndTheRun()
+    {
+        var snapshot = CreateSnapshot(isConnected: true);
+        var snapshotReads = 0;
+        using var gateway = new AgentSessionGateway(
+            new DelegateAgentSessionHost(() =>
+            [
+                new AgentSessionEndpoint(
+                    () => Interlocked.Increment(ref snapshotReads) == 5
+                        ? throw new InvalidOperationException("simulated tool failure")
+                        : snapshot,
+                    (_, _) => Task.CompletedTask)
+            ]));
+        var provider = CreateProvider();
+        var callCount = 0;
+        string? toolResult = null;
+        using var coordinator = new AgentRunCoordinator(
+            gateway,
+            () => provider,
+            new StubAgentModelClient((_, request, _) =>
+            {
+                if (Interlocked.Increment(ref callCount) == 1)
+                {
+                    return Task.FromResult(new AgentModelResponse(
+                        string.Empty,
+                        provider.Model,
+                        provider.BuiltinId,
+                        ToolCalls:
+                        [
+                            new AgentToolCall(
+                                "throwing-tool",
+                                AgentRunCoordinator.SessionCommandToolName,
+                                "{\"command\":\"printf failure\"}")
+                        ]));
+                }
+
+                toolResult = request.Messages.Last().Content;
+                return Task.FromResult(new AgentModelResponse(
+                    "The command failed.",
+                    provider.Model,
+                    provider.BuiltinId));
+            }));
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = coordinator.Subscribe(envelope =>
+        {
+            if (envelope.Events.Any(@event => @event.Type == "loop_end"))
+                completed.TrySetResult(true);
+        });
+
+        var start = coordinator.Start(CreateRequest(snapshot, "tool-exception"));
+        Assert.True(start.Started);
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(2, callCount);
+        Assert.NotNull(toolResult);
+        using var document = JsonDocument.Parse(toolResult!);
+        var root = document.RootElement;
+        Assert.False(root.GetProperty("success").GetBoolean());
+        Assert.Equal("ToolExecutionException", root.GetProperty("errorType").GetString());
+        Assert.Equal("failed", root.GetProperty("status").GetString());
+        Assert.True(root.GetProperty("durationMs").GetInt64() >= 0);
+        Assert.False(root.GetProperty("retrySafe").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ToolCanTargetAnotherConnectedSshSessionBySessionId()
+    {
+        var selected = CreateSnapshot(isConnected: true) with { Name = "Selected host" };
+        var target = CreateSnapshot(isConnected: true) with { Name = "Target host" };
+        Guid? executedSessionId = null;
+        string? toolResult = null;
+        using var gateway = new AgentSessionGateway(
+            new DelegateAgentSessionHost(() =>
+            [
+                new AgentSessionEndpoint(
+                    () => selected,
+                    (_, _) => Task.CompletedTask,
+                    (request, _) =>
+                    {
+                        executedSessionId = request.SessionId;
+                        return Task.FromResult("target output");
+                    }),
+                new AgentSessionEndpoint(
+                    () => target,
+                    (_, _) => Task.CompletedTask,
+                    (request, _) =>
+                    {
+                        executedSessionId = request.SessionId;
+                        return Task.FromResult("target output");
+                    })
+            ]));
+        var provider = CreateProvider();
+        var modelCalls = 0;
+        using var coordinator = new AgentRunCoordinator(
+            gateway,
+            () => provider,
+            new StubAgentModelClient((_, request, _) =>
+            {
+                if (Interlocked.Increment(ref modelCalls) == 1)
+                {
+                    return Task.FromResult(new AgentModelResponse(
+                        string.Empty,
+                        provider.Model,
+                        provider.BuiltinId,
+                        ToolCalls:
+                        [
+                            new AgentToolCall(
+                                "target-session-command",
+                                AgentRunCoordinator.SessionCommandToolName,
+                                $"{{\"sessionId\":\"{target.SessionId:D}\",\"command\":\"hostname\"}}")
+                        ]));
+                }
+
+                toolResult = request.Messages.Last().Content;
+                return Task.FromResult(new AgentModelResponse(
+                    "The target host responded.",
+                    provider.Model,
+                    provider.BuiltinId));
+            }));
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = coordinator.Subscribe(envelope =>
+        {
+            if (envelope.Events.Any(@event => @event.Type == "loop_end"))
+                completed.TrySetResult(true);
+        });
+
+        var start = coordinator.Start(CreateRequest(selected, "explicit-target-session"));
+        Assert.True(start.Started);
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(target.SessionId, executedSessionId);
+        Assert.Equal(2, modelCalls);
+        Assert.Contains($"\"sessionId\":\"{target.SessionId:D}\"", toolResult, StringComparison.Ordinal);
+        Assert.Contains("target output", toolResult, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PlanModeRemoteToolWithoutSessionReturnsFailureAndContinues()
+    {
+        using var gateway = CreateGateway(CreateSnapshot(isConnected: true));
+        var provider = CreateProvider();
+        var modelCalls = 0;
+        string? toolResult = null;
+        using var coordinator = new AgentRunCoordinator(
+            gateway,
+            () => provider,
+            new StubAgentModelClient((_, request, _) =>
+            {
+                if (Interlocked.Increment(ref modelCalls) == 1)
+                {
+                    return Task.FromResult(new AgentModelResponse(
+                        string.Empty,
+                        provider.Model,
+                        provider.BuiltinId,
+                        ToolCalls:
+                        [
+                            new AgentToolCall(
+                                "missing-session-diagnostic",
+                                AgentRunCoordinator.DiagnosticRunToolName,
+                                "{\"scope\":\"system\"}")
+                        ]));
+                }
+
+                toolResult = request.Messages.Last().Content;
+                return Task.FromResult(new AgentModelResponse(
+                    "I need an SSH session before I can inspect a host.",
+                    provider.Model,
+                    provider.BuiltinId));
+            }));
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = coordinator.Subscribe(envelope =>
+        {
+            if (envelope.Events.Any(@event => @event.Type == "loop_end"))
+                completed.TrySetResult(true);
+        });
+
+        var start = coordinator.Start(new AgentRunRequest
+        {
+            RunId = "plan-without-session",
+            SessionId = Guid.Empty,
+            Mode = AgentChatMode.Plan,
+            Messages = [new AgentChatMessage("user", "inspect the host")]
+        });
+        Assert.True(start.Started);
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(2, modelCalls);
+        Assert.NotNull(toolResult);
+        using var document = JsonDocument.Parse(toolResult!);
+        var root = document.RootElement;
+        Assert.False(root.GetProperty("success").GetBoolean());
+        Assert.Equal("SessionUnavailable", root.GetProperty("errorType").GetString());
+        Assert.Equal("failed", root.GetProperty("status").GetString());
+        Assert.Equal("completed", coordinator.GetRun(start.RunId)?.Status);
+    }
+
+    [Fact]
+    public async Task SearchTerminalReturnsMatchingScrollbackLines()
+    {
+        var snapshot = CreateSnapshot(isConnected: true);
+        using var gateway = new AgentSessionGateway(
+            new DelegateAgentSessionHost(() =>
+            [
+                new AgentSessionEndpoint(
+                    () => snapshot,
+                    (_, _) => Task.CompletedTask,
+                    runCommand: null,
+                    runCommandResult: null,
+                    runCommandProgressResult: null,
+                    terminalTextProvider: () => "boot ok\nnginx failed to start\nphp ready\nnginx recovered")
+            ]));
+        var provider = CreateProvider();
+        var modelCalls = 0;
+        string? toolResult = null;
+        using var coordinator = new AgentRunCoordinator(
+            gateway,
+            () => provider,
+            new StubAgentModelClient((_, request, _) =>
+            {
+                if (Interlocked.Increment(ref modelCalls) == 1)
+                {
+                    return Task.FromResult(new AgentModelResponse(
+                        string.Empty,
+                        provider.Model,
+                        provider.BuiltinId,
+                        ToolCalls:
+                        [
+                            new AgentToolCall(
+                                "terminal-search",
+                                AgentRunCoordinator.SearchTerminalToolName,
+                                "{\"query\":\"nginx\",\"maxResults\":1}")
+                        ]));
+                }
+
+                toolResult = request.Messages.Last().Content;
+                return Task.FromResult(new AgentModelResponse(
+                    "I found one matching terminal line.",
+                    provider.Model,
+                    provider.BuiltinId));
+            }));
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = coordinator.Subscribe(envelope =>
+        {
+            if (envelope.Events.Any(@event => @event.Type == "loop_end"))
+                completed.TrySetResult(true);
+        });
+
+        var start = coordinator.Start(CreateRequest(snapshot, "search-terminal"));
+        Assert.True(start.Started);
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Equal(2, modelCalls);
+        Assert.NotNull(toolResult);
+        using var document = JsonDocument.Parse(toolResult!);
+        var root = document.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(2, root.GetProperty("matchCount").GetInt32());
+        Assert.Equal(1, root.GetProperty("returnedCount").GetInt32());
+        Assert.True(root.GetProperty("hasMore").GetBoolean());
+        Assert.Contains("nginx failed to start", toolResult, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -613,6 +877,40 @@ public sealed class AgentRunCoordinatorTests
         await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal(2, modelCalls);
         Assert.Contains("disabled in Chat mode", toolResult, StringComparison.Ordinal);
+        Assert.Equal("completed", coordinator.GetRun(start.RunId)?.Status);
+    }
+
+    [Theory]
+    [InlineData(AgentChatMode.Chat)]
+    [InlineData(AgentChatMode.Plan)]
+    public async Task SessionIndependentModesCanStartWithoutASession(AgentChatMode mode)
+    {
+        using var gateway = CreateGateway(CreateSnapshot(isConnected: true));
+        var provider = CreateProvider();
+        using var coordinator = new AgentRunCoordinator(
+            gateway,
+            () => provider,
+            new StubAgentModelClient((_, _, _) => Task.FromResult(new AgentModelResponse(
+                "A proposed answer.",
+                provider.Model,
+                provider.BuiltinId))));
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var subscription = coordinator.Subscribe(envelope =>
+        {
+            if (envelope.Events.Any(@event => @event.Type == "loop_end"))
+                completed.TrySetResult(true);
+        });
+
+        var start = coordinator.Start(new AgentRunRequest
+        {
+            RunId = $"no-session-{mode.ToString().ToLowerInvariant()}",
+            SessionId = Guid.Empty,
+            Messages = [new AgentChatMessage("user", "Explain the deployment steps.")],
+            Mode = mode
+        });
+
+        Assert.True(start.Started);
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Equal("completed", coordinator.GetRun(start.RunId)?.Status);
     }
 
@@ -1876,6 +2174,64 @@ public sealed class AgentRunCoordinatorTests
     }
 
     [Fact]
+    public void ResumeRejectsARecoveryWhenTheSessionWasClosed()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "CxShellTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "agent-runs.json");
+        try
+        {
+            var snapshot = CreateSnapshot(isConnected: true);
+            var store = new JsonAgentRunHistoryStore(path);
+            store.SaveRecoverable([CreateRecoveryState("closed-session", snapshot)]);
+
+            using var gateway = CreateGateway();
+            using var coordinator = new AgentRunCoordinator(
+                gateway,
+                CreateProvider,
+                new StubAgentModelClient(_ => Task.FromResult(new AgentModelResponse("unused", "test-model", "test-provider"))),
+                store);
+
+            var result = coordinator.Resume("closed-session");
+
+            Assert.False(result.Resumed);
+            Assert.Contains("no longer open", result.Error, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            DeleteRunStore(directory, path);
+        }
+    }
+
+    [Fact]
+    public void ResumeRejectsARecoveryWhenTheSessionIsDisconnected()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "CxShellTests", Guid.NewGuid().ToString("N"));
+        var path = Path.Combine(directory, "agent-runs.json");
+        try
+        {
+            var snapshot = CreateSnapshot(isConnected: false);
+            var store = new JsonAgentRunHistoryStore(path);
+            store.SaveRecoverable([CreateRecoveryState("disconnected-session", snapshot)]);
+
+            using var gateway = CreateGateway(snapshot);
+            using var coordinator = new AgentRunCoordinator(
+                gateway,
+                CreateProvider,
+                new StubAgentModelClient(_ => Task.FromResult(new AgentModelResponse("unused", "test-model", "test-provider"))),
+                store);
+
+            var result = coordinator.Resume("disconnected-session");
+
+            Assert.False(result.Resumed);
+            Assert.Contains("currently disconnected", result.Error, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            DeleteRunStore(directory, path);
+        }
+    }
+
+    [Fact]
     public async Task DisposingAnActiveRunPersistsAnInterruptedCheckpoint()
     {
         var directory = Path.Combine(Path.GetTempPath(), "CxShellTests", Guid.NewGuid().ToString("N"));
@@ -1942,12 +2298,47 @@ public sealed class AgentRunCoordinatorTests
             RequiresApiKey = false
         };
 
-    private static AgentSessionGateway CreateGateway(AgentSessionSnapshot snapshot)
+    private static AgentSessionGateway CreateGateway(params AgentSessionSnapshot[] snapshots)
     {
-        var endpoint = new AgentSessionEndpoint(
-            () => snapshot,
-            (_, _) => Task.CompletedTask);
-        return new AgentSessionGateway(new DelegateAgentSessionHost(() => [endpoint]));
+        var endpoints = snapshots
+            .Select(snapshot => new AgentSessionEndpoint(
+                () => snapshot,
+                (_, _) => Task.CompletedTask))
+            .ToArray();
+        return new AgentSessionGateway(new DelegateAgentSessionHost(() => endpoints));
+    }
+
+    private static AgentRunRecoveryState CreateRecoveryState(
+        string runId,
+        AgentSessionSnapshot snapshot)
+        => new(
+            new AgentRuntimeRunSnapshot(
+                runId,
+                snapshot.SessionId.ToString("D"),
+                DateTimeOffset.UtcNow.AddMinutes(-1),
+                Status: "interrupted",
+                Model: "test-model",
+                EndReason: "application_restart",
+                CanResume: true,
+                Checkpoint: new AgentRunCheckpoint(
+                    1,
+                    "tool_call",
+                    "interrupted",
+                    ToolName: AgentRunCoordinator.SessionCommandToolName,
+                    ToolExecutionState: "unknown")),
+            [new AgentChatMessage("user", "check the host")],
+            TimeoutMs: 30_000,
+            ExpiresAtUtc: DateTimeOffset.UtcNow.AddHours(1));
+
+    private static void DeleteRunStore(string directory, string path)
+    {
+        if (File.Exists(path))
+            File.Delete(path);
+        var recoveryPath = path + ".recovery";
+        if (File.Exists(recoveryPath))
+            File.Delete(recoveryPath);
+        if (Directory.Exists(directory))
+            Directory.Delete(directory, recursive: true);
     }
 
     private static AgentSessionSnapshot CreateSnapshot(bool isConnected)

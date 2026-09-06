@@ -223,6 +223,24 @@ public sealed class AgentPanelViewModelTests
         Assert.False(panel.CanRun());
     }
 
+    [Theory]
+    [InlineData(AgentChatMode.Chat)]
+    [InlineData(AgentChatMode.Plan)]
+    public void ChatAndPlanCanRunWithoutASelectedSession(AgentChatMode mode)
+    {
+        using var panel = new AgentPanelViewModel(new TestRuntimeClient())
+        {
+            IsRuntimeReady = true,
+            IsProviderReady = true,
+            Prompt = "Explain the deployment steps."
+        };
+        panel.SelectedChatModeOption = panel.ChatModeOptions.First(option =>
+            string.Equals(option.Content?.ToString(), mode.ToString(), StringComparison.OrdinalIgnoreCase));
+
+        Assert.True(panel.CanRunWithoutSession);
+        Assert.True(panel.CanRun());
+    }
+
     [Fact]
     public void FindActiveRunReturnsTheNewestRunningRunForTheSelectedSession()
     {

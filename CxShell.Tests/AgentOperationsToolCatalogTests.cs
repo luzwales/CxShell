@@ -73,6 +73,10 @@ public sealed class AgentOperationsToolCatalogTests
         Assert.Contains(AgentReadOnlyToolCatalog.PackageQueryToolName, names);
         Assert.Contains(AgentReadOnlyToolCatalog.RuntimeCheckToolName, names);
         Assert.Contains(AgentReadOnlyToolCatalog.DiskCleanupAdviceToolName, names);
+        Assert.Contains(AgentReadOnlyToolCatalog.WorkingDirectoryToolName, names);
+        Assert.Contains(AgentReadOnlyToolCatalog.StatRemotePathToolName, names);
+        Assert.Contains(AgentReadOnlyToolCatalog.ReadRemoteFileToolName, names);
+        Assert.Contains(AgentRunCoordinator.SearchTerminalToolName, names);
     }
 
     private static AgentSessionSnapshot CreateSession(string platform)

@@ -15,6 +15,10 @@ public static class ProxyConnectionFactory
 {
     private static readonly TimeSpan JumpHostLocalPortStartupTimeout = TimeSpan.FromSeconds(5);
     private const int MaxJumpHostChainLength = 16;
+    private static Func<ProxySettings?>? _globalProxyProvider;
+
+    public static void ConfigureGlobalProxy(Func<ProxySettings?>? proxyProvider)
+        => Volatile.Write(ref _globalProxyProvider, proxyProvider);
 
     public static ConnectionInfo CreateSshConnectionInfo(
         SessionInfo session,
@@ -30,13 +34,14 @@ public static class ProxyConnectionFactory
         SessionInfo session,
         IReadOnlyList<AuthenticationMethod> authMethods)
     {
-        if (session.Proxy?.IsEnabled != true)
+        var proxy = ResolveProxy(session.Proxy);
+        if (proxy == null)
         {
             return new SshConnectionContext(
                 new ConnectionInfo(session.Host, session.Port, session.Username, authMethods.ToArray()));
         }
 
-        if (session.Proxy.Protocol == ProxyProtocol.JumpHost)
+        if (proxy.Protocol == ProxyProtocol.JumpHost)
             return CreateJumpHostConnectionContext(session, authMethods);
 
         return new SshConnectionContext(
@@ -44,11 +49,11 @@ public static class ProxyConnectionFactory
                 session.Host,
                 session.Port,
                 session.Username,
-                ToSshProxyType(session.Proxy),
-                session.Proxy.Host,
-                session.Proxy.Port,
-                session.Proxy.Username,
-                PasswordEncryptionService.DecryptEncrypted(session.Proxy.Password),
+                ToSshProxyType(proxy),
+                proxy.Host,
+                proxy.Port,
+                proxy.Username,
+                PasswordEncryptionService.DecryptEncrypted(proxy.Password),
                 authMethods.ToArray()));
     }
 
@@ -59,7 +64,8 @@ public static class ProxyConnectionFactory
         CancellationToken cancellationToken,
         string ipVersion = "Auto")
     {
-        if (proxy?.IsEnabled != true)
+        proxy = ResolveProxy(proxy);
+        if (proxy == null)
         {
             var directClient = new TcpClient();
             await ConnectClientAsync(directClient, host, port, ipVersion, cancellationToken);
@@ -94,6 +100,15 @@ public static class ProxyConnectionFactory
             client.Dispose();
             throw;
         }
+    }
+
+    private static ProxySettings? ResolveProxy(ProxySettings? sessionProxy)
+    {
+        if (sessionProxy?.IsEnabled == true)
+            return sessionProxy;
+
+        var globalProxy = Volatile.Read(ref _globalProxyProvider)?.Invoke();
+        return globalProxy?.IsEnabled == true ? globalProxy : null;
     }
 
     private static async Task ConnectClientAsync(

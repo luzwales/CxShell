@@ -44,12 +44,21 @@ public sealed record AgentToolCall(
     string Name,
     string Arguments);
 
+public enum AgentReasoningEffort
+{
+    None,
+    Low,
+    Medium,
+    High
+}
+
 public sealed record AgentModelRequest(
     IReadOnlyList<AgentChatMessage> Messages,
     string? Model = null,
     double? Temperature = null,
     int? MaxTokens = null,
-    IReadOnlyList<AgentToolDefinition>? Tools = null);
+    IReadOnlyList<AgentToolDefinition>? Tools = null,
+    AgentReasoningEffort ReasoningEffort = AgentReasoningEffort.None);
 
 public sealed record AgentModelResponse(
     string Text,

@@ -123,6 +123,8 @@ public sealed class ApplicationSettingsStore
         }
         settings.AgentWeb ??= new AgentWebSettings();
         settings.AgentWeb.Normalize();
+        settings.GlobalProxy ??= new ProxySettings();
+        NormalizeGlobalProxy(settings.GlobalProxy);
         AgentProviderConfiguration.EnsureActiveModel(settings.AgentProvider);
         settings.AgentProvider.AvailableModels = (settings.AgentProvider.AvailableModels ?? [])
             .Where(model => !string.IsNullOrWhiteSpace(model))
@@ -172,4 +174,19 @@ public sealed class ApplicationSettingsStore
         => double.IsNaN(value) || double.IsInfinity(value)
             ? fallback
             : Math.Clamp(value, minimum, maximum);
+
+    private static void NormalizeGlobalProxy(ProxySettings proxy)
+    {
+        proxy.Host = proxy.Host?.Trim() ?? string.Empty;
+        proxy.Username = proxy.Username?.Trim() ?? string.Empty;
+        proxy.Password = proxy.Password?.Trim() ?? string.Empty;
+        if (proxy.Protocol is ProxyProtocol.None or ProxyProtocol.JumpHost or ProxyProtocol.SshPassthrough)
+        {
+            proxy.Protocol = ProxyProtocol.None;
+            proxy.Port = 0;
+        }
+
+        if (proxy.Port is < 1 or > 65535)
+            proxy.Port = 0;
+    }
 }

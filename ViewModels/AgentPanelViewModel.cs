@@ -27,18 +27,19 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     private const int MaximumTranscriptCharacters = 12 * 1024;
     private const int MaximumPendingAttachments = 5;
     private const string SystemPrompt =
-        "You are the CxShell operations assistant. Help an operator inspect and troubleshoot " +
-        "the selected SSH session. Use session_info for connection context and diagnostic_run " +
-        "for fixed read-only checks of the system, disk, network, services, and processes. Use " +
+        "You are the CxShell operations assistant. Help an operator with the request and " +
+        "separate general guidance from facts that require a remote SSH session. When an SSH " +
+        "session is selected, use session_info for connection context and diagnostic_run for " +
+        "fixed read-only checks of the system, disk, network, services, and processes. Use " +
         "runbook_run for SSH or Windows RDP troubleshooting, and fleet_diagnostic for the same " +
         "fixed checks across all currently connected SSH sessions. Use logs_read, port_check, " +
-        "service_detail, file_preview, package_query, runtime_check, and disk_cleanup_advice for " +
-        "bounded read-only operations. Use session_command only when a " +
-        "diagnostic scope cannot answer the question. Explain " +
-        "what you are doing, keep commands focused, and never claim a remote change succeeded " +
-        "unless the tool result confirms it. If no SSH session is selected, use " +
-        "list_saved_sessions and open_session to establish a saved SSH connection before " +
-        "attempting terminal operations.";
+        "service_detail, file_preview, package_query, runtime_check, and disk_cleanup_advice " +
+        "for bounded read-only operations. Use session_command only when a diagnostic scope " +
+        "cannot answer the question. Explain what you are doing, keep commands focused, and " +
+        "never claim a remote change succeeded unless the tool result confirms it. If no SSH " +
+        "session is selected, do not assume remote state; Agent mode may use list_saved_sessions " +
+        "and open_session to establish a saved SSH connection before attempting terminal " +
+        "operations.";
 
     private static readonly JsonSerializerOptions RuntimeJsonOptions = new()
     {
@@ -79,6 +80,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private ISelectOption? _selectedSessionOption;
     [ObservableProperty] private ISelectOption? _selectedChatModeOption;
+    [ObservableProperty] private ISelectOption? _selectedReasoningEffortOption;
     [ObservableProperty] private string _prompt = string.Empty;
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private bool _isStopping;
@@ -107,6 +109,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<ISelectOption> SessionOptions { get; } = new();
     public ObservableCollection<ISelectOption> ChatModeOptions { get; } = new();
+    public ObservableCollection<ISelectOption> ReasoningEffortOptions { get; } = new();
     public ObservableCollection<AgentPanelMessageViewModel> Messages { get; } = new();
     public ObservableCollection<AgentAttachmentViewModel> PendingAttachments { get; } = new();
     public ObservableCollection<AgentPanelRunViewModel> RunHistory { get; } = new();
@@ -122,6 +125,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
         _runtimeStatusSource = runtimeClient as IAgentRuntimeStatusSource;
         _providerSettings = providerSettings ?? (() => null);
         RebuildChatModeOptions();
+        RebuildReasoningEffortOptions();
         RebuildRunHistoryFilterOptions();
         _runtimeSubscription = _runtimeClient.SubscribeEvents(OnRuntimeEvent);
         if (_runtimeStatusSource != null)
@@ -153,6 +157,11 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     public string ChatModeChatText => Text("Agent.ModeChat");
     public string ChatModePlanText => Text("Agent.ModePlan");
     public string ChatModeAgentText => Text("Agent.ModeAgent");
+    public string ReasoningEffortText => Text("Agent.ReasoningEffort");
+    public string ReasoningEffortNoneText => Text("Agent.ReasoningEffortNone");
+    public string ReasoningEffortLowText => Text("Agent.ReasoningEffortLow");
+    public string ReasoningEffortMediumText => Text("Agent.ReasoningEffortMedium");
+    public string ReasoningEffortHighText => Text("Agent.ReasoningEffortHigh");
     public string PromptText => Text("Agent.Prompt");
     public string PromptPlaceholderText => Text("Agent.PromptPlaceholder");
     public string AttachFileText => Text("Agent.AttachFile");
@@ -245,6 +254,8 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     public bool HasSelectedSession => SelectedSession != null;
     public bool IsSelectedSessionConnected => SelectedSession?.IsConnected == true;
     public bool IsSessionSelectionEnabled => HasSessions && !IsRunning;
+    public bool CanRunWithoutSession
+        => SelectedChatMode is AgentChatMode.Chat or AgentChatMode.Plan;
     public bool CanStartSessionManagementRun
         => SelectedChatMode == AgentChatMode.Agent && !IsSelectedSessionConnected;
     public bool IsRuntimeRetryVisible => RuntimeState == AgentRuntimeSessionState.Failed && !IsRunning;
@@ -260,7 +271,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
         => !IsRunning &&
            IsRuntimeReady &&
            IsProviderReady &&
-           (IsSelectedSessionConnected || CanStartSessionManagementRun) &&
+           (CanRunWithoutSession || IsSelectedSessionConnected || CanStartSessionManagementRun) &&
            (!string.IsNullOrWhiteSpace(Prompt) || HasPendingAttachments);
 
     public bool CanAppend()
@@ -958,6 +969,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
 
     public void NotifyLocalizationChanged()
     {
+        RebuildReasoningEffortOptions();
         OnPropertyChanged(nameof(TitleText));
         OnPropertyChanged(nameof(DescriptionText));
         OnPropertyChanged(nameof(SessionText));
@@ -1335,7 +1347,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
         var selectedSession = SelectedSession;
         var promptText = Prompt.Trim();
         var hasConnectedSession = selectedSession?.IsConnected == true;
-        if ((!hasConnectedSession && !CanStartSessionManagementRun) ||
+        if ((!hasConnectedSession && !CanRunWithoutSession && !CanStartSessionManagementRun) ||
             (promptText.Length == 0 && !HasPendingAttachments))
             return;
 
@@ -1393,6 +1405,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
                         runId,
                         sessionId = runSessionId.ToString("D"),
                         mode = SelectedChatMode.ToString().ToLowerInvariant(),
+                        reasoningEffort = SelectedReasoningEffort.ToString().ToLowerInvariant(),
                         messages = requestMessages,
                         timeoutMs = (int)timeout.TotalMilliseconds
                     },
@@ -2406,8 +2419,8 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     {
         var suffix = mode switch
         {
-            AgentChatMode.Chat => "You are in Chat mode. Do not request tools or claim that you executed anything.",
-            AgentChatMode.Plan => "You are in Plan mode. Use read-only tools only and return a proposed plan; do not change the remote system.",
+            AgentChatMode.Chat => "You are in Chat mode. Answer conversationally, do not request tools, and do not claim that you inspected or changed a remote system.",
+            AgentChatMode.Plan => "You are in Plan mode. Return a proposed plan and use read-only tools only when a connected SSH session is available; do not change the remote system. Without a session, base the plan on the user's request and clearly mark assumptions.",
             _ => "You are in Agent mode. Execute only the operations needed for the user's request and explain before risky changes."
         };
         return SystemPrompt + " " + suffix;
@@ -2448,7 +2461,35 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     partial void OnSelectedChatModeOptionChanged(ISelectOption? value)
     {
         OnPropertyChanged(nameof(SelectedChatMode));
+        OnPropertyChanged(nameof(CanRunWithoutSession));
         OnPropertyChanged(nameof(CanStartSessionManagementRun));
+        NotifyRunCommands();
+    }
+
+    public AgentReasoningEffort SelectedReasoningEffort
+        => Enum.TryParse<AgentReasoningEffort>(
+                SelectedReasoningEffortOption?.Content?.ToString(),
+                ignoreCase: true,
+                out var effort)
+            ? effort
+            : AgentReasoningEffort.None;
+
+    private void RebuildReasoningEffortOptions(AgentReasoningEffort? preferred = null)
+    {
+        var selected = preferred ?? SelectedReasoningEffort;
+        ReasoningEffortOptions.Clear();
+        ReasoningEffortOptions.Add(new SelectOption { Header = ReasoningEffortNoneText, Content = AgentReasoningEffort.None.ToString() });
+        ReasoningEffortOptions.Add(new SelectOption { Header = ReasoningEffortLowText, Content = AgentReasoningEffort.Low.ToString() });
+        ReasoningEffortOptions.Add(new SelectOption { Header = ReasoningEffortMediumText, Content = AgentReasoningEffort.Medium.ToString() });
+        ReasoningEffortOptions.Add(new SelectOption { Header = ReasoningEffortHighText, Content = AgentReasoningEffort.High.ToString() });
+        SelectedReasoningEffortOption = ReasoningEffortOptions.FirstOrDefault(option =>
+            string.Equals(option.Content?.ToString(), selected.ToString(), StringComparison.OrdinalIgnoreCase))
+            ?? ReasoningEffortOptions[0];
+    }
+
+    partial void OnSelectedReasoningEffortOptionChanged(ISelectOption? value)
+    {
+        OnPropertyChanged(nameof(SelectedReasoningEffort));
         NotifyRunCommands();
     }
 
@@ -2492,6 +2533,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(SelectedSessionId));
         OnPropertyChanged(nameof(HasSelectedSession));
         OnPropertyChanged(nameof(IsSelectedSessionConnected));
+        OnPropertyChanged(nameof(CanRunWithoutSession));
         OnPropertyChanged(nameof(CanStartSessionManagementRun));
         OnPropertyChanged(nameof(SelectedSessionStatusText));
         OnPropertyChanged(nameof(IsSessionSelectionEnabled));

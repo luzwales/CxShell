@@ -10,6 +10,10 @@ namespace CxShell.Services.Agent;
 /// </summary>
 public static class AgentReadOnlyToolCatalog
 {
+    public const string WorkingDirectoryToolName = "get_working_directory";
+    public const string ListRemoteDirectoryToolName = "list_remote_directory";
+    public const string StatRemotePathToolName = "stat_remote_path";
+    public const string ReadRemoteFileToolName = "read_remote_file";
     public const string LogsToolName = "logs_read";
     public const string PortCheckToolName = "port_check";
     public const string ServiceDetailToolName = "service_detail";
@@ -22,6 +26,11 @@ public static class AgentReadOnlyToolCatalog
     public static IReadOnlyList<string> FileTargets { get; } = ["hosts", "ssh-config", "recent-log"];
     public static IReadOnlyList<string> RuntimeNames { get; } = ["java", "python", "dotnet", "node", "powershell", "all"];
     public static IReadOnlyList<string> CleanupScopes { get; } = ["summary", "logs", "temp", "all"];
+
+    public const int MaximumRemotePathLength = 2048;
+    public const int MaximumRemoteFileLines = 400;
+    public const int MaximumRemoteDirectoryEntries = 500;
+    public const int MaximumRemoteFileCharacters = 256 * 1024;
 
     private static readonly Regex SafeServiceName = new(
         "^[A-Za-z0-9_.@:-]{1,64}$",
@@ -52,6 +61,65 @@ public static class AgentReadOnlyToolCatalog
             : default;
         switch (toolName)
         {
+            case WorkingDirectoryToolName:
+                plan = CreatePlan(
+                    "working-directory",
+                    isWindows ? "Windows" : "Linux/Unix",
+                    "get working directory",
+                    isWindows ? BuildWindowsWorkingDirectory() : BuildLinuxWorkingDirectory(),
+                    TimeSpan.FromSeconds(10));
+                return true;
+
+            case ListRemoteDirectoryToolName:
+                if (!TryReadRemotePath(root, ListRemoteDirectoryToolName, out var directoryPath, out error))
+                    return false;
+
+                var maxEntries = ReadInt(root, "maxEntries", 100);
+                if (maxEntries is < 1 or > MaximumRemoteDirectoryEntries)
+                {
+                    error = $"{ListRemoteDirectoryToolName} maxEntries must be between 1 and {MaximumRemoteDirectoryEntries}.";
+                    return false;
+                }
+
+                plan = CreatePlan(
+                    "list-directory",
+                    isWindows ? "Windows" : "Linux/Unix",
+                    $"list directory {directoryPath}",
+                    string.Empty,
+                    TimeSpan.FromSeconds(20));
+                return true;
+
+            case StatRemotePathToolName:
+                if (!TryReadRemotePath(root, StatRemotePathToolName, out var statPath, out error))
+                    return false;
+
+                plan = CreatePlan(
+                    "stat",
+                    isWindows ? "Windows" : "Linux/Unix",
+                    $"stat {statPath}",
+                    isWindows ? BuildWindowsStat(statPath) : BuildLinuxStat(statPath),
+                    TimeSpan.FromSeconds(15));
+                return true;
+
+            case ReadRemoteFileToolName:
+                if (!TryReadRemotePath(root, ReadRemoteFileToolName, out var filePath, out error))
+                    return false;
+
+                var fileLines = ReadInt(root, "lines", 120);
+                if (fileLines is < 1 or > MaximumRemoteFileLines)
+                {
+                    error = $"{ReadRemoteFileToolName} lines must be between 1 and {MaximumRemoteFileLines}.";
+                    return false;
+                }
+
+                plan = CreatePlan(
+                    "read-file",
+                    isWindows ? "Windows" : "Linux/Unix",
+                    $"read {filePath} ({fileLines} lines)",
+                    isWindows ? BuildWindowsRemoteFile(filePath, fileLines) : BuildLinuxRemoteFile(filePath, fileLines),
+                    TimeSpan.FromSeconds(20));
+                return true;
+
             case LogsToolName:
                 var source = ReadString(root, "source")?.Trim().ToLowerInvariant();
                 if (source == null || !LogSources.Contains(source, StringComparer.Ordinal))
@@ -200,6 +268,112 @@ public static class AgentReadOnlyToolCatalog
         string command,
         TimeSpan timeout)
         => new(scope, platform, displayCommand, command, timeout);
+
+    public static bool TryValidateRemotePath(
+        string? value,
+        string toolName,
+        out string path,
+        out string? error)
+    {
+        path = string.Empty;
+        error = null;
+        value = value?.Trim();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            error = $"{toolName} requires a non-empty path.";
+            return false;
+        }
+
+        if (value.Length > MaximumRemotePathLength)
+        {
+            error = $"{toolName} path cannot exceed {MaximumRemotePathLength} characters.";
+            return false;
+        }
+
+        if (value.Any(character => character == '\0' || character == '\r' || character == '\n'))
+        {
+            error = $"{toolName} path cannot contain control characters.";
+            return false;
+        }
+
+        if (LooksLikeSensitivePath(value))
+        {
+            error = $"{toolName} refuses paths that commonly contain credentials or private keys.";
+            return false;
+        }
+
+        path = value;
+        return true;
+    }
+
+    private static bool TryReadRemotePath(
+        JsonElement root,
+        string toolName,
+        out string path,
+        out string? error)
+    {
+        return TryValidateRemotePath(ReadString(root, "path"), toolName, out path, out error);
+    }
+
+    private static bool LooksLikeSensitivePath(string path)
+    {
+        var normalized = path.Replace('\\', '/').ToLowerInvariant();
+        return normalized.Contains("/.ssh/") ||
+               normalized.EndsWith("/.ssh", StringComparison.Ordinal) ||
+               normalized.Contains("/id_rsa", StringComparison.Ordinal) ||
+               normalized.Contains("/id_ed25519", StringComparison.Ordinal) ||
+               normalized.EndsWith("/shadow", StringComparison.Ordinal) ||
+               normalized.EndsWith("/sam", StringComparison.Ordinal) ||
+               normalized.EndsWith("/security", StringComparison.Ordinal) ||
+               normalized.EndsWith("/.env", StringComparison.Ordinal) ||
+               normalized.Contains("/.env.", StringComparison.Ordinal);
+    }
+
+    private static string BuildLinuxWorkingDirectory()
+        => "printf '%s\\n' '=== working directory ==='; pwd -P";
+
+    private static string BuildWindowsWorkingDirectory()
+        => BuildPowerShellCommand("Write-Output '=== working directory ==='\n(Get-Location).Path");
+
+    private static string BuildLinuxStat(string path)
+    {
+        var quotedPath = ShellQuote(path);
+        return $"targetPath={quotedPath}; if [ -e \"$targetPath\" ]; then stat -- \"$targetPath\"; else printf '%s\\n' \"Path not found: $targetPath\" >&2; exit 1; fi";
+    }
+
+    private static string BuildWindowsStat(string path)
+        => BuildPowerShellCommand($$"""
+$path = {{PowerShellQuote(path)}}
+if (-not (Test-Path -LiteralPath $path)) {
+    Write-Error ("Path not found: {0}" -f $path)
+    exit 1
+}
+Get-Item -LiteralPath $path -Force |
+    Select-Object FullName,PSIsContainer,Length,LastWriteTime,CreationTime,Attributes |
+    Format-List | Out-String -Width 240
+""");
+
+    private static string BuildLinuxRemoteFile(string path, int lines)
+    {
+        var quotedPath = ShellQuote(path);
+        return $"targetPath={quotedPath}; if [ -f \"$targetPath\" ]; then sed -n '1,{lines}p' -- \"$targetPath\"; else printf '%s\\n' \"File not found: $targetPath\" >&2; exit 1; fi";
+    }
+
+    private static string BuildWindowsRemoteFile(string path, int lines)
+        => BuildPowerShellCommand($$"""
+$path = {{PowerShellQuote(path)}}
+if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+    Write-Error ("File not found: {0}" -f $path)
+    exit 1
+}
+Get-Content -LiteralPath $path -TotalCount {{lines}}
+""");
+
+    private static string ShellQuote(string value)
+        => $"'{value.Replace("'", "'\\''", StringComparison.Ordinal)}'";
+
+    private static string PowerShellQuote(string value)
+        => $"'{value.Replace("'", "''", StringComparison.Ordinal)}'";
 
     private static string BuildLinuxLogs(string source, int lines)
         => source switch
