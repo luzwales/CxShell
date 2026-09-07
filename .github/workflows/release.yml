@@ -357,6 +357,40 @@ jobs:
             --instLocation Either `
             --outputDir $outputDir
 
+      - name: Rebuild MSI with selectable install directory
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $rid = "${{ matrix.rid }}"
+          $version = $env:RELEASE_TAG
+          if ($version.StartsWith("v")) {
+            $version = $version.Substring(1)
+          }
+          $outputDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\velopack\$rid"
+          $portablePackage = Get-ChildItem -LiteralPath $outputDir -Filter "*-Portable.zip" -File | Select-Object -First 1
+          $msiPackage = Get-ChildItem -LiteralPath $outputDir -Filter "*.msi" -File | Select-Object -First 1
+
+          if ($null -eq $portablePackage) {
+            throw "Velopack portable package was not found in $outputDir"
+          }
+          if ($null -eq $msiPackage) {
+            throw "Velopack MSI package was not found in $outputDir"
+          }
+
+          & "$env:GITHUB_WORKSPACE\tools\build-windows-msi.ps1" `
+            -PortableZipPath $portablePackage.FullName `
+            -OutputMsiPath $msiPackage.FullName `
+            -VpkToolsPath "$env:GITHUB_WORKSPACE\.tmp\vpk" `
+            -PackId "CxShell-$rid" `
+            -Version $version `
+            -Architecture "x64"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Selectable-location MSI build failed with exit code $LASTEXITCODE"
+          }
+          if (!(Test-Path -LiteralPath $msiPackage.FullName -PathType Leaf)) {
+            throw "Selectable-location MSI was not created: $($msiPackage.FullName)"
+          }
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
