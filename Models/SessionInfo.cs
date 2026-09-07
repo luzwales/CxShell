@@ -306,7 +306,7 @@ public class ApplicationSettings
 {
     public const string DarkThemeMode = "Dark";
     public const string LightThemeMode = "Light";
-    public const int CurrentSchemaVersion = 6;
+    public const int CurrentSchemaVersion = 7;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public string UiLanguage { get; set; } = "zh-CN";
@@ -342,6 +342,10 @@ public class ApplicationSettings
     public bool ShowMonitorPanel { get; set; }
     public bool ShowAgentPanel { get; set; }
     public bool EnableCommandSuggestions { get; set; } = true;
+    public bool AllowExternalLaunch { get; set; } = true;
+    public bool ConfirmExternalLaunch { get; set; } = true;
+    public bool RegisterExternalUrlProtocols { get; set; }
+    public List<string> TrustedExternalLaunchTargets { get; set; } = new();
 }
 
 public class SessionInfo

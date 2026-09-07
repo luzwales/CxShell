@@ -61,6 +61,9 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     [ObservableProperty] private bool _includePrereleaseUpdates;
     [ObservableProperty] private bool _confirmSshHostKeyOnFirstConnection;
     [ObservableProperty] private bool _blockChangedSshHostKeys;
+    [ObservableProperty] private bool _allowExternalLaunch;
+    [ObservableProperty] private bool _confirmExternalLaunch;
+    [ObservableProperty] private bool _registerExternalUrlProtocols;
     [ObservableProperty] private bool _recordTerminalSessions;
     [ObservableProperty] private int _recordingRetentionDays;
     [ObservableProperty] private string _uiLanguage;
@@ -114,6 +117,14 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     public string UpdatesText => Text("ApplicationSettings.Updates");
     public string LanguageText => Text("ApplicationSettings.Language");
     public string SshSecurityText => Text("ApplicationSettings.SshSecurity");
+    public string ExternalLaunchText => Text("ApplicationSettings.ExternalLaunch");
+    public string AllowExternalLaunchText => Text("ApplicationSettings.AllowExternalLaunch");
+    public string ConfirmExternalLaunchText => Text("ApplicationSettings.ConfirmExternalLaunch");
+    public string RegisterExternalUrlProtocolsText => Text("ApplicationSettings.RegisterExternalUrlProtocols");
+    public string ClearTrustedExternalLaunchTargetsText => Text("ApplicationSettings.ClearTrustedExternalLaunchTargets");
+    public string ExternalLaunchTrustCountText => string.Format(
+        Text("ApplicationSettings.ExternalLaunchTrustCount"),
+        _settings.TrustedExternalLaunchTargets?.Count ?? 0);
     public string ConfirmSshHostKeyOnFirstConnectionText => Text("ApplicationSettings.ConfirmSshHostKeyOnFirstConnection");
     public string BlockChangedSshHostKeysText => Text("ApplicationSettings.BlockChangedSshHostKeys");
     public string KnownHostsText => Text("ApplicationSettings.KnownHosts");
@@ -257,6 +268,9 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         _includePrereleaseUpdates = settings.IncludePrereleaseUpdates;
         _confirmSshHostKeyOnFirstConnection = settings.ConfirmSshHostKeyOnFirstConnection;
         _blockChangedSshHostKeys = settings.BlockChangedSshHostKeys;
+        _allowExternalLaunch = settings.AllowExternalLaunch;
+        _confirmExternalLaunch = settings.ConfirmExternalLaunch;
+        _registerExternalUrlProtocols = settings.RegisterExternalUrlProtocols;
         _recordTerminalSessions = settings.RecordTerminalSessions;
         _recordingRetentionDays = settings.RecordingRetentionDays;
         _uiLanguage = NormalizeLanguage(settings.UiLanguage);
@@ -491,6 +505,33 @@ public partial class ApplicationSettingsViewModel : ObservableObject
     {
         EnsureAgentProvider().Name = value.Trim();
         PersistAgentProvider();
+    }
+
+    partial void OnAllowExternalLaunchChanged(bool value)
+    {
+        _settings.AllowExternalLaunch = value;
+        Persist();
+    }
+
+    partial void OnConfirmExternalLaunchChanged(bool value)
+    {
+        _settings.ConfirmExternalLaunch = value;
+        Persist();
+    }
+
+    partial void OnRegisterExternalUrlProtocolsChanged(bool value)
+    {
+        _settings.RegisterExternalUrlProtocols = value;
+        Persist();
+        UrlProtocolRegistrationService.Apply(value);
+    }
+
+    [RelayCommand]
+    private void ClearTrustedExternalLaunchTargets()
+    {
+        _settings.TrustedExternalLaunchTargets.Clear();
+        Persist();
+        OnPropertyChanged(nameof(ExternalLaunchTrustCountText));
     }
 
     partial void OnAgentProviderTypeOptionChanged(ISelectOption? value)
@@ -859,6 +900,12 @@ public partial class ApplicationSettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(SshSecurityText));
         OnPropertyChanged(nameof(ConfirmSshHostKeyOnFirstConnectionText));
         OnPropertyChanged(nameof(BlockChangedSshHostKeysText));
+        OnPropertyChanged(nameof(ExternalLaunchText));
+        OnPropertyChanged(nameof(AllowExternalLaunchText));
+        OnPropertyChanged(nameof(ConfirmExternalLaunchText));
+        OnPropertyChanged(nameof(RegisterExternalUrlProtocolsText));
+        OnPropertyChanged(nameof(ClearTrustedExternalLaunchTargetsText));
+        OnPropertyChanged(nameof(ExternalLaunchTrustCountText));
         OnPropertyChanged(nameof(KnownHostsText));
         OnPropertyChanged(nameof(NoKnownHostsText));
         OnPropertyChanged(nameof(RecordingText));

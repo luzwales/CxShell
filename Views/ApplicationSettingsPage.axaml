@@ -140,6 +140,33 @@
                 </Border>
 
             </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="{Binding ExternalLaunchText}"
+                           FontWeight="SemiBold"
+                           Foreground="{atom:SharedTokenResource ColorText}"/>
+                <Border Background="{atom:SharedTokenResource ColorBgLayout}"
+                        BorderBrush="{atom:SharedTokenResource ColorSplit}"
+                        BorderThickness="1"
+                        CornerRadius="5"
+                        Padding="12,10">
+                    <StackPanel Spacing="9">
+                        <atom:CheckBox Content="{Binding AllowExternalLaunchText}"
+                                       IsChecked="{Binding AllowExternalLaunch, Mode=TwoWay}"/>
+                        <atom:CheckBox Content="{Binding ConfirmExternalLaunchText}"
+                                       IsChecked="{Binding ConfirmExternalLaunch, Mode=TwoWay}"/>
+                        <atom:CheckBox Content="{Binding RegisterExternalUrlProtocolsText}"
+                                       IsChecked="{Binding RegisterExternalUrlProtocols, Mode=TwoWay}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="{Binding ExternalLaunchTrustCountText}"
+                                       VerticalAlignment="Center"
+                                       Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
+                            <atom:Button Content="{Binding ClearTrustedExternalLaunchTargetsText}"
+                                         Command="{Binding ClearTrustedExternalLaunchTargetsCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

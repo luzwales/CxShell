@@ -307,6 +307,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _localization.SetLanguage(_sessionTreeVm.Settings.UiLanguage);
         SshHostKeyTrustService.Shared.Configure(_sessionTreeVm.Settings);
         SessionRecordingService.Shared.Configure(_sessionTreeVm.Settings);
+        UrlProtocolRegistrationService.Apply(_sessionTreeVm.Settings.RegisterExternalUrlProtocols);
         _ = Task.Run(() => SessionRecordingService.Shared.CleanupExpiredAsync());
 
         Tabs.CollectionChanged += (_, _) =>
@@ -568,6 +569,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (options.ExternalRequest is { } externalRequest)
+        {
+            await ExecuteExternalLaunchAsync(
+                externalRequest,
+                options.SessionRequest?.Session,
+                options.ForceAuthPrompt);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(options.Token))
         {
             await ExecuteBastionTokenLaunchAsync(options);
@@ -616,6 +626,85 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (options.OpenSessionManager)
             ShowSessionManager();
     }
+
+    private async Task ExecuteExternalLaunchAsync(
+        ExternalLaunchRequest request,
+        SessionInfo? parsedSession,
+        bool ignoreSuppliedCredential)
+    {
+        if (!_sessionTreeVm.Settings.AllowExternalLaunch)
+        {
+            _connectionAuditService.RecordExternalLaunch(request, "blocked by application settings");
+            SetCommandLineLaunchError(_localization.Text("ExternalLaunch.Blocked"));
+            return;
+        }
+
+        if (!request.IsSupported)
+        {
+            _connectionAuditService.RecordExternalLaunch(request, "unsupported protocol");
+            var unsupportedOwner = GetMainWindow();
+            if (unsupportedOwner != null)
+            {
+                await AtomUiDialogService.ShowMessageAsync(
+                    unsupportedOwner,
+                    _localization.Text("ExternalLaunch.Title"),
+                    string.Format(_localization.Text("ExternalLaunch.Unsupported"), request.Scheme),
+                    AtomUI.Desktop.Controls.MessageBoxStyle.Warning);
+            }
+            return;
+        }
+
+        var trustedTargets = _sessionTreeVm.Settings.TrustedExternalLaunchTargets ??= [];
+        var isTrusted = trustedTargets.Contains(request.TrustKey, StringComparer.OrdinalIgnoreCase);
+        if (_sessionTreeVm.Settings.ConfirmExternalLaunch && !isTrusted)
+        {
+            var owner = GetMainWindow();
+            if (owner == null)
+                return;
+
+            var confirmation = await AtomUiDialogService.ShowExternalLaunchConfirmAsync(
+                owner,
+                _localization.Text("ExternalLaunch.Title"),
+                _localization.Text("ExternalLaunch.Source"),
+                _localization.Text(GetExternalLaunchOriginKey(request.Origin)),
+                _localization.Text("ExternalLaunch.Protocol"),
+                request.Scheme.ToUpperInvariant(),
+                _localization.Text("ExternalLaunch.Target"),
+                request.TargetText,
+                _localization.Text("ExternalLaunch.Credential"),
+                request.HasCredential,
+                _localization.Text("ExternalLaunch.CredentialSupplied"),
+                _localization.Text("ExternalLaunch.CredentialNone"),
+                _localization.Text("ExternalLaunch.Connect"),
+                _localization.Text("ExternalLaunch.Cancel"),
+                _localization.Text("ExternalLaunch.TrustTarget"));
+            if (!confirmation.Confirmed)
+            {
+                _connectionAuditService.RecordExternalLaunch(request, "rejected by user");
+                return;
+            }
+
+            if (confirmation.TrustTarget)
+            {
+                trustedTargets.Add(request.TrustKey);
+                _sessionTreeVm.SaveSettings(_sessionTreeVm.Settings);
+            }
+        }
+
+        _connectionAuditService.RecordExternalLaunch(request, "accepted");
+        await ConnectSession(
+            parsedSession ?? request.CreateSession(),
+            ignoreSuppliedCredential ? null : request.Password,
+            request.InitialRemoteDirectory);
+    }
+
+    private static string GetExternalLaunchOriginKey(ExternalLaunchOrigin origin)
+        => origin switch
+        {
+            ExternalLaunchOrigin.UrlProtocol => "ExternalLaunch.OriginUrlProtocol",
+            ExternalLaunchOrigin.SessionFile => "ExternalLaunch.OriginSessionFile",
+            _ => "ExternalLaunch.OriginCommandLine"
+        };
 
     private static string BuildAmbiguousSessionLaunchMessage(
         string sessionPath,

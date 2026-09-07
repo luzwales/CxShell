@@ -12,6 +12,7 @@ namespace CxShell.Services;
 public static class CommandLineHandoffService
 {
     private const int ConnectTimeoutMilliseconds = 350;
+    private const int MaximumPayloadBytes = 64 * 1024;
     private static readonly string UserScope = BuildUserScope();
     private static readonly string PipeName = $"CxShell.CommandLineLaunch.v1.{UserScope}";
     private static readonly string MutexName = $"CxShell.CommandLineLaunch.Mutex.v1.{UserScope}";
@@ -23,7 +24,11 @@ public static class CommandLineHandoffService
 
         try
         {
-            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+            using var client = new NamedPipeClientStream(
+                ".",
+                PipeName,
+                PipeDirection.InOut,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
             client.Connect(ConnectTimeoutMilliseconds);
 
             using var writer = new StreamWriter(client, new UTF8Encoding(false), leaveOpen: true)
@@ -31,7 +36,15 @@ public static class CommandLineHandoffService
                 AutoFlush = true
             };
             writer.WriteLine(EncodePayload(args));
-            return true;
+
+            using var acknowledgementTimeout = new CancellationTokenSource(ConnectTimeoutMilliseconds);
+            var acknowledgement = new byte[1];
+            var read = client.ReadAsync(
+                    acknowledgement.AsMemory(0, 1),
+                    acknowledgementTimeout.Token)
+                .GetAwaiter()
+                .GetResult();
+            return read == 1 && acknowledgement[0] == 1;
         }
         catch
         {
@@ -70,7 +83,12 @@ public static class CommandLineHandoffService
 
                 using var reader = new StreamReader(server, Encoding.UTF8, leaveOpen: true);
                 var line = await reader.ReadLineAsync(cancellationToken);
-                if (TryDecodePayload(line, out var args))
+                var accepted = TryDecodePayload(line, out var args);
+                await server.WriteAsync(
+                    new[] { accepted ? (byte)1 : (byte)0 },
+                    cancellationToken);
+                await server.FlushAsync(cancellationToken);
+                if (accepted)
                     await handler(args);
             }
             catch (OperationCanceledException)
@@ -91,7 +109,7 @@ public static class CommandLineHandoffService
             PipeDirection.In,
             1,
             PipeTransmissionMode.Byte,
-            PipeOptions.Asynchronous);
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
     }
 
     private static Mutex? TryAcquireServerMutex()
@@ -132,7 +150,7 @@ public static class CommandLineHandoffService
     private static bool TryDecodePayload(string? payload, out string[] args)
     {
         args = [];
-        if (string.IsNullOrWhiteSpace(payload))
+        if (string.IsNullOrWhiteSpace(payload) || payload.Length > MaximumPayloadBytes)
             return false;
 
         try

@@ -71,6 +71,27 @@ public sealed class ApplicationSettingsStoreTests
     }
 
     [Fact]
+    public void SaveAndLoad_PreservesExternalLaunchSecuritySettings()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new ApplicationSettingsStore(directory.Path);
+        store.Save(new ApplicationSettings
+        {
+            AllowExternalLaunch = false,
+            ConfirmExternalLaunch = false,
+            RegisterExternalUrlProtocols = true,
+            TrustedExternalLaunchTargets = ["ssh://ops@example.test:22", "SSH://ops@example.test:22"]
+        });
+
+        var loaded = store.Load();
+
+        Assert.False(loaded.AllowExternalLaunch);
+        Assert.False(loaded.ConfirmExternalLaunch);
+        Assert.True(loaded.RegisterExternalUrlProtocols);
+        Assert.Single(loaded.TrustedExternalLaunchTargets);
+    }
+
+    [Fact]
     public void Load_UsesFallbackWhenStandaloneSettingsAreInvalid()
     {
         using var directory = new TemporaryDirectory();

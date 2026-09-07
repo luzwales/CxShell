@@ -9,6 +9,8 @@ using CxShell.ViewModels;
 
 namespace CxShell.Views;
 
+internal readonly record struct ExternalLaunchConfirmation(bool Confirmed, bool TrustTarget);
+
 internal static class AtomUiDialogService
 {
     public static async Task ShowMessageAsync(
@@ -60,6 +62,83 @@ internal static class AtomUiDialogService
             topLevel: owner);
 
         return result is DialogCode.Accepted;
+    }
+
+    public static async Task<ExternalLaunchConfirmation> ShowExternalLaunchConfirmAsync(
+        TopLevel owner,
+        string title,
+        string sourceLabel,
+        string origin,
+        string protocolLabel,
+        string protocol,
+        string targetLabel,
+        string target,
+        string credentialLabel,
+        bool credentialSupplied,
+        string credentialSuppliedText,
+        string credentialNoneText,
+        string connectText,
+        string cancelText,
+        string trustText)
+    {
+        var trustCheckBox = new Avalonia.Controls.CheckBox
+        {
+            Content = trustText,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var content = new StackPanel
+        {
+            Spacing = 10,
+            Width = 470,
+            Children =
+            {
+                CreateSummaryRow(sourceLabel, origin),
+                CreateSummaryRow(protocolLabel, protocol),
+                CreateSummaryRow(targetLabel, target),
+                CreateSummaryRow(credentialLabel, credentialSupplied ? credentialSuppliedText : credentialNoneText),
+                trustCheckBox
+            }
+        };
+
+        var result = await MessageBox.ShowMessageBoxModalAsync(
+            content,
+            options: new MessageBoxOptions
+            {
+                Title = title,
+                Style = MessageBoxStyle.Confirm,
+                Width = 560,
+                MinHeight = 250,
+                PlacementTarget = owner as Control,
+                OkButtonText = connectText,
+                CancelButtonText = cancelText
+            },
+            topLevel: owner);
+
+        return new ExternalLaunchConfirmation(result is DialogCode.Accepted, trustCheckBox.IsChecked == true);
+    }
+
+    private static StackPanel CreateSummaryRow(string label, string value)
+    {
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 12,
+            Children =
+            {
+                new Avalonia.Controls.TextBlock
+                {
+                    Text = label,
+                    Width = 90,
+                    Foreground = new SolidColorBrush(ThemeTokenColorHelper.GetColor(SharedTokenKind.ColorTextSecondary, Color.Parse("#8C8C8C")))
+                },
+                new Avalonia.Controls.TextBlock
+                {
+                    Text = value,
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 360
+                }
+            }
+        };
     }
 
     public static async Task ShowAboutAsync(

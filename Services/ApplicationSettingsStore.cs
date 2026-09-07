@@ -125,6 +125,12 @@ public sealed class ApplicationSettingsStore
         settings.AgentWeb.Normalize();
         settings.GlobalProxy ??= new ProxySettings();
         NormalizeGlobalProxy(settings.GlobalProxy);
+        settings.TrustedExternalLaunchTargets = (settings.TrustedExternalLaunchTargets ?? [])
+            .Select(target => target?.Trim() ?? string.Empty)
+            .Where(target => !string.IsNullOrWhiteSpace(target))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(500)
+            .ToList();
         AgentProviderConfiguration.EnsureActiveModel(settings.AgentProvider);
         settings.AgentProvider.AvailableModels = (settings.AgentProvider.AvailableModels ?? [])
             .Where(model => !string.IsNullOrWhiteSpace(model))

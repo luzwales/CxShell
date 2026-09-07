@@ -9,7 +9,8 @@ public enum ConnectionAuditEventType
     Connected,
     Failed,
     Disconnected,
-    TabClosed
+    TabClosed,
+    ExternalLaunch
 }
 
 public sealed class ConnectionAuditEntry
@@ -24,6 +25,9 @@ public sealed class ConnectionAuditEntry
     public string Username { get; set; } = string.Empty;
     public ConnectionAuditEventType EventType { get; set; }
     public string Detail { get; set; } = string.Empty;
+    public string Source { get; set; } = "manual";
+    public string? ExternalOrigin { get; set; }
+    public bool CredentialSupplied { get; set; }
 
     [JsonIgnore]
     public DateTimeOffset LocalTimestamp => TimestampUtc.ToLocalTime();

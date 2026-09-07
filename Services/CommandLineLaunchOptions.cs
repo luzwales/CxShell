@@ -17,6 +17,7 @@ public sealed class CommandLineLaunchOptions
     public string? SavedSessionPath { get; private init; }
     public string? Token { get; private init; }
     public string? TokenServer { get; private init; }
+    public ExternalLaunchRequest? ExternalRequest { get; private init; }
     public CommandLineSessionRequest? SessionRequest { get; private init; }
     public string? ErrorMessage { get; private init; }
 
@@ -134,6 +135,20 @@ public sealed class CommandLineLaunchOptions
                     savedSessionPath = NormalizeArgument(inlineValue ?? ReadNextValue(args, ref index));
                     break;
 
+                case "-f":
+                case "-file":
+                case "-l":
+                case "-user":
+                case "-p":
+                case "-port":
+                case "-pw":
+                case "-password":
+                case "-i":
+                case "-identity":
+                    hasCommand = true;
+                    _ = inlineValue ?? ReadNextValue(args, ref index);
+                    break;
+
                 case "-folder":
                 case "--folder":
                 case "-create":
@@ -156,12 +171,27 @@ public sealed class CommandLineLaunchOptions
         if (showSessionProperties && string.IsNullOrWhiteSpace(savedSessionPath) && errorMessage == null)
             errorMessage = "-prop requires session_path.";
 
+        ExternalLaunchRequest? externalRequest = null;
+        var hasExternalRequest = ExternalLaunchParser.TryParse(args, out externalRequest, out var externalError);
+        if (hasExternalRequest && externalError != null)
+            errorMessage ??= externalError;
+
         CommandLineSessionRequest? sessionRequest = null;
-        if (!string.IsNullOrWhiteSpace(url) && errorMessage == null)
+        if (externalRequest != null && errorMessage == null)
+        {
+            var externalSession = externalRequest.CreateSession();
+            sessionRequest = new CommandLineSessionRequest(
+                externalSession,
+                externalRequest.Password,
+                externalRequest.InitialRemoteDirectory,
+                false);
+        }
+        else if (!string.IsNullOrWhiteSpace(url) && errorMessage == null)
         {
             if (!TryParseSessionUrl(url, newTabName, forceAuthPrompt, out sessionRequest, out var parseError))
                 errorMessage = parseError;
         }
+
         if (jumpHosts.Count > 0 && errorMessage == null)
         {
             if (sessionRequest == null)
@@ -176,7 +206,7 @@ public sealed class CommandLineLaunchOptions
 
         return new CommandLineLaunchOptions
         {
-            HasCommand = hasCommand || sessionRequest != null,
+            HasCommand = hasCommand || sessionRequest != null || externalRequest != null,
             OpenSessionManager = openSessionManager,
             ShowAbout = showAbout,
             NewWindow = newWindow,
@@ -187,6 +217,7 @@ public sealed class CommandLineLaunchOptions
             Token = token,
             TokenServer = tokenServer,
             SessionRequest = sessionRequest,
+            ExternalRequest = externalRequest,
             ErrorMessage = errorMessage
         };
     }
@@ -241,6 +272,23 @@ public sealed class CommandLineLaunchOptions
             }
         }
 
+        ExternalLaunchRequest? externalRequest = sessionRequest == null
+            ? null
+            : new ExternalLaunchRequest
+            {
+                Scheme = sessionRequest.Session.Protocol.ToString().ToLowerInvariant(),
+                Protocol = sessionRequest.Session.Protocol,
+                IsSupported = sessionRequest.Session.Protocol is SessionProtocol.SSH or SessionProtocol.SFTP or SessionProtocol.FTP,
+                Host = sessionRequest.Session.Host,
+                Port = sessionRequest.Session.Port,
+                Username = sessionRequest.Session.Username,
+                Password = parentOptions.ForceAuthPrompt ? null : sessionRequest.Password,
+                PrivateKeyPath = sessionRequest.Session.PrivateKeyPath,
+                InitialRemoteDirectory = sessionRequest.InitialRemoteDirectory,
+                DisplayName = sessionRequest.Session.Name,
+                Origin = ExternalLaunchOrigin.CommandLine
+            };
+
         return new CommandLineLaunchOptions
         {
             HasCommand = true,
@@ -252,6 +300,7 @@ public sealed class CommandLineLaunchOptions
             NewTabName = newTabName,
             SavedSessionPath = savedSessionPath,
             SessionRequest = sessionRequest,
+            ExternalRequest = externalRequest,
             ErrorMessage = errorMessage
         };
     }

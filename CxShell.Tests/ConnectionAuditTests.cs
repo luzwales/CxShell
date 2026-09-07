@@ -106,6 +106,38 @@ public sealed class ConnectionAuditTests
         }
     }
 
+    [Fact]
+    public void RecordExternalLaunch_WritesSourceAndNeverWritesCredential()
+    {
+        var path = CreateTempPath();
+        try
+        {
+            var service = new ConnectionAuditService(path);
+            var request = new ExternalLaunchRequest
+            {
+                Scheme = "ssh",
+                Protocol = SessionProtocol.SSH,
+                Host = "example.test",
+                Port = 22,
+                Username = "ops",
+                Password = "one-time-secret",
+                Origin = ExternalLaunchOrigin.UrlProtocol
+            };
+
+            service.RecordExternalLaunch(request, "accepted");
+
+            var entry = service.ReadRecent().Single();
+            Assert.Equal("external", entry.Source);
+            Assert.Equal(nameof(ExternalLaunchOrigin.UrlProtocol), entry.ExternalOrigin);
+            Assert.True(entry.CredentialSupplied);
+            Assert.DoesNotContain("one-time-secret", File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteTempPath(path);
+        }
+    }
+
     private static SessionInfo CreateSession()
     {
         return new SessionInfo

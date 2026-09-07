@@ -43,6 +43,7 @@ RDP sessions run inside the same tabbed workspace and share CxShell's session ma
 - Remote file editor: open remote text files with AvaloniaEdit and syntax highlighting from TextMate grammars.
 - Appearance settings: theme, font, color scheme, ANSI colors, cursor style, background image, window spacing, and highlight rules.
 - Localization: Chinese and English UI text is included.
+- External login: launch sessions from Xshell-compatible arguments, `ssh://` / `sftp://` links, and UTF-16 `.xsh` session files, with confirmation, target trust, single-instance handoff, and connection auditing. See [external login documentation](docs/external-launch.md).
 
 ## Supported Protocols
 

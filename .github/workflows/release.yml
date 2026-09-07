@@ -353,6 +353,8 @@ jobs:
             --runtime $rid `
             --channel $rid `
             --icon "Assets\CxShellLogo.ico" `
+            --msi `
+            --instLocation Either `
             --outputDir $outputDir
 
       - name: Upload package artifact

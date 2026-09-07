@@ -82,7 +82,8 @@ public sealed class ConnectionAuditService
             Port = session.Port,
             Username = session.Username ?? string.Empty,
             EventType = eventType,
-            Detail = TrimDetail(detail)
+            Detail = TrimDetail(detail),
+            Source = "manual"
         };
 
         lock (_gate)
@@ -100,6 +101,47 @@ public sealed class ConnectionAuditService
             {
                 // An audit write must never make a connection fail.
                 Debug.WriteLine($"CxShell audit write failed: {ex.Message}");
+            }
+        }
+    }
+
+    public void RecordExternalLaunch(
+        ExternalLaunchRequest request,
+        string result,
+        Guid? sessionId = null)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var entry = new ConnectionAuditEntry
+        {
+            SessionId = sessionId ?? Guid.NewGuid(),
+            SessionName = string.IsNullOrWhiteSpace(request.DisplayName)
+                ? request.TargetText
+                : request.DisplayName,
+            Protocol = request.Protocol,
+            Host = request.Host,
+            Port = request.Port,
+            Username = request.Username,
+            EventType = ConnectionAuditEventType.ExternalLaunch,
+            Detail = TrimDetail(result),
+            Source = "external",
+            ExternalOrigin = request.Origin.ToString(),
+            CredentialSupplied = request.HasCredential
+        };
+
+        lock (_gate)
+        {
+            try
+            {
+                var entries = GetEntriesUnsafe();
+                entries.Insert(0, entry);
+                if (entries.Count > MaximumEntries)
+                    entries.RemoveRange(MaximumEntries, entries.Count - MaximumEntries);
+                SaveUnsafe(entries);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"CxShell external audit write failed: {ex.Message}");
             }
         }
     }
