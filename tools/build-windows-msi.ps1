@@ -286,16 +286,16 @@ $dialogRefs
                 </Control>
                 <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="[MsiBtnNext]">
                     <Publish Event="SetTargetPath" Value="INSTALLFOLDER" Order="1" />
-                    <Publish Event="DoAction" Value="RustValidatePath" Order="2" Condition="NOT WIXUI_DONTVALIDATEPATH" />
-                    <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="3" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID = &quot;1&quot;" />
+                    <Publish Property="WIXUI_INSTALLDIR" Value="[INSTALLFOLDER]" Order="2" Condition="NOT WIXUI_DONTVALIDATEPATH" />
+                    <Publish Event="DoAction" Value="RustValidatePath" Order="3" Condition="NOT WIXUI_DONTVALIDATEPATH" />
+                    <Publish Event="SpawnDialog" Value="InvalidDirDlg" Order="4" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID &lt;&gt; &quot;1&quot;" />
+                    <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="5" Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID = &quot;1&quot;" />
                 </Control>
                 <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="[MsiBtnCancel]">
                     <Publish Event="SpawnDialog" Value="CancelDlg" />
                 </Control>
             </Dialog>
 
-            <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="RustValidatePath" Order="3" Condition="NOT WIXUI_DONTVALIDATEPATH" />
-            <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4" Condition="NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID &lt;&gt; &quot;1&quot;" />
 
             <Publish Dialog="WelcomeDlg" Control="Next" Property="INSTALLFOLDER" Value="[$programFilesDirectory]CxShell" Order="1" Condition="NOT INSTALLFOLDER" />
             <Publish Dialog="WelcomeDlg" Control="Next" Event="SetTargetPath" Value="INSTALLFOLDER" Order="2" />
