@@ -95,7 +95,13 @@ if (!(Test-Path -LiteralPath $PortableZipPath -PathType Leaf)) {
 
 $vpkWindowsAssemblyPath = Find-File $VpkToolsPath "Velopack.Packaging.Windows.dll"
 $wixC7Path = Find-File $VpkToolsPath "wixc7.exe"
-$wixNativePath = Find-File $VpkToolsPath "wixnative.exe"
+$velopackWixFileName = switch ($Architecture) {
+    "x86" { "velopack_wix_x86.dll" }
+    "x64" { "velopack_wix_x64.dll" }
+    "arm64" { "velopack_wix_arm64.dll" }
+    default { throw "Unsupported Windows MSI architecture: $Architecture" }
+}
+$velopackWixPath = Find-File $VpkToolsPath $velopackWixFileName
 $iconPath = Join-Path $PSScriptRoot "..\Assets\CxShellLogo.ico"
 
 if (!(Test-Path -LiteralPath $iconPath -PathType Leaf)) {
@@ -159,7 +165,7 @@ try {
     $programFilesDirectory = if ($Architecture -eq "x86") { "ProgramFilesFolder" } else { "ProgramFiles64Folder" }
     $sourceAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath($stagingRoot))
     $iconAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath($iconPath))
-    $rustNativeAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath($wixNativePath))
+    $rustNativeAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath($velopackWixPath))
     $bannerAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath((Join-Path $resourceRoot "banner.bmp")))
     $dialogAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath((Join-Path $resourceRoot "dialog.bmp")))
     $exclamAttribute = ConvertTo-XmlAttribute ([System.IO.Path]::GetFullPath((Join-Path $resourceRoot "exclam.ico")))
