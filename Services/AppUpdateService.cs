@@ -63,7 +63,7 @@ public sealed record MacInstallPermissionInfo(
 
 public sealed class AppUpdateService
 {
-    private const string ReleaseDownloadBaseUrl = "https://github.com/xiaochengzjc/CxShell/releases/latest/download";
+    private const string ReleaseDownloadBaseUrl = "https://github.com/luzwales/CxShell/releases/latest/download";
     private const double UpdateDownloadTimeoutMinutes = 15;
     private readonly Func<ProxySettings?>? _globalProxyProvider;
 

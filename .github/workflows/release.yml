@@ -1,29 +1,26 @@
-name: Release Packages
+name: Windows Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag_name:
-        description: "Release tag, for example v0.1.0"
-        required: true
-        type: string
   push:
-    tags:
-      - "v*"
+    branches:
+      - master
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: windows-release
+  cancel-in-progress: true
+
 env:
   DOTNET_VERSION: "10.0.x"
-  VCPKG_REF: "a7eda31dc16994fcaa8587982eb833a8695f1b6f"
-  RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag_name }}
+  APP_VERSION: "0.1.${{ github.run_number }}"
 
 jobs:
   test:
-    name: Test .NET application
-    runs-on: ubuntu-latest
-
+    name: Test
+    runs-on: windows-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -39,19 +36,10 @@ jobs:
       - name: Test
         run: dotnet test CxShell.Tests/CxShell.Tests.csproj --no-restore --configuration Release
 
-  windows:
-    name: Build Windows ${{ matrix.rid }}
-    runs-on: windows-2022
+  package:
+    name: Package Windows x64
+    runs-on: windows-latest
     needs: test
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}\.vcpkg
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rid: win-x64
-            triplet: x64-windows
-
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -61,742 +49,63 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Bootstrap vcpkg
+      - name: Publish self-contained app
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          git init $env:VCPKG_ROOT
-          git -C $env:VCPKG_ROOT remote add origin https://github.com/microsoft/vcpkg.git
-          git -C $env:VCPKG_ROOT fetch --depth 1 origin $env:VCPKG_REF
-          git -C $env:VCPKG_ROOT checkout --detach $env:VCPKG_REF
-          Write-Host "Using vcpkg commit: $(git -C $env:VCPKG_ROOT rev-parse HEAD)"
-          & "$env:VCPKG_ROOT\bootstrap-vcpkg.bat"
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}\downloads
-            ${{ env.VCPKG_ROOT }}\installed
-            ${{ env.VCPKG_ROOT }}\buildtrees
-            ${{ env.VCPKG_ROOT }}\packages
-          key: ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-${{ hashFiles('tools/build-rdp-bridge.ps1', 'native/CxRdpBridge/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-
-
-      - name: Show MSVC toolchain
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Continue"
-          $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-          if (Test-Path $vswhere) {
-            & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          }
-
-          $vsDevCmd = $null
-          if (Test-Path $vswhere) {
-            $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-            if ($vsInstall) {
-              $candidate = Join-Path $vsInstall "Common7\Tools\VsDevCmd.bat"
-              if (Test-Path $candidate) {
-                $vsDevCmd = $candidate
-              }
-            }
-          }
-
-          if (!$vsDevCmd) {
-            Write-Warning "VsDevCmd.bat was not found on the Windows runner. The build script will perform the final MSVC check."
-            exit 0
-          }
-
-          cmd /c "`"call `"$vsDevCmd`" -arch=x64 -host_arch=x64 >nul && where cl && where link && where dumpbin && where cmake`""
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning "MSVC toolchain diagnostic command exited with $LASTEXITCODE. The build script will perform the final MSVC check."
-            exit 0
-          }
-
-      - name: Publish app
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\$rid"
-          $version = $env:RELEASE_TAG
-          if ($version.StartsWith("v")) {
-            $version = $version.Substring(1)
-          }
-          $assemblyVersion = ($version -split "-")[0]
-
           dotnet publish CxShell.csproj `
             -c Release `
-            -r $rid `
+            -r win-x64 `
             --self-contained true `
-            -o $publishDir `
-            /p:Version=$version `
-            /p:AssemblyVersion=$assemblyVersion `
-            /p:FileVersion=$assemblyVersion `
-            /p:InformationalVersion=$version `
+            -o artifacts\publish\win-x64 `
+            /p:Version=${{ env.APP_VERSION }} `
+            /p:AssemblyVersion=${{ env.APP_VERSION }} `
+            /p:FileVersion=${{ env.APP_VERSION }} `
+            /p:InformationalVersion=${{ env.APP_VERSION }} `
             /p:PublishSingleFile=true `
             /p:IncludeNativeLibrariesForSelfExtract=true `
             /p:DebugType=none `
             /p:DebugSymbols=false
 
-      - name: Build RDP bridge
+      - name: Create portable executable
+        shell: pwsh
+        run: Copy-Item artifacts\publish\win-x64\CxShell.exe artifacts\CxShell-Portable.exe
+
+      - name: Install Velopack CLI
+        shell: pwsh
+        run: dotnet tool install --global vpk
+
+      - name: Build Velopack package
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\$rid"
+          vpk pack `
+            --packId CxShell `
+            --packVersion $env:APP_VERSION `
+            --packDir artifacts\publish\win-x64 `
+            --mainExe CxShell.exe `
+            --outputDir artifacts\release `
+            --packTitle CxShell `
+            --packAuthors luzwales
 
-          try {
-            $scriptPath = Join-Path $env:GITHUB_WORKSPACE "tools\build-rdp-bridge.ps1"
-            $vcpkgExe = Join-Path $env:VCPKG_ROOT "vcpkg.exe"
-            $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-            $vsDevCmd = $null
+          $setup = Get-ChildItem artifacts\release -Filter "*Setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "Velopack did not produce a setup executable." }
+          Copy-Item $setup.FullName artifacts\CxShell-Setup.exe
 
-            Write-Host "GITHUB_WORKSPACE=$env:GITHUB_WORKSPACE"
-            Write-Host "VCPKG_ROOT=$env:VCPKG_ROOT"
-            Write-Host "Build script=$scriptPath"
-            Write-Host "Publish dir=$publishDir"
-
-            if (!(Test-Path $scriptPath)) {
-              throw "RDP bridge build script was not found at $scriptPath"
-            }
-            if (!(Test-Path $vcpkgExe)) {
-              throw "vcpkg.exe was not found at $vcpkgExe"
-            }
-            if (Test-Path $vswhere) {
-              $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-              if (![string]::IsNullOrWhiteSpace($vsInstall)) {
-                $candidate = Join-Path $vsInstall "Common7\Tools\VsDevCmd.bat"
-                if (Test-Path $candidate) {
-                  $vsDevCmd = $candidate
-                }
-              }
-            }
-            if ([string]::IsNullOrWhiteSpace($vsDevCmd)) {
-              throw "VsDevCmd.bat was not found. Windows RDP bridge packages must be built with MSVC."
-            }
-
-            & $scriptPath `
-              -VcpkgRoot $env:VCPKG_ROOT `
-              -VsDevCmdPath $vsDevCmd `
-              -Triplet "${{ matrix.triplet }}" `
-              -OutputDir $publishDir
-
-            if ($LASTEXITCODE -ne 0) {
-              throw "RDP bridge build script exited with code $LASTEXITCODE"
-            }
-          }
-          catch {
-            $message = $_.Exception.Message.Replace("`r", " ").Replace("`n", " ")
-            Write-Host "::error title=Build RDP bridge failed::$message"
-            $_ | Format-List * -Force
-            exit 1
+          if (-not (Test-Path artifacts\release\RELEASES)) {
+            throw "Velopack did not produce the RELEASES feed file."
           }
 
-      - name: Validate RDP bridge
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\$rid"
-          $bridgePath = Join-Path $publishDir "CxRdpBridge.dll"
-
-          if (!(Test-Path $bridgePath)) {
-            throw "CxRdpBridge.dll was not copied to $publishDir"
-          }
-
-          $dumpbin = Get-Command dumpbin.exe -ErrorAction SilentlyContinue
-          if (!$dumpbin) {
-            $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
-            if (Test-Path $vswhere) {
-              $vsInstall = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-              if ($vsInstall) {
-                $dumpbinPath = Get-ChildItem -Path $vsInstall -Recurse -Filter dumpbin.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
-                if ($dumpbinPath) {
-                  $dumpbin = Get-Item $dumpbinPath
-                }
-              }
-            }
-          }
-
-          if ($dumpbin) {
-            $packageDependencies = @(
-              "freerdp3.dll",
-              "freerdp-client3.dll",
-              "winpr3.dll",
-              "libcrypto-3-x64.dll",
-              "libssl-3-x64.dll",
-              "cjson.dll",
-              "z.dll",
-              "zlib1.dll",
-              "concrt140.dll",
-              "msvcp140.dll",
-              "msvcp140_1.dll",
-              "msvcp140_2.dll",
-              "msvcp140_atomic_wait.dll",
-              "msvcp140_codecvt_ids.dll",
-              "vcruntime140.dll",
-              "vcruntime140_1.dll"
-            )
-            $dependents = & $dumpbin.FullName /dependents $bridgePath |
-              ForEach-Object { $_.Trim() } |
-              Where-Object { $_ -match "^[A-Za-z0-9_.+\-]+\.dll$" }
-            $forbiddenDependencies = @(
-              "libgcc_s_seh-1.dll",
-              "libstdc++-6.dll",
-              "libwinpthread-1.dll"
-            )
-            $forbiddenDependents = @($dependents | Where-Object {
-              $dependency = $_
-              $forbiddenDependencies -contains $dependency
-            })
-            $forbiddenFiles = @($forbiddenDependencies | Where-Object {
-              Test-Path (Join-Path $publishDir $_)
-            })
-
-            if ($forbiddenDependents.Count -gt 0 -or $forbiddenFiles.Count -gt 0) {
-              Write-Host "Windows RDP bridge must be pure MSVC. MinGW runtime dependencies/files are not allowed."
-              if ($forbiddenDependents.Count -gt 0) {
-                Write-Host "Forbidden dependencies:"
-                $forbiddenDependents | ForEach-Object { Write-Host "  $_" }
-              }
-              if ($forbiddenFiles.Count -gt 0) {
-                Write-Host "Forbidden files in package:"
-                $forbiddenFiles | ForEach-Object { Write-Host "  $_" }
-              }
-              throw "Windows RDP bridge has MinGW runtime dependencies."
-            }
-
-            $missing = @($dependents | Where-Object {
-              $dependency = $_
-              $packageDependencies -contains $dependency -and !(Test-Path (Join-Path $publishDir $dependency))
-            })
-
-            if ($missing.Count -gt 0) {
-              Write-Host "CxRdpBridge.dll depends on DLLs that were not copied to the package:"
-              $missing | ForEach-Object { Write-Host "  $_" }
-              Write-Host "Native files in package:"
-              Get-ChildItem $publishDir -Filter "*.dll" | Select-Object Name, Length | Format-Table -AutoSize
-              throw "Missing packaged RDP native dependencies."
-            }
-          }
-          else {
-            throw "dumpbin.exe was not found; Windows RDP bridge dependencies cannot be validated."
-          }
-
-          Add-Type -TypeDefinition @"
-          using System;
-          using System.Runtime.InteropServices;
-
-          public static class NativeLoadProbe
-          {
-              public static IntPtr Load(string path) => NativeLibrary.Load(path);
-              public static void Free(IntPtr handle) => NativeLibrary.Free(handle);
-          }
-          "@
-
-          try {
-            $handle = [NativeLoadProbe]::Load($bridgePath)
-            [NativeLoadProbe]::Free($handle)
-            Write-Host "Loaded $bridgePath successfully."
-          }
-          catch {
-            Write-Host "Native files in package:"
-            Get-ChildItem $publishDir -Filter "*.dll" | Select-Object Name, Length | Format-Table -AutoSize
-            throw
-          }
-
-          $env:PATH = "$publishDir;$env:PATH"
-          dotnet run --project tools\RdpSmokeTest\RdpSmokeTest.csproj --configuration Release -- --probe --require-audio
-          if ($LASTEXITCODE -ne 0) {
-            throw "RDP native bridge capability probe failed with exit code $LASTEXITCODE."
-          }
-
-      - name: Create archive
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $packageName = "CxShell-$($env:RELEASE_TAG)-$rid"
-          $packageRoot = Join-Path $env:GITHUB_WORKSPACE "artifacts\package"
-          $packageDir = Join-Path $packageRoot $packageName
-          $archivePath = Join-Path $env:GITHUB_WORKSPACE "artifacts\$packageName.zip"
-
-          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
-          Copy-Item -Path "artifacts\publish\$rid\*" -Destination $packageDir -Recurse -Force
-          Copy-Item -Path LICENSE,NOTICE,README.md,README.zh-CN.md -Destination $packageDir -Force
-          Get-ChildItem -Path $packageDir -Recurse -Filter "*.pdb" | Remove-Item -Force
-          Compress-Archive -Path $packageDir -DestinationPath $archivePath -Force
-
-      - name: Create Velopack package
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $version = $env:RELEASE_TAG
-          if ($version.StartsWith("v")) {
-            $version = $version.Substring(1)
-          }
-          $publishDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\publish\$rid"
-          $outputDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\velopack\$rid"
-
-          dotnet tool install vpk --tool-path ".tmp\vpk" --version 1.2.0
-          & ".tmp\vpk\vpk.exe" pack `
-            --packId "CxShell-$rid" `
-            --packVersion $version `
-            --packDir $publishDir `
-            --packAuthors "xiaochengzjc" `
-            --packTitle "CxShell" `
-            --mainExe "CxShell.exe" `
-            --runtime $rid `
-            --channel $rid `
-            --icon "Assets\CxShellLogo.ico" `
-            --msi `
-            --instLocation Either `
-            --outputDir $outputDir
-
-      - name: Rebuild MSI with selectable install directory
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $rid = "${{ matrix.rid }}"
-          $version = $env:RELEASE_TAG
-          if ($version.StartsWith("v")) {
-            $version = $version.Substring(1)
-          }
-          $outputDir = Join-Path $env:GITHUB_WORKSPACE "artifacts\velopack\$rid"
-          $portablePackage = Get-ChildItem -LiteralPath $outputDir -Filter "*-Portable.zip" -File | Select-Object -First 1
-          $msiPackage = Get-ChildItem -LiteralPath $outputDir -Filter "*.msi" -File | Select-Object -First 1
-
-          if ($null -eq $portablePackage) {
-            throw "Velopack portable package was not found in $outputDir"
-          }
-          if ($null -eq $msiPackage) {
-            throw "Velopack MSI package was not found in $outputDir"
-          }
-
-          & "$env:GITHUB_WORKSPACE\tools\build-windows-msi.ps1" `
-            -PortableZipPath $portablePackage.FullName `
-            -OutputMsiPath $msiPackage.FullName `
-            -VpkToolsPath "$env:GITHUB_WORKSPACE\.tmp\vpk" `
-            -PackId "CxShell-$rid" `
-            -Version $version `
-            -Architecture "x64"
-          if ($LASTEXITCODE -ne 0) {
-            throw "Selectable-location MSI build failed with exit code $LASTEXITCODE"
-          }
-          if (!(Test-Path -LiteralPath $msiPackage.FullName -PathType Leaf)) {
-            throw "Selectable-location MSI was not created: $($msiPackage.FullName)"
-          }
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: CxShell-${{ env.RELEASE_TAG }}-${{ matrix.rid }}
-          path: |
-            artifacts/CxShell-${{ env.RELEASE_TAG }}-${{ matrix.rid }}.zip
-            artifacts/velopack/${{ matrix.rid }}/**
-          if-no-files-found: error
-
-  linux:
-    name: Build Linux ${{ matrix.rid }}
-    runs-on: ${{ matrix.runs_on }}
-    needs: test
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - rid: linux-x64
-            triplet: x64-linux
-            runs_on: ubuntu-latest
-          - rid: linux-arm64
-            triplet: arm64-linux
-            runs_on: ubuntu-24.04-arm
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Install build tools
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build pkg-config
-
-      - name: Bootstrap vcpkg
-        shell: bash
-        run: |
-          git init "$VCPKG_ROOT"
-          git -C "$VCPKG_ROOT" remote add origin https://github.com/microsoft/vcpkg.git
-          git -C "$VCPKG_ROOT" fetch --depth 1 origin "$VCPKG_REF"
-          git -C "$VCPKG_ROOT" checkout --detach "$VCPKG_REF"
-          echo "Using vcpkg commit: $(git -C "$VCPKG_ROOT" rev-parse HEAD)"
-          "$VCPKG_ROOT/bootstrap-vcpkg.sh"
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}/downloads
-            ${{ env.VCPKG_ROOT }}/installed
-            ${{ env.VCPKG_ROOT }}/buildtrees
-            ${{ env.VCPKG_ROOT }}/packages
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-${{ hashFiles('tools/build-rdp-bridge.sh', 'native/CxRdpBridge/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-
-
-      - name: Publish app
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          publish_dir="$GITHUB_WORKSPACE/artifacts/publish/$rid"
-          version="${RELEASE_TAG#v}"
-          assembly_version="${version%%-*}"
-
-          dotnet publish CxShell.csproj \
-            -c Release \
-            -r "$rid" \
-            --self-contained true \
-            -o "$publish_dir" \
-            /p:Version="$version" \
-            /p:AssemblyVersion="$assembly_version" \
-            /p:FileVersion="$assembly_version" \
-            /p:InformationalVersion="$version" \
-            /p:PublishSingleFile=true \
-            /p:IncludeNativeLibrariesForSelfExtract=true \
-            /p:DebugType=none \
-            /p:DebugSymbols=false
-
-          if [ -f "$publish_dir/CxShell" ]; then
-            chmod +x "$publish_dir/CxShell"
-          fi
-
-      - name: Build RDP bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/publish/$rid"
-          export TRIPLET="${{ matrix.triplet }}"
-          bash tools/build-rdp-bridge.sh
-
-      - name: Validate RDP bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          publish_dir="$GITHUB_WORKSPACE/artifacts/publish/$rid"
-          test -f "$publish_dir/libCxRdpBridge.so"
-          ldd "$publish_dir/libCxRdpBridge.so"
-          if ldd "$publish_dir/libCxRdpBridge.so" | grep -q "not found"; then
-            echo "libCxRdpBridge.so has unresolved native dependencies." >&2
-            exit 1
-          fi
-
-          LD_LIBRARY_PATH="$publish_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-            dotnet run --project tools/RdpSmokeTest/RdpSmokeTest.csproj --configuration Release -- --probe
-
-      - name: Create archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          package_name="CxShell-$RELEASE_TAG-$rid"
-          package_root="$GITHUB_WORKSPACE/artifacts/package"
-          package_dir="$package_root/$package_name"
-
-          mkdir -p "$package_dir"
-          cp -a "$GITHUB_WORKSPACE/artifacts/publish/$rid/." "$package_dir/"
-          cp LICENSE NOTICE README.md README.zh-CN.md "$package_dir/"
-          find "$package_dir" -name "*.pdb" -delete
-          tar -czf "$GITHUB_WORKSPACE/artifacts/$package_name.tar.gz" -C "$package_root" "$package_name"
-
-      - name: Create Velopack package
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          version="${RELEASE_TAG#v}"
-          publish_dir="$GITHUB_WORKSPACE/artifacts/publish/$rid"
-          output_dir="$GITHUB_WORKSPACE/artifacts/velopack/$rid"
-
-          dotnet tool install vpk --tool-path ".tmp/vpk" --version 1.2.0
-          ".tmp/vpk/vpk" pack \
-            --packId "CxShell-$rid" \
-            --packVersion "$version" \
-            --packDir "$publish_dir" \
-            --packAuthors "xiaochengzjc" \
-            --packTitle "CxShell" \
-            --mainExe "CxShell" \
-            --runtime "$rid" \
-            --channel "$rid" \
-            --icon "Assets/CxShellLogo.png" \
-            --outputDir "$output_dir"
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: CxShell-${{ env.RELEASE_TAG }}-${{ matrix.rid }}
-          path: |
-            artifacts/CxShell-${{ env.RELEASE_TAG }}-${{ matrix.rid }}.tar.gz
-            artifacts/velopack/${{ matrix.rid }}/**
-          if-no-files-found: error
-
-  macos:
-    name: Build macOS ${{ matrix.arch }}
-    runs-on: ${{ matrix.runs_on }}
-    needs: test
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runs_on: macos-14
-            rid: osx-arm64
-            triplet: arm64-osx
-            arch: arm64
-            package_suffix: macos-arm64
-          - runs_on: macos-15-intel
-            rid: osx-x64
-            triplet: x64-osx
-            arch: x64
-            package_suffix: macos-x64
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Install build tools
-        shell: bash
-        run: |
-          brew install cmake ninja pkg-config
-
-      - name: Bootstrap vcpkg
-        shell: bash
-        run: |
-          git init "$VCPKG_ROOT"
-          git -C "$VCPKG_ROOT" remote add origin https://github.com/microsoft/vcpkg.git
-          git -C "$VCPKG_ROOT" fetch --depth 1 origin "$VCPKG_REF"
-          git -C "$VCPKG_ROOT" checkout --detach "$VCPKG_REF"
-          echo "Using vcpkg commit: $(git -C "$VCPKG_ROOT" rev-parse HEAD)"
-          "$VCPKG_ROOT/bootstrap-vcpkg.sh"
-
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ env.VCPKG_ROOT }}/downloads
-            ${{ env.VCPKG_ROOT }}/installed
-            ${{ env.VCPKG_ROOT }}/buildtrees
-            ${{ env.VCPKG_ROOT }}/packages
-          key: ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-${{ hashFiles('tools/build-rdp-bridge.sh', 'native/CxRdpBridge/CMakeLists.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-${{ env.VCPKG_REF }}-
-
-      - name: Publish app
-        shell: bash
-        run: |
-          set -euo pipefail
-          version="${RELEASE_TAG#v}"
-          assembly_version="${version%%-*}"
-          dotnet publish CxShell.csproj \
-            -c Release \
-            -r "${{ matrix.rid }}" \
-            --self-contained true \
-            -o "artifacts/publish/${{ matrix.rid }}" \
-            /p:Version="$version" \
-            /p:AssemblyVersion="$assembly_version" \
-            /p:FileVersion="$assembly_version" \
-            /p:InformationalVersion="$version" \
-            /p:PublishSingleFile=false \
-            /p:DebugType=none \
-            /p:DebugSymbols=false
-
-      - name: Create app bundle
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          export PUBLISH_DIR="$GITHUB_WORKSPACE/artifacts/publish/${{ matrix.rid }}"
-          export ARTIFACT_DIR="$GITHUB_WORKSPACE/artifacts/package/$package_name"
-          export ARCH="${{ matrix.arch }}"
-          export BUNDLE_VERSION="${RELEASE_TAG#v}"
-          export BUNDLE_SHORT_VERSION="${RELEASE_TAG#v}"
-
-          bash tools/package-macos-app.sh
-          cp LICENSE NOTICE README.md README.zh-CN.md "$ARTIFACT_DIR/"
-          find "$ARTIFACT_DIR" -name "*.pdb" -delete
-
-      - name: Build RDP bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/package/$package_name/CxShell.app/Contents/MacOS"
-          export TRIPLET="${{ matrix.triplet }}"
-          bash tools/build-rdp-bridge.sh
-
-      - name: Build Finder drag bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/package/$package_name/CxShell.app/Contents/MacOS"
-          export ARCH="${{ matrix.arch }}"
-          bash tools/build-macos-drag-bridge.sh
-
-      - name: Ad-hoc sign app
-        shell: bash
-        run: |
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          codesign --force --deep --sign - "artifacts/package/$package_name/CxShell.app"
-
-      - name: Validate package
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          app_path="artifacts/package/$package_name/CxShell.app"
-
-          test -x "$app_path/Contents/MacOS/CxShell"
-          test -f "$app_path/Contents/Info.plist"
-          test -f "$app_path/Contents/Resources/CxShell.icns"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app_path/Contents/Info.plist")" = "CxShell"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app_path/Contents/Info.plist")" = "CxShell"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app_path/Contents/Info.plist")" = "CxShell.icns"
-          test -f "$app_path/Contents/MacOS/libCxRdpBridge.dylib"
-          test -f "$app_path/Contents/MacOS/libCxMacDragBridge.dylib"
-
-          if [ -d "$app_path/Contents/MacOS/runtimes/win-x64" ]; then
-            echo "Windows native runtime files were copied into the macOS package." >&2
-            exit 1
-          fi
-
-          otool -L "$app_path/Contents/MacOS/libCxRdpBridge.dylib"
-          otool -L "$app_path/Contents/MacOS/libCxMacDragBridge.dylib"
-
-          DYLD_LIBRARY_PATH="$app_path/Contents/MacOS${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}" \
-            dotnet run --project tools/RdpSmokeTest/RdpSmokeTest.csproj --configuration Release -- --probe
-
-      - name: Create archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          tar -czf "artifacts/$package_name.tar.gz" -C artifacts/package "$package_name"
-
-      - name: Create DMG
-        shell: bash
-        run: |
-          set -euo pipefail
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          export APP_PATH="$GITHUB_WORKSPACE/artifacts/package/$package_name/CxShell.app"
-          export OUTPUT_DMG="$GITHUB_WORKSPACE/artifacts/$package_name.dmg"
-          export VOLUME_NAME="CxShell $RELEASE_TAG ${{ matrix.package_suffix }}"
-          export README_SOURCE="$GITHUB_WORKSPACE/artifacts/package/$package_name/README-macos.txt"
-          bash tools/create-macos-dmg.sh
-
-      - name: Create Velopack package
-        shell: bash
-        run: |
-          set -euo pipefail
-          rid="${{ matrix.rid }}"
-          version="${RELEASE_TAG#v}"
-          package_name="CxShell-$RELEASE_TAG-${{ matrix.package_suffix }}"
-          app_path="$GITHUB_WORKSPACE/artifacts/package/$package_name/CxShell.app"
-          output_dir="$GITHUB_WORKSPACE/artifacts/velopack/$rid"
-
-          dotnet tool install vpk --tool-path ".tmp/vpk" --version 1.2.0
-          ".tmp/vpk/vpk" pack \
-            --packId "CxShell-$rid" \
-            --packVersion "$version" \
-            --packDir "$app_path" \
-            --packAuthors "xiaochengzjc" \
-            --packTitle "CxShell" \
-            --mainExe "CxShell" \
-            --runtime "$rid" \
-            --channel "$rid" \
-            --outputDir "$output_dir"
-
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: CxShell-${{ env.RELEASE_TAG }}-${{ matrix.package_suffix }}
-          path: |
-            artifacts/CxShell-${{ env.RELEASE_TAG }}-${{ matrix.package_suffix }}.tar.gz
-            artifacts/CxShell-${{ env.RELEASE_TAG }}-${{ matrix.package_suffix }}.dmg
-            artifacts/velopack/${{ matrix.rid }}/**
-          if-no-files-found: error
-
-  release:
-    name: Publish GitHub Release
-    needs:
-      - windows
-      - linux
-      - macos
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download package artifacts
-        uses: actions/download-artifact@v8
-        with:
-          path: release-assets
-          merge-multiple: true
-
-      - name: List release assets
-        shell: bash
-        run: |
-          find release-assets -type f -print | sort
-
-      - name: Create or update release
+          tag_name: v${{ env.APP_VERSION }}
+          name: CxShell v${{ env.APP_VERSION }}
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            artifacts/CxShell-Setup.exe
+            artifacts/CxShell-Portable.exe
+            artifacts/release/*
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag="$RELEASE_TAG"
-          notes="Automated CxShell packages for Windows, macOS, and Linux."
-
-          mapfile -d '' assets < <(find release-assets -type f -print0 | sort -z)
-          if [ "${#assets[@]}" -eq 0 ]; then
-            echo "No release assets were downloaded." >&2
-            exit 1
-          fi
-
-          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload "$tag" "${assets[@]}" --repo "$GH_REPO" --clobber
-          else
-            create_args=(
-              --title "CxShell $tag"
-              --notes "$notes"
-            )
-
-            if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-              create_args+=(--verify-tag)
-            else
-              create_args+=(--target "$GITHUB_SHA")
-            fi
-
-            if [[ "$tag" == *-* ]]; then
-              create_args+=(--prerelease)
-            fi
-
-            gh release create "$tag" "${assets[@]}" --repo "$GH_REPO" "${create_args[@]}"
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
