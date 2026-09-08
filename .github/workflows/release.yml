@@ -72,22 +72,6 @@ jobs:
         shell: pwsh
         run: Copy-Item artifacts\publish\win-x64\CxShell.exe artifacts\CxShell-Portable.exe
 
-      - name: Publish framework-dependent portable executable
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          dotnet publish CxShell.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained false `
-            -o artifacts\publish\win-x64-framework-dependent `
-            /p:Version=${{ env.APP_VERSION }} `
-            /p:PublishSingleFile=true `
-            /p:EnableCompressionInSingleFile=true `
-            /p:DebugType=none `
-            /p:DebugSymbols=false
-          Copy-Item artifacts\publish\win-x64-framework-dependent\CxShell.exe artifacts\CxShell-Portable-FrameworkDependent.exe
-
       - name: Install Velopack CLI
         shell: pwsh
         run: dotnet tool install --global vpk
@@ -123,7 +107,6 @@ jobs:
           files: |
             artifacts/CxShell-Setup.exe
             artifacts/CxShell-Portable.exe
-            artifacts/CxShell-Portable-FrameworkDependent.exe
             artifacts/release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
