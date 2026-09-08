@@ -1,4 +1,4 @@
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 /// <summary>
 /// 鼠标报告模式。终端应用通过 DECSET 打开这些模式后，控件把指针事件编码后发回远端。

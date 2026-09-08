@@ -1,7 +1,7 @@
 using System.Text;
-using CxShell.Services.Agent;
+using FxShell.Services.Agent;
 
-namespace CxShell.Services.Agent.OpenCoworkRuntime;
+namespace FxShell.Services.Agent.OpenCoworkRuntime;
 
 /// <summary>
 /// Context compaction adapted from OpenCoWork's AgentRuntimeContextCompression.

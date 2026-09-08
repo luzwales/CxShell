@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_PATH="${APP_PATH:-}"
 OUTPUT_DMG="${OUTPUT_DMG:-}"
-VOLUME_NAME="${VOLUME_NAME:-CxShell}"
+VOLUME_NAME="${VOLUME_NAME:-FxShell}"
 README_SOURCE="${README_SOURCE:-}"
 
 if [ -z "$APP_PATH" ]; then
@@ -34,16 +34,16 @@ cp -R "$APP_PATH" "$staging_dir/$app_name"
 ln -s /Applications "$staging_dir/Applications"
 
 cat > "$staging_dir/Install Guide.txt" <<'GUIDE'
-CxShell macOS install guide
+FxShell macOS install guide
 
 Recommended no-admin install:
 1. Create ~/Applications if it does not exist.
-2. Move CxShell.app into ~/Applications.
-3. Start CxShell from ~/Applications.
+2. Move FxShell.app into ~/Applications.
+3. Start FxShell from ~/Applications.
 
-Dragging CxShell.app to the system /Applications folder may ask for an administrator password. Touch ID availability for that prompt is controlled by macOS, not by CxShell.
+Dragging FxShell.app to the system /Applications folder may ask for an administrator password. Touch ID availability for that prompt is controlled by macOS, not by FxShell.
 
-Automatic updates are smoother when CxShell.app is installed in a folder your user account can write to, such as ~/Applications.
+Automatic updates are smoother when FxShell.app is installed in a folder your user account can write to, such as ~/Applications.
 GUIDE
 
 if [ -n "$README_SOURCE" ] && [ -f "$README_SOURCE" ]; then

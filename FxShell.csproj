@@ -1,0 +1,89 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <AssemblyName>FxShell</AssemblyName>
+        <RootNamespace>FxShell</RootNamespace>
+        <Product>FxShell</Product>
+        <Title>FxShell</Title>
+        <PackageId>FxShell</PackageId>
+        <Authors>xiaochengzjc</Authors>
+        <Copyright>Copyright 2026 xiaochengzjc</Copyright>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <RepositoryUrl>https://github.com/luzwales/CxShell</RepositoryUrl>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <ApplicationIcon>Assets\FxShellLogo.ico</ApplicationIcon>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="AtomUI/**" />
+        <Compile Remove="OpenCowork/**" />
+        <Compile Remove="VelaShell/**" />
+        <Compile Remove=".tmp/**" />
+        <Compile Remove=".buildcheck*/**" />
+        <Compile Remove="tools/**" />
+        <Compile Remove="FxShell.Tests/**" />
+        <AvaloniaXaml Remove="AtomUI/**" />
+        <AvaloniaXaml Remove="OpenCowork/**" />
+        <AvaloniaXaml Remove="VelaShell/**" />
+        <AvaloniaXaml Remove=".tmp/**" />
+        <AvaloniaXaml Remove=".buildcheck*/**" />
+        <AvaloniaXaml Remove="tools/**" />
+        <AvaloniaXaml Remove="FxShell.Tests/**" />
+        <None Remove=".buildcheck*/**" />
+        <None Remove="OpenCowork/**" />
+        <None Remove="VelaShell/**" />
+        <None Remove="tools/**" />
+        <None Remove="FxShell.Tests/**" />
+        <Content Remove=".buildcheck*/**" />
+        <Content Remove="OpenCowork/**" />
+        <Content Remove="VelaShell/**" />
+        <Content Remove="tools/**" />
+        <EmbeddedResource Remove="OpenCowork/**" />
+        <EmbeddedResource Remove="VelaShell/**" />
+        <Content Remove="FxShell.Tests/**" />
+        <AvaloniaResource Include="Assets/**" />
+        <AvaloniaResource Include="docs/images/alipay-donation.jpg" />
+        <AvaloniaResource Include="docs/images/wechat-pay-donation.jpg" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AtomUI.Desktop.Controls" Version="6.1.7" />
+        <PackageReference Include="AtomUI.Desktop.Controls.ColorPicker" Version="6.1.7" />
+        <PackageReference Include="AtomUI.Desktop.Controls.DataGrid" Version="6.1.7" />
+        <PackageReference Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
+        <PackageReference Include="LiveMarkdown.Avalonia" Version="2.4.0" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+        <PackageReference Include="AvaloniaEdit.TextMate" Version="12.0.0" />
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+        <PackageReference Include="FluentFTP" Version="54.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+        <PackageReference Include="ReactiveUI.Avalonia" Version="12.1.1" />
+        <PackageReference Include="SSH.NET" Version="2024.2.0" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+        <PackageReference Include="SshNet.Agent" Version="2024.2.0.1" />
+        <PackageReference Include="System.IO.Ports" Version="10.0.9" />
+        <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
+        <PackageReference Include="Velopack" Version="1.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>FxShell.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(RuntimeIdentifier)' == ''">
+        <None Include="runtimes/**/native/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(RuntimeIdentifier)' != ''">
+        <None Include="runtimes/$(RuntimeIdentifier)/native/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+</Project>

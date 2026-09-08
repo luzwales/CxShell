@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public class SessionData
 {
-    public string Format { get; set; } = "CxShell.Session";
+    public string Format { get; set; } = "FxShell.Session";
     public string Version { get; set; } = "1.0";
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ApplicationSettings? Settings { get; set; } = new();
@@ -21,7 +21,7 @@ public class SessionData
 
 public class SessionStorageService
 {
-    private const string CurrentAppDirectoryName = "CxShell";
+    private const string CurrentAppDirectoryName = "FxShell";
 
     private readonly string _storageDir;
     private readonly string _storagePath;
@@ -96,7 +96,7 @@ public class SessionStorageService
         if (!string.IsNullOrWhiteSpace(root))
             return Path.Combine(root, CurrentAppDirectoryName);
 
-        return Path.Combine(AppContext.BaseDirectory, ".cxshell-data");
+        return Path.Combine(AppContext.BaseDirectory, ".fxshell-data");
     }
 
     private static string? ResolveStorageRoot()

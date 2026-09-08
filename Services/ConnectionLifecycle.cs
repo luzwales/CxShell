@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Tracks the active instance of a reusable connection service. A late callback

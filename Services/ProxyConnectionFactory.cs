@@ -6,10 +6,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class ProxyConnectionFactory
 {

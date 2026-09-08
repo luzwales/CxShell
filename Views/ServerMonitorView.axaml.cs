@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia;
 using System.Windows.Input;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class ServerMonitorView : UserControl
 {

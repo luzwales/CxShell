@@ -1,7 +1,7 @@
 using AtomUI.Icons.AntDesign;
 using Avalonia.Controls;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SessionTabIconCatalog
 {

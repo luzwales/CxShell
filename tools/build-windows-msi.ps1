@@ -102,19 +102,19 @@ $velopackWixFileName = switch ($Architecture) {
     default { throw "Unsupported Windows MSI architecture: $Architecture" }
 }
 $velopackWixPath = Find-File $VpkToolsPath $velopackWixFileName
-$iconPath = Join-Path $PSScriptRoot "..\Assets\CxShellLogo.ico"
+$iconPath = Join-Path $PSScriptRoot "..\Assets\FxShellLogo.ico"
 
 if (!(Test-Path -LiteralPath $iconPath -PathType Leaf)) {
-    throw "CxShell icon was not found: $iconPath"
+    throw "FxShell icon was not found: $iconPath"
 }
 
 $versionObject = [System.Version]::Parse($Version)
 $msiVersion = "$($versionObject.Major).$($versionObject.Minor).$($versionObject.Build).0"
-$packageRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("CxShell-Msi-" + [Guid]::NewGuid().ToString("N"))
+$packageRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("FxShell-Msi-" + [Guid]::NewGuid().ToString("N"))
 $stagingRoot = Join-Path $packageRoot "payload"
 $resourceRoot = Join-Path $packageRoot "resources"
-$sourcePath = Join-Path $packageRoot "CxShell.wxs"
-$generatedMsiPath = Join-Path $packageRoot "CxShell.custom.msi"
+$sourcePath = Join-Path $packageRoot "FxShell.wxs"
+$generatedMsiPath = Join-Path $packageRoot "FxShell.custom.msi"
 
 New-Item -ItemType Directory -Force -Path $stagingRoot, $resourceRoot | Out-Null
 
@@ -184,7 +184,7 @@ try {
 
     $wix = @"
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-    <Package Name="CxShell"
+    <Package Name="FxShell"
              Manufacturer="xiaochengzjc"
              Version="$msiVersion"
              Language="1033"
@@ -193,7 +193,7 @@ try {
 
         <Media Id="1" Cabinet="app.cab" EmbedCab="yes" />
         <StandardDirectory Id="$programFilesDirectory">
-            <Directory Id="INSTALLFOLDER" Name="CxShell" ComponentGuidGenerationSeed="$componentSeed">
+            <Directory Id="INSTALLFOLDER" Name="FxShell" ComponentGuidGenerationSeed="$componentSeed">
                 <Directory Name="current" />
                 <Directory Id="PACKAGES_DIR" Name="packages" />
             </Directory>
@@ -203,9 +203,9 @@ try {
         <DirectoryRef Id="INSTALLFOLDER">
             <Component Id="ApplicationArpRegistration">
                 <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\MSI:$packIdAttribute">
-                    <RegistryValue Name="DisplayName" Value="CxShell" Type="string" />
+                    <RegistryValue Name="DisplayName" Value="FxShell" Type="string" />
                     <RegistryValue Name="DisplayVersion" Value="$Version" Type="string" />
-                    <RegistryValue Name="DisplayIcon" Value="[INSTALLFOLDER]CxShell.exe" Type="string" />
+                    <RegistryValue Name="DisplayIcon" Value="[INSTALLFOLDER]FxShell.exe" Type="string" />
                     <RegistryValue Name="Publisher" Value="xiaochengzjc" Type="string" />
                     <RegistryValue Name="UninstallString" Value="msiexec.exe /x [ProductCode]" Type="string" />
                     <RegistryValue Name="InstallLocation" Value="[INSTALLFOLDER]" Type="string" />
@@ -217,25 +217,25 @@ try {
 
         <StandardDirectory Id="DesktopFolder">
             <Component Id="ApplicationDesktopShortcut">
-                <Shortcut Id="ApplicationDesktopShortcut" Name="CxShell" Description="CxShell" Target="[INSTALLFOLDER]CxShell.exe" WorkingDirectory="INSTALLFOLDER" Icon="appicon" />
+                <Shortcut Id="ApplicationDesktopShortcut" Name="FxShell" Description="FxShell" Target="[INSTALLFOLDER]FxShell.exe" WorkingDirectory="INSTALLFOLDER" Icon="appicon" />
                 <RemoveFolder Id="CleanUpDesktopShortcut" Directory="INSTALLFOLDER" On="uninstall" />
-                <RegistryValue Root="HKLM" Key="Software\xiaochengzjc\CxShell.DesktopShortcut" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+                <RegistryValue Root="HKLM" Key="Software\xiaochengzjc\FxShell.DesktopShortcut" Name="installed" Type="integer" Value="1" KeyPath="yes" />
             </Component>
         </StandardDirectory>
 
         <StandardDirectory Id="ProgramMenuFolder">
-            <Directory Id="ApplicationProgramMenuDir" Name="CxShell">
+            <Directory Id="ApplicationProgramMenuDir" Name="FxShell">
                 <Component Id="ApplicationStartMenuShortcut">
-                    <Shortcut Id="ApplicationStartMenuShortcut" Name="CxShell" Description="CxShell" Target="[INSTALLFOLDER]CxShell.exe" WorkingDirectory="INSTALLFOLDER" Icon="appicon" />
+                    <Shortcut Id="ApplicationStartMenuShortcut" Name="FxShell" Description="FxShell" Target="[INSTALLFOLDER]FxShell.exe" WorkingDirectory="INSTALLFOLDER" Icon="appicon" />
                     <RemoveFolder Id="CleanUpStartMenuShortcut" Directory="ApplicationProgramMenuDir" On="uninstall" />
-                    <RegistryValue Root="HKLM" Key="Software\xiaochengzjc\CxShell.StartMenuShortcut" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+                    <RegistryValue Root="HKLM" Key="Software\xiaochengzjc\FxShell.StartMenuShortcut" Name="installed" Type="integer" Value="1" KeyPath="yes" />
                 </Component>
             </Directory>
         </StandardDirectory>
 
         <Files Include="$sourceAttribute\**" />
 
-        <Property Id="ApplicationFolderName" Value="CxShell" />
+        <Property Id="ApplicationFolderName" Value="FxShell" />
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
         <Property Id="_BrowseProperty" Value="INSTALLFOLDER" />
         <Property Id="WixAppFolder" Value="WixPerMachineFolder" />
@@ -247,11 +247,11 @@ try {
         <Binary Id="WixUI_Bmp_Up" SourceFile="$upAttribute" />
         <Binary Id="WixUI_Bmp_New" SourceFile="$newAttribute" />
 
-        <Property Id="RustAppId" Value="CxShell" />
-        <Property Id="RustAppTitle" Value="CxShell" />
+        <Property Id="RustAppId" Value="FxShell" />
+        <Property Id="RustAppTitle" Value="FxShell" />
         <Property Id="RustAppVersion" Value="$Version" />
-        <Property Id="RustStubFileName" Value="CxShell.exe" />
-        <Property Id="RustMainExeFileName" Value="CxShell.exe" />
+        <Property Id="RustStubFileName" Value="FxShell.exe" />
+        <Property Id="RustMainExeFileName" Value="FxShell.exe" />
 
         <CustomAction Id="RustSetLocaleStrings" BinaryRef="RustDll" DllEntry="RustSetLocaleStrings" Execute="immediate" Return="check" />
         <CustomAction Id="RustValidatePath" BinaryRef="RustDll" DllEntry="ValidatePath" Execute="immediate" Return="check" />
@@ -274,7 +274,7 @@ $dialogRefs
                 <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
                 <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
                 <Control Id="Title" Type="Text" X="15" Y="6" Width="300" Height="15" Transparent="yes" NoPrefix="yes" Text="Install location" />
-                <Control Id="Description" Type="Text" X="25" Y="35" Width="320" Height="35" Transparent="yes" NoPrefix="yes" Text="Choose the folder where CxShell will be installed." />
+                <Control Id="Description" Type="Text" X="25" Y="35" Width="320" Height="35" Transparent="yes" NoPrefix="yes" Text="Choose the folder where FxShell will be installed." />
                 <Control Id="PathLabel" Type="Text" X="25" Y="82" Width="320" Height="15" NoPrefix="yes" Text="Installation folder:" />
                 <Control Id="PathEdit" Type="PathEdit" X="25" Y="101" Width="250" Height="18" Property="INSTALLFOLDER" />
                 <Control Id="Browse" Type="PushButton" X="282" Y="101" Width="63" Height="18" Text="Browse...">
@@ -297,7 +297,7 @@ $dialogRefs
             </Dialog>
 
 
-            <Publish Dialog="WelcomeDlg" Control="Next" Property="INSTALLFOLDER" Value="[$programFilesDirectory]CxShell" Order="1" Condition="NOT INSTALLFOLDER" />
+            <Publish Dialog="WelcomeDlg" Control="Next" Property="INSTALLFOLDER" Value="[$programFilesDirectory]FxShell" Order="1" Condition="NOT INSTALLFOLDER" />
             <Publish Dialog="WelcomeDlg" Control="Next" Event="SetTargetPath" Value="INSTALLFOLDER" Order="2" />
             <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg" Order="3" Condition="NOT Installed" />
             <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" Order="4" Condition="Installed AND PATCH" />

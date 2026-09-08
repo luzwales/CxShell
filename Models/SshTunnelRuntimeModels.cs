@@ -1,6 +1,6 @@
 using System;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public enum SshTunnelRuntimeStatus
 {

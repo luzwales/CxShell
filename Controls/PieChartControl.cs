@@ -4,7 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace CxShell.Controls;
+namespace FxShell.Controls;
 
 public class PieSegment
 {

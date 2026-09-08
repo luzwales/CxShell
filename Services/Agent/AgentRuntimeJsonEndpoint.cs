@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Transport-neutral JSON boundary for the in-process Runtime Host. A future

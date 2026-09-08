@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO.Ports;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class PlatformServices
 {

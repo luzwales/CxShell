@@ -82,10 +82,10 @@ static void CxMacSetError(char* buffer, int bufferSize, NSString* message)
     NSError* error = nil;
     if (result != 0)
     {
-        error = [NSError errorWithDomain:@"com.cxshell.file-promise"
+        error = [NSError errorWithDomain:@"com.fxshell.file-promise"
                                     code:result
                                 userInfo:@{
-                                    NSLocalizedDescriptionKey: @"CxShell could not download the promised file."
+                                    NSLocalizedDescriptionKey: @"FxShell could not download the promised file."
                                 }];
     }
 
@@ -233,7 +233,7 @@ int cxmac_begin_file_promise_drag(
             owner.cancelCallback = cancelCallback;
             owner.releaseCallback = releaseCallback;
             owner.operationQueue = [[NSOperationQueue alloc] init];
-            owner.operationQueue.name = @"CxShell Finder file promises";
+            owner.operationQueue.name = @"FxShell Finder file promises";
             owner.operationQueue.maxConcurrentOperationCount = 2;
 
             NSMutableArray<CxMacPromiseEntry*>* entries = [[NSMutableArray alloc] initWithCapacity:(NSUInteger)descriptorCount];

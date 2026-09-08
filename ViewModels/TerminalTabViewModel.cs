@@ -3,13 +3,13 @@ using System.Threading;
 using AtomUI.Theme.Resources;
 using Avalonia.Controls;
 using Avalonia.Media;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Services.Agent;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Services.Agent;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class TerminalTabViewModel : ObservableObject, IDisposable
 {
@@ -53,7 +53,7 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         ? new SolidColorBrush(IsSelected ? ResolveTabColor() : ResolveMutedTabColor())
         : new SolidColorBrush(ResolveDefaultTabBackground());
 
-    /// <summary>浠呭唴瀛樹繚瀛橈紝涓嶆寔涔呭寲锛岀敤浜庣洃鎺х嫭�?SSH 杩炴�?/summary>
+    /// <summary>浠呭唴瀛樹繚瀛橈紝涓嶆寔涔呭寲锛岀敤浜庣洃鎺х嫭�?SSH 杩炴�?/summary>
     public string? ConnectedPassword { get; set; }
 
     public event Action<TerminalTabViewModel>? CloseRequested;

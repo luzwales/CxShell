@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Stable result contract shared by Agent tools. Tool-specific fields remain

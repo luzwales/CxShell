@@ -1,10 +1,10 @@
 using System;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SftpTransferPartPaths
 {
-    private const string PartialFileSuffix = ".cxshell.part";
+    private const string PartialFileSuffix = ".fxshell.part";
 
     public static string GetLocalPath(string localPath)
     {

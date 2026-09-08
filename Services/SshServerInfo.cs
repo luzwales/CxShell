@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SshServerInfo
 {

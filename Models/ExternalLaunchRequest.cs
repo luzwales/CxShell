@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 /// <summary>Describes where an external launch request came from.</summary>
 public enum ExternalLaunchOrigin

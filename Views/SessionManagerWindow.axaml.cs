@@ -1,9 +1,9 @@
 using System;
 using AtomUI.Desktop.Controls;
 using Avalonia.Interactivity;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SessionManagerWindow : Window
 {

@@ -1,7 +1,7 @@
 using System.Text.RegularExpressions;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class TerminalTriggerMatcher
 {

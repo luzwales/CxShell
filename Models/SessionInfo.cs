@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public enum AuthMethod
 {
@@ -440,7 +440,7 @@ public class SessionInfo
     public bool TerminalAdvancedDisableTerminalPrint { get; set; }
     public bool TerminalAdvancedDisableAlternateScreen { get; set; }
     public bool TerminalAdvancedIgnoreResizeRequest { get; set; } = true;
-    public string TerminalAdvancedAnswerback { get; set; } = "CxShell";
+    public string TerminalAdvancedAnswerback { get; set; } = "FxShell";
     public bool TerminalAdvancedUseBuiltinLineDrawing { get; set; } = true;
     public bool TerminalAdvancedUseBuiltinPowerline { get; set; } = true;
     public string AppearanceColorScheme { get; set; } = "XTerm";
@@ -580,7 +580,7 @@ public class SessionInfo
     public string RdpColorQuality { get; set; } = "32";
     public bool RdpApplyKeyCombinations { get; set; } = true;
     public bool RdpRedirectDrives { get; set; }
-    public string RdpDriveName { get; set; } = "CxShell";
+    public string RdpDriveName { get; set; } = "FxShell";
     public string RdpDrivePath { get; set; } = string.Empty;
     public string RdpAudioMode { get; set; } = "DoNotPlay";
     public bool RdpAudioCapture { get; set; } = true;

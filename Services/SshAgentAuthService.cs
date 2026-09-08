@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 using SshNet.Agent;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SshAgentAuthService
 {

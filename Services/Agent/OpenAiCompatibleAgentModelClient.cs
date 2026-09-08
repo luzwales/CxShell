@@ -1,10 +1,10 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Minimal non-streaming OpenAI Chat Completions client. It is intentionally

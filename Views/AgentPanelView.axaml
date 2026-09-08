@@ -3,8 +3,8 @@
              xmlns:atom="https://atomui.net"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
              xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
-             xmlns:vm="using:CxShell.ViewModels"
-             x:Class="CxShell.Views.AgentPanelView"
+             xmlns:vm="using:FxShell.ViewModels"
+             x:Class="FxShell.Views.AgentPanelView"
              x:DataType="vm:AgentPanelViewModel">
     <UserControl.Styles>
         <Style Selector="Border.agent-panel-message">

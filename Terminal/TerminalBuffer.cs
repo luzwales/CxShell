@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Text;
 using Avalonia.Media;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 public readonly record struct TerminalTextMatch(int Row, int Column, int Length);
 

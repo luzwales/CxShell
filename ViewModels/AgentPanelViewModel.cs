@@ -8,12 +8,12 @@ using Avalonia.Layout;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Services.Agent;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Services.Agent;
 using LiveMarkdown.Avalonia;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 /// <summary>
 /// Presentation state for the in-process Agent work panel. It intentionally
@@ -27,7 +27,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
     private const int MaximumTranscriptCharacters = 12 * 1024;
     private const int MaximumPendingAttachments = 5;
     private const string SystemPrompt =
-        "You are the CxShell operations assistant. Help an operator with the request and " +
+        "You are the FxShell operations assistant. Help an operator with the request and " +
         "separate general guidance from facts that require a remote SSH session. When an SSH " +
         "session is selected, use session_info for connection context and diagnostic_run for " +
         "fixed read-only checks of the system, disk, network, services, and processes. Use " +
@@ -1374,7 +1374,7 @@ public sealed partial class AgentPanelViewModel : ObservableObject, IDisposable
         // Provider request timeout controls one model call; the run itself needs
         // a separate budget so long remote commands can finish and be reviewed.
         var timeout = AgentRunCoordinator.DefaultRunTimeout;
-        var runId = $"cxshell-ui-{Guid.NewGuid():N}";
+        var runId = $"fxshell-ui-{Guid.NewGuid():N}";
         _activeRunId = runId;
         _runPrompts[runId] = modelPrompt;
         _lastRunSequence = 0;

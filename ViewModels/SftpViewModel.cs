@@ -11,12 +11,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class SftpViewModel : ObservableObject, IDisposable
 {
@@ -1255,7 +1255,7 @@ public partial class SftpViewModel : ObservableObject, IDisposable
 
     private static string CreateTempEditFilePath(string remoteName)
     {
-        var root = Path.Combine(Path.GetTempPath(), "CxShell", "RemoteEdit");
+        var root = Path.Combine(Path.GetTempPath(), "FxShell", "RemoteEdit");
         Directory.CreateDirectory(root);
         var name = SanitizeLocalName(remoteName);
         return Path.Combine(root, $"{Guid.NewGuid():N}-{name}");
@@ -1804,14 +1804,14 @@ public partial class SftpViewModel : ObservableObject, IDisposable
     {
         var identity = $"{BuildConnectionKey(session)}\0{item.FullPath}\0{item.Size}\0{item.LastModified.ToUniversalTime().Ticks}";
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)))[..24];
-        return Path.Combine(Path.GetTempPath(), "CxShell", "SftpDragCache", hash);
+        return Path.Combine(Path.GetTempPath(), "FxShell", "SftpDragCache", hash);
     }
 
     private static void CleanupExpiredDragCache()
     {
         try
         {
-            var cacheRoot = Path.Combine(Path.GetTempPath(), "CxShell", "SftpDragCache");
+            var cacheRoot = Path.Combine(Path.GetTempPath(), "FxShell", "SftpDragCache");
             if (!Directory.Exists(cacheRoot))
                 return;
 

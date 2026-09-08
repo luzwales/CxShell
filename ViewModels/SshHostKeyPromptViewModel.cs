@@ -1,7 +1,7 @@
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed class SshHostKeyPromptViewModel
 {

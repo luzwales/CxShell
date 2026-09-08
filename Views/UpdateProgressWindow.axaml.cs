@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using Avalonia.Interactivity;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 using AtomWindow = AtomUI.Desktop.Controls.Window;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class UpdateProgressWindow : AtomWindow
 {

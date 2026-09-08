@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed class ConnectionAuditEntryViewModel
 {

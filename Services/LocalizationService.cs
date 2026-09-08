@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class LocalizationService : INotifyPropertyChanged
 {
@@ -160,7 +160,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ["SessionEdit.UseVncSshTunnel"] = "Connect VNC through SSH tunnel",
         ["SessionEdit.VncSshTunnelDescription"] = "When selected, the host/port above is the VNC address reachable from the SSH server, for example 127.0.0.1:5901.",
         ["SessionEdit.UseRdpSshTunnel"] = "Connect RDP through SSH tunnel",
-        ["SessionEdit.RdpSshTunnelDescription"] = "When selected, the host/port above is the RDP address reachable from the SSH server, for example 127.0.0.1:3389 or an internal Windows IP:3389. CxShell automatically creates a temporary local port.",
+        ["SessionEdit.RdpSshTunnelDescription"] = "When selected, the host/port above is the RDP address reachable from the SSH server, for example 127.0.0.1:3389 or an internal Windows IP:3389. FxShell automatically creates a temporary local port.",
         ["SessionEdit.SshHost"] = "SSH Host",
         ["SessionEdit.SshPort"] = "SSH Port",
         ["SessionEdit.SshUsername"] = "SSH Username",
@@ -293,7 +293,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ["Diagnostics.Cancelled"] = "Diagnostics cancelled",
         ["Diagnostics.CancelledDescription"] = "The diagnostic operation was cancelled.",
         ["Diagnostics.Failed"] = "Diagnostics failed",
-        ["Diagnostics.ReportTitle"] = "CxShell connection diagnostics report",
+        ["Diagnostics.ReportTitle"] = "FxShell connection diagnostics report",
         ["Session.CopySuffix"] = "{0} - Copy",
         ["Validation.SessionNameRequired"] = "Enter a session name.",
         ["Validation.HostRequired"] = "Enter a host address.",
@@ -482,7 +482,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ["SessionEdit.UseVncSshTunnel"] = "通过 SSH 隧道连接 VNC",
         ["SessionEdit.VncSshTunnelDescription"] = "勾选后，上方主机/端口表示 SSH 服务器内部可访问的 VNC 地址，例如 127.0.0.1:5901。",
         ["SessionEdit.UseRdpSshTunnel"] = "通过 SSH 隧道连接 RDP",
-        ["SessionEdit.RdpSshTunnelDescription"] = "勾选后，上方主机/端口表示 SSH 服务器内部可访问的 RDP 地址，例如 127.0.0.1:3389 或内网 Windows IP:3389。CxShell 会自动创建本地临时端口。",
+        ["SessionEdit.RdpSshTunnelDescription"] = "勾选后，上方主机/端口表示 SSH 服务器内部可访问的 RDP 地址，例如 127.0.0.1:3389 或内网 Windows IP:3389。FxShell 会自动创建本地临时端口。",
         ["SessionEdit.SshHost"] = "SSH 主机",
         ["SessionEdit.SshPort"] = "SSH 端口",
         ["SessionEdit.SshUsername"] = "SSH 用户",
@@ -608,7 +608,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ["Diagnostics.Cancelled"] = "诊断已取消",
         ["Diagnostics.CancelledDescription"] = "诊断操作已被取消。",
         ["Diagnostics.Failed"] = "诊断执行失败",
-        ["Diagnostics.ReportTitle"] = "CxShell 连接诊断报告",
+        ["Diagnostics.ReportTitle"] = "FxShell 连接诊断报告",
         ["Session.CopySuffix"] = "{0} - 副本",
         ["Validation.SessionNameRequired"] = "请输入会话名称。",
         ["Validation.HostRequired"] = "请输入主机地址。",
@@ -679,11 +679,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Terminal.Broadcast.Close"] = "Send only to current session";
         EnglishTexts["Terminal.Broadcast.Receive"] = "Receive input";
         EnglishTexts["Toolbar.Update"] = "Update";
-        EnglishTexts["Toolbar.UpdateTip"] = "Check for CxShell updates";
+        EnglishTexts["Toolbar.UpdateTip"] = "Check for FxShell updates";
         EnglishTexts["Toolbar.UpdateChecking"] = "Checking...";
         EnglishTexts["Toolbar.UpdateDownloading"] = "Update {0}%";
         EnglishTexts["Toolbar.Help"] = "Help";
-        EnglishTexts["Toolbar.HelpTip"] = "About CxShell and updates";
+        EnglishTexts["Toolbar.HelpTip"] = "About FxShell and updates";
         EnglishTexts["Toolbar.Settings"] = "Settings";
         EnglishTexts["Toolbar.SettingsTip"] = "Application settings, connection audit, and session recordings";
         EnglishTexts["Toolbar.Tunnels"] = "Tunnels";
@@ -762,7 +762,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["TunnelCenter.OperationStopped"] = "Tunnel stopped.";
         EnglishTexts["TunnelCenter.OperationRestarted"] = "Tunnel restarted.";
         EnglishTexts["TunnelCenter.OperationFailed"] = "Tunnel operation failed: {0}";
-        EnglishTexts["Help.AboutCxShell"] = "About CxShell";
+        EnglishTexts["Help.AboutFxShell"] = "About FxShell";
         EnglishTexts["Help.ConnectionAudit"] = "Connection audit";
         EnglishTexts["Help.SessionRecordings"] = "Session recordings";
         EnglishTexts["Help.ApplicationSettings"] = "Application settings";
@@ -925,7 +925,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Agent.CommandOutputTruncated"] = "Command output was truncated.";
         EnglishTexts["Settings.Title"] = "Settings";
         EnglishTexts["Settings.Application"] = "Application settings";
-        EnglishTexts["Settings.ApplicationDescription"] = "Preferences that apply to CxShell as a whole";
+        EnglishTexts["Settings.ApplicationDescription"] = "Preferences that apply to FxShell as a whole";
         EnglishTexts["Settings.Agent"] = "Agent";
         EnglishTexts["Settings.AgentDescription"] = "Configure the Agent provider and remote-command permissions";
         EnglishTexts["Settings.ConnectionAudit"] = "Connection audit";
@@ -934,16 +934,16 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Settings.SessionRecordingsDescription"] = "Review and play back recorded terminal sessions";
         EnglishTexts["Settings.TrustedHosts"] = "Trusted hosts";
         EnglishTexts["Settings.TrustedHostsDescription"] = "Manage trusted SSH server fingerprints";
-        EnglishTexts["Settings.About"] = "About CxShell";
+        EnglishTexts["Settings.About"] = "About FxShell";
         EnglishTexts["Settings.AboutDescription"] = "About the application and project";
         EnglishTexts["Settings.SupportDonate"] = "Support & Donate";
-        EnglishTexts["Settings.SupportDonateDescription"] = "Support the continued development of CxShell";
+        EnglishTexts["Settings.SupportDonateDescription"] = "Support the continued development of FxShell";
         EnglishTexts["Settings.Update"] = "Updates";
-        EnglishTexts["Settings.UpdateDescription"] = "Check for the latest CxShell release";
+        EnglishTexts["Settings.UpdateDescription"] = "Check for the latest FxShell release";
         EnglishTexts["Settings.CurrentVersion"] = "Current version: {0}";
         EnglishTexts["Settings.CheckForUpdates"] = "Check for updates";
         EnglishTexts["ApplicationSettings.Title"] = "Application Settings";
-        EnglishTexts["ApplicationSettings.General"] = "Settings that apply to CxShell rather than an individual connection";
+        EnglishTexts["ApplicationSettings.General"] = "Settings that apply to FxShell rather than an individual connection";
         EnglishTexts["ApplicationSettings.Startup"] = "Startup";
         EnglishTexts["ApplicationSettings.Appearance"] = "Appearance";
         EnglishTexts["ApplicationSettings.Theme"] = "Theme";
@@ -955,7 +955,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["ApplicationSettings.ExternalLaunch"] = "External login / Xshell compatibility";
         EnglishTexts["ApplicationSettings.AllowExternalLaunch"] = "Accept external login requests";
         EnglishTexts["ApplicationSettings.ConfirmExternalLaunch"] = "Confirm before connecting from an external request";
-        EnglishTexts["ApplicationSettings.RegisterExternalUrlProtocols"] = "Associate ssh:// and sftp:// links with CxShell";
+        EnglishTexts["ApplicationSettings.RegisterExternalUrlProtocols"] = "Associate ssh:// and sftp:// links with FxShell";
         EnglishTexts["ApplicationSettings.ClearTrustedExternalLaunchTargets"] = "Clear trusted targets";
         EnglishTexts["ApplicationSettings.ExternalLaunchTrustCount"] = "Trusted external targets: {0}";
         EnglishTexts["ExternalLaunch.Title"] = "External login request";
@@ -972,7 +972,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["ExternalLaunch.OriginUrlProtocol"] = "URL protocol";
         EnglishTexts["ExternalLaunch.OriginSessionFile"] = "Xshell session file";
         EnglishTexts["ExternalLaunch.Blocked"] = "External login is disabled in Application Settings.";
-        EnglishTexts["ExternalLaunch.Unsupported"] = "The external protocol '{0}' is not supported by CxShell.";
+        EnglishTexts["ExternalLaunch.Unsupported"] = "The external protocol '{0}' is not supported by FxShell.";
         EnglishTexts["ApplicationSettings.Recording"] = "Session recording";
         EnglishTexts["ApplicationSettings.RecordTerminalSessions"] = "Automatically record terminal sessions";
         EnglishTexts["ApplicationSettings.RecordingDescription"] = "Records remote terminal output only. Keyboard input, passwords, and private keys are not recorded.";
@@ -1097,7 +1097,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Audit.Close"] = "Close";
         EnglishTexts["Audit.Empty"] = "No connection activity matches the current filter.";
         EnglishTexts["Audit.Count"] = "{0} entries";
-        EnglishTexts["Audit.ReportTitle"] = "CxShell connection audit report";
+        EnglishTexts["Audit.ReportTitle"] = "FxShell connection audit report";
         EnglishTexts["Audit.ColumnTime"] = "Time";
         EnglishTexts["Audit.ColumnSession"] = "Session";
         EnglishTexts["Audit.ColumnEndpoint"] = "Endpoint";
@@ -1110,8 +1110,8 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Audit.Event.Disconnected"] = "Disconnected";
         EnglishTexts["Audit.Event.TabClosed"] = "Tab closed";
         EnglishTexts["Audit.Event.ExternalLaunch"] = "External login";
-        EnglishTexts["About.Title"] = "About CxShell";
-        EnglishTexts["About.Message"] = "CxShell\nVersion: {0}\n\nA cross-platform remote session client for SSH, SFTP, FTP, TELNET, RLOGIN, SERIAL, VNC, and RDP.\n\nBuilt with Avalonia, AtomUI, SSH.NET, FluentFTP, FreeRDP, and Velopack.\n\nGitHub: https://github.com/xiaochengzjc/CxShell";
+        EnglishTexts["About.Title"] = "About FxShell";
+        EnglishTexts["About.Message"] = "FxShell\nVersion: {0}\n\nA cross-platform remote session client for SSH, SFTP, FTP, TELNET, RLOGIN, SERIAL, VNC, and RDP.\n\nBuilt with Avalonia, AtomUI, SSH.NET, FluentFTP, FreeRDP, and Velopack.\n\nGitHub: https://github.com/xiaochengzjc/CxShell";
         EnglishTexts["About.Version"] = "Version: {0}";
         EnglishTexts["About.Description"] = "A cross-platform remote session client with support for SSH, SFTP, FTP, TELNET, RLOGIN, SERIAL, VNC, and RDP.";
         EnglishTexts["About.BuiltWith"] = "Built with Avalonia, AtomUI, SSH.NET, FluentFTP, FreeRDP, and Velopack.";
@@ -1124,24 +1124,24 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["About.OperatingSystem"] = "Operating system";
         EnglishTexts["About.Configuration"] = "Configuration path";
         EnglishTexts["About.Update"] = "Updates";
-        EnglishTexts["About.UpdateDescription"] = "Check whether a newer CxShell release is available.";
+        EnglishTexts["About.UpdateDescription"] = "Check whether a newer FxShell release is available.";
         EnglishTexts["About.OpenSource"] = "Open-source dependencies";
-        EnglishTexts["About.OpenSourceDescription"] = "CxShell is built on these open-source projects.";
+        EnglishTexts["About.OpenSourceDescription"] = "FxShell is built on these open-source projects.";
         EnglishTexts["About.License"] = "License";
-        EnglishTexts["About.Support"] = "Support CxShell";
-        EnglishTexts["About.SupportDescription"] = "CxShell is free and open source. Your support helps keep development moving.";
+        EnglishTexts["About.Support"] = "Support FxShell";
+        EnglishTexts["About.SupportDescription"] = "FxShell is free and open source. Your support helps keep development moving.";
         EnglishTexts["About.OpenGitHub"] = "Open GitHub";
         EnglishTexts["About.KoFi"] = "Support on Ko-fi";
         EnglishTexts["Donation.Title"] = "Support & Donate";
-        EnglishTexts["Donation.Intro"] = "CxShell is free and open source. If it helps your work, your support helps us keep improving the terminal, file transfer, and remote-session experience.";
+        EnglishTexts["Donation.Intro"] = "FxShell is free and open source. If it helps your work, your support helps us keep improving the terminal, file transfer, and remote-session experience.";
         EnglishTexts["Donation.ContributionTitle"] = "The best support is participation";
-        EnglishTexts["Donation.ContributionDescription"] = "Code, bug reports, documentation, and ideas are all valuable contributions. Every contribution helps CxShell become more useful.";
+        EnglishTexts["Donation.ContributionDescription"] = "Code, bug reports, documentation, and ideas are all valuable contributions. Every contribution helps FxShell become more useful.";
         EnglishTexts["Donation.DomesticTitle"] = "Support from China";
-        EnglishTexts["Donation.DomesticDescription"] = "Scan the QR code with Alipay or WeChat to support CxShell.";
+        EnglishTexts["Donation.DomesticDescription"] = "Scan the QR code with Alipay or WeChat to support FxShell.";
         EnglishTexts["Donation.Alipay"] = "Alipay";
         EnglishTexts["Donation.WeChatPay"] = "WeChat Pay";
         EnglishTexts["Donation.InternationalTitle"] = "International support";
-        EnglishTexts["Donation.InternationalDescription"] = "For users outside China, you can support CxShell securely through Ko-fi.";
+        EnglishTexts["Donation.InternationalDescription"] = "For users outside China, you can support FxShell securely through Ko-fi.";
         EnglishTexts["Donation.OpenKoFi"] = "Support on Ko-fi";
         EnglishTexts["Donation.OpenGitHub"] = "Open GitHub";
         EnglishTexts["Donation.Thanks"] = "Thank you for every contribution, star, issue, and pull request.";
@@ -1171,7 +1171,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Validation.RdpDriveFolderRequired"] = "Select an existing local folder for RDP drive redirection.";
         EnglishTexts["Validation.RdpDriveNameInvalid"] = "The RDP drive name must be 1-32 characters and cannot contain \\ / : * ? \" < > |.";
         EnglishTexts["SessionEdit.Unsupported.QuickCommands"] = "Quick commands are available from the terminal tab right-click menu. Use the default set, or enter custom commands as name=command separated by semicolons.";
-        EnglishTexts["SessionEdit.Unsupported.DuplicateSessionCd"] = "When duplicating an SSH terminal tab, CxShell sends cd to the current remote directory after the new tab connects.";
+        EnglishTexts["SessionEdit.Unsupported.DuplicateSessionCd"] = "When duplicating an SSH terminal tab, FxShell sends cd to the current remote directory after the new tab connects.";
         EnglishTexts["SessionEdit.AutoReconnect"] = "Automatically reconnect terminal sessions when the connection closes unexpectedly";
         EnglishTexts["SessionEdit.Transfer.AutoDetect"] = "Auto detect (recommended)";
         EnglishTexts["SessionEdit.Terminal.AllowRemoteTitle"] = "Allow the remote terminal to change the tab title";
@@ -1179,14 +1179,14 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["SessionEdit.Unsupported.RdpDisplayPartial"] = "Work Space uses the current RDP viewport; Full Screen uses the current monitor resolution. Smart sizing scales locally, while smart/legacy reconnect follows later viewport changes.";
         EnglishTexts["SessionManager.AutoCheckUpdates"] = "Automatically check for updates";
         EnglishTexts["SessionManager.IncludePrereleaseUpdates"] = "Receive preview updates";
-        EnglishTexts["Update.Title"] = "CxShell Update";
+        EnglishTexts["Update.Title"] = "FxShell Update";
         EnglishTexts["Update.NotInstalled"] = "The current app is not an installed Velopack package. Automatic updates are only available for the installed package edition.";
-        EnglishTexts["Update.NoUpdate"] = "CxShell is up to date.";
+        EnglishTexts["Update.NoUpdate"] = "FxShell is up to date.";
         EnglishTexts["Update.Failed"] = "Update check failed: {0}";
         EnglishTexts["Update.RateLimited"] = "GitHub temporarily rate-limited the update request. Please try again later.";
         EnglishTexts["Update.NetworkInterrupted"] = "The update download connection was interrupted before the package finished downloading. Please check the network and try again.";
         EnglishTexts["Update.AvailableMessage"] = "Version {0} is available. Current version: {1}.\nDownload and install it now?";
-        EnglishTexts["Update.DownloadedMessage"] = "Version {0} has been downloaded. Restart CxShell now to apply the update?";
+        EnglishTexts["Update.DownloadedMessage"] = "Version {0} has been downloaded. Restart FxShell now to apply the update?";
         EnglishTexts["Update.Downloading"] = "Downloading update...";
         EnglishTexts["Update.DownloadFailed"] = "Update download failed: {0}";
         EnglishTexts["Update.ProgressVersion"] = "Version {0} -> {1}";
@@ -1194,7 +1194,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         EnglishTexts["Update.Cancel"] = "Cancel";
         EnglishTexts["Update.DownloadCancelled"] = "Update download was cancelled.";
         EnglishTexts["Update.ReleaseNotes"] = "Release notes:";
-        EnglishTexts["Update.MacApplicationsWarning"] = "CxShell is currently running from {0}. macOS may require an administrator password when replacing apps in /Applications. To avoid this, quit CxShell and move CxShell.app to {1}, then run updates from there.";
+        EnglishTexts["Update.MacApplicationsWarning"] = "FxShell is currently running from {0}. macOS may require an administrator password when replacing apps in /Applications. To avoid this, quit FxShell and move FxShell.app to {1}, then run updates from there.";
         EnglishTexts["SessionManager.CopyFullPath"] = "Copy full path";
         EnglishTexts["SessionManager.CopySessionId"] = "Copy session ID";
         EnglishTexts["SessionManager.CopyLaunchCommand"] = "Copy launch command";
@@ -1222,11 +1222,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Terminal.Broadcast.Close"] = "\u4ec5\u53d1\u9001\u5230\u5f53\u524d\u4f1a\u8bdd";
         ChineseTexts["Terminal.Broadcast.Receive"] = "\u63a5\u6536\u8f93\u5165";
         ChineseTexts["Toolbar.Update"] = "\u66f4\u65b0";
-        ChineseTexts["Toolbar.UpdateTip"] = "\u68c0\u67e5 CxShell \u66f4\u65b0";
+        ChineseTexts["Toolbar.UpdateTip"] = "\u68c0\u67e5 FxShell \u66f4\u65b0";
         ChineseTexts["Toolbar.UpdateChecking"] = "\u68c0\u67e5\u4e2d...";
         ChineseTexts["Toolbar.UpdateDownloading"] = "\u66f4\u65b0 {0}%";
         ChineseTexts["Toolbar.Help"] = "\u5e2e\u52a9";
-        ChineseTexts["Toolbar.HelpTip"] = "\u5173\u4e8e CxShell \u548c\u66f4\u65b0";
+        ChineseTexts["Toolbar.HelpTip"] = "\u5173\u4e8e FxShell \u548c\u66f4\u65b0";
         ChineseTexts["Toolbar.Settings"] = "\u8bbe\u7f6e";
         ChineseTexts["Toolbar.SettingsTip"] = "\u5e94\u7528\u8bbe\u7f6e\u3001\u8fde\u63a5\u5ba1\u8ba1\u548c\u4f1a\u8bdd\u5f55\u5236";
         ChineseTexts["Toolbar.Tunnels"] = "\u96a7\u9053";
@@ -1297,7 +1297,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["TunnelCenter.OperationStopped"] = "\u96a7\u9053\u5df2\u505c\u6b62\u3002";
         ChineseTexts["TunnelCenter.OperationRestarted"] = "\u96a7\u9053\u5df2\u91cd\u542f\u3002";
         ChineseTexts["TunnelCenter.OperationFailed"] = "\u96a7\u9053\u64cd\u4f5c\u5931\u8d25\uff1a{0}";
-        ChineseTexts["Help.AboutCxShell"] = "\u5173\u4e8e CxShell";
+        ChineseTexts["Help.AboutFxShell"] = "\u5173\u4e8e FxShell";
         ChineseTexts["Help.ConnectionAudit"] = "\u8fde\u63a5\u5ba1\u8ba1";
         ChineseTexts["Help.SessionRecordings"] = "\u4f1a\u8bdd\u5f55\u5236";
         ChineseTexts["Help.ApplicationSettings"] = "\u5e94\u7528\u8bbe\u7f6e";
@@ -1460,7 +1460,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Agent.CommandOutputTruncated"] = "\u547d\u4ee4\u8f93\u51fa\u5df2\u622a\u65ad\u3002";
         ChineseTexts["Settings.Title"] = "\u8bbe\u7f6e";
         ChineseTexts["Settings.Application"] = "\u5e94\u7528\u8bbe\u7f6e";
-        ChineseTexts["Settings.ApplicationDescription"] = "\u9002\u7528\u4e8e CxShell \u6574\u4f53\u7684\u5168\u5c40\u914d\u7f6e";
+        ChineseTexts["Settings.ApplicationDescription"] = "\u9002\u7528\u4e8e FxShell \u6574\u4f53\u7684\u5168\u5c40\u914d\u7f6e";
         ChineseTexts["Settings.Agent"] = "Agent";
         ChineseTexts["Settings.AgentDescription"] = "\u914d\u7f6e Agent \u670d\u52a1\u5546\u548c\u8fdc\u7a0b\u547d\u4ee4\u6743\u9650";
         ChineseTexts["Settings.ConnectionAudit"] = "\u8fde\u63a5\u5ba1\u8ba1";
@@ -1469,16 +1469,16 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Settings.SessionRecordingsDescription"] = "\u67e5\u770b\u5e76\u56de\u653e\u5df2\u5f55\u5236\u7684\u7ec8\u7aef\u4f1a\u8bdd";
         ChineseTexts["Settings.TrustedHosts"] = "\u4fe1\u4efb\u4e3b\u673a";
         ChineseTexts["Settings.TrustedHostsDescription"] = "\u7ba1\u7406\u5df2\u4fe1\u4efb\u7684 SSH \u670d\u52a1\u5668\u6307\u7eb9";
-        ChineseTexts["Settings.About"] = "\u5173\u4e8e CxShell";
+        ChineseTexts["Settings.About"] = "\u5173\u4e8e FxShell";
         ChineseTexts["Settings.AboutDescription"] = "\u67e5\u770b\u5e94\u7528\u548c\u9879\u76ee\u4fe1\u606f";
         ChineseTexts["Settings.SupportDonate"] = "\u652f\u6301\u4e0e\u6350\u8d60";
-        ChineseTexts["Settings.SupportDonateDescription"] = "\u652f\u6301 CxShell \u6301\u7eed\u5f00\u53d1";
+        ChineseTexts["Settings.SupportDonateDescription"] = "\u652f\u6301 FxShell \u6301\u7eed\u5f00\u53d1";
         ChineseTexts["Settings.Update"] = "\u66f4\u65b0";
-        ChineseTexts["Settings.UpdateDescription"] = "\u68c0\u67e5 CxShell \u7684\u6700\u65b0\u7248\u672c";
+        ChineseTexts["Settings.UpdateDescription"] = "\u68c0\u67e5 FxShell \u7684\u6700\u65b0\u7248\u672c";
         ChineseTexts["Settings.CurrentVersion"] = "\u5f53\u524d\u7248\u672c\uff1a{0}";
         ChineseTexts["Settings.CheckForUpdates"] = "\u68c0\u67e5\u66f4\u65b0";
         ChineseTexts["ApplicationSettings.Title"] = "\u5e94\u7528\u8bbe\u7f6e";
-        ChineseTexts["ApplicationSettings.General"] = "\u8fd9\u4e9b\u8bbe\u7f6e\u9002\u7528\u4e8e CxShell \u6574\u4f53\uff0c\u4e0d\u9488\u5bf9\u5355\u4e2a\u8fde\u63a5";
+        ChineseTexts["ApplicationSettings.General"] = "\u8fd9\u4e9b\u8bbe\u7f6e\u9002\u7528\u4e8e FxShell \u6574\u4f53\uff0c\u4e0d\u9488\u5bf9\u5355\u4e2a\u8fde\u63a5";
         ChineseTexts["ApplicationSettings.Startup"] = "\u542f\u52a8";
         ChineseTexts["ApplicationSettings.Appearance"] = "\u5916\u89c2";
         ChineseTexts["ApplicationSettings.Theme"] = "\u4e3b\u9898";
@@ -1565,7 +1565,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["ApplicationSettings.ExternalLaunch"] = "\u5916\u90e8\u767b\u5f55 / Xshell \u517c\u5bb9";
         ChineseTexts["ApplicationSettings.AllowExternalLaunch"] = "\u63a5\u53d7\u5916\u90e8\u767b\u5f55\u8bf7\u6c42";
         ChineseTexts["ApplicationSettings.ConfirmExternalLaunch"] = "\u5916\u90e8\u8bf7\u6c42\u8fde\u63a5\u524d\u8fdb\u884c\u786e\u8ba4";
-        ChineseTexts["ApplicationSettings.RegisterExternalUrlProtocols"] = "\u5c06 ssh:// \u548c sftp:// \u94fe\u63a5\u5173\u8054\u5230 CxShell";
+        ChineseTexts["ApplicationSettings.RegisterExternalUrlProtocols"] = "\u5c06 ssh:// \u548c sftp:// \u94fe\u63a5\u5173\u8054\u5230 FxShell";
         ChineseTexts["ApplicationSettings.ClearTrustedExternalLaunchTargets"] = "\u6e05\u7a7a\u5df2\u4fe1\u4efb\u76ee\u6807";
         ChineseTexts["ApplicationSettings.ExternalLaunchTrustCount"] = "\u5df2\u4fe1\u4efb\u7684\u5916\u90e8\u76ee\u6807\uff1a{0}";
         ChineseTexts["ExternalLaunch.Title"] = "\u5916\u90e8\u767b\u5f55\u8bf7\u6c42";
@@ -1582,7 +1582,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["ExternalLaunch.OriginUrlProtocol"] = "URL \u534f\u8bae";
         ChineseTexts["ExternalLaunch.OriginSessionFile"] = "Xshell \u4f1a\u8bdd\u6587\u4ef6";
         ChineseTexts["ExternalLaunch.Blocked"] = "\u5e94\u7528\u8bbe\u7f6e\u5df2\u7981\u7528\u5916\u90e8\u767b\u5f55\u3002";
-        ChineseTexts["ExternalLaunch.Unsupported"] = "CxShell \u6682\u4e0d\u652f\u6301\u5916\u90e8\u534f\u8bae\u201c{0}\u201d\u3002";
+        ChineseTexts["ExternalLaunch.Unsupported"] = "FxShell \u6682\u4e0d\u652f\u6301\u5916\u90e8\u534f\u8bae\u201c{0}\u201d\u3002";
         ChineseTexts["ApplicationSettings.KnownHosts"] = "\u5df2\u4fe1\u4efb\u7684 SSH \u4e3b\u673a";
         ChineseTexts["ApplicationSettings.NoKnownHosts"] = "\u5c1a\u672a\u4fdd\u5b58 SSH \u4e3b\u673a\u6307\u7eb9\u3002";
         ChineseTexts["ApplicationSettings.SshLastSeen"] = "\u6700\u540e\u4f7f\u7528 {0}";
@@ -1632,7 +1632,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Audit.Close"] = "\u5173\u95ed";
         ChineseTexts["Audit.Empty"] = "\u6ca1\u6709\u7b26\u5408\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u7684\u8fde\u63a5\u6d3b\u52a8\u3002";
         ChineseTexts["Audit.Count"] = "{0} \u6761\u8bb0\u5f55";
-        ChineseTexts["Audit.ReportTitle"] = "CxShell \u8fde\u63a5\u5ba1\u8ba1\u62a5\u544a";
+        ChineseTexts["Audit.ReportTitle"] = "FxShell \u8fde\u63a5\u5ba1\u8ba1\u62a5\u544a";
         ChineseTexts["Audit.ColumnTime"] = "\u65f6\u95f4";
         ChineseTexts["Audit.ColumnSession"] = "\u4f1a\u8bdd";
         ChineseTexts["Audit.ColumnEndpoint"] = "\u7aef\u70b9";
@@ -1645,8 +1645,8 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Audit.Event.Disconnected"] = "\u5df2\u65ad\u5f00";
         ChineseTexts["Audit.Event.TabClosed"] = "\u6807\u7b7e\u5df2\u5173\u95ed";
         ChineseTexts["Audit.Event.ExternalLaunch"] = "\u5916\u90e8\u767b\u5f55";
-        ChineseTexts["About.Title"] = "\u5173\u4e8e CxShell";
-        ChineseTexts["About.Message"] = "CxShell\n\u7248\u672c\uff1a{0}\n\n\u8de8\u5e73\u53f0\u8fdc\u7a0b\u4f1a\u8bdd\u5ba2\u6237\u7aef\uff0c\u652f\u6301 SSH\u3001SFTP\u3001FTP\u3001TELNET\u3001RLOGIN\u3001SERIAL\u3001VNC \u548c RDP\u3002\n\n\u57fa\u4e8e Avalonia\u3001AtomUI\u3001SSH.NET\u3001FluentFTP\u3001FreeRDP \u548c Velopack \u6784\u5efa\u3002\n\nGitHub\uff1ahttps://github.com/xiaochengzjc/CxShell";
+        ChineseTexts["About.Title"] = "\u5173\u4e8e FxShell";
+        ChineseTexts["About.Message"] = "FxShell\n\u7248\u672c\uff1a{0}\n\n\u8de8\u5e73\u53f0\u8fdc\u7a0b\u4f1a\u8bdd\u5ba2\u6237\u7aef\uff0c\u652f\u6301 SSH\u3001SFTP\u3001FTP\u3001TELNET\u3001RLOGIN\u3001SERIAL\u3001VNC \u548c RDP\u3002\n\n\u57fa\u4e8e Avalonia\u3001AtomUI\u3001SSH.NET\u3001FluentFTP\u3001FreeRDP \u548c Velopack \u6784\u5efa\u3002\n\nGitHub\uff1ahttps://github.com/xiaochengzjc/CxShell";
         ChineseTexts["About.Version"] = "\u7248\u672c\uff1a{0}";
         ChineseTexts["About.Description"] = "\u8de8\u5e73\u53f0\u8fdc\u7a0b\u4f1a\u8bdd\u5ba2\u6237\u7aef\uff0c\u652f\u6301 SSH\u3001SFTP\u3001FTP\u3001TELNET\u3001RLOGIN\u3001SERIAL\u3001VNC \u548c RDP\u3002";
         ChineseTexts["About.BuiltWith"] = "\u57fa\u4e8e Avalonia\u3001AtomUI\u3001SSH.NET\u3001FluentFTP\u3001FreeRDP \u548c Velopack \u6784\u5efa\u3002";
@@ -1659,24 +1659,24 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["About.OperatingSystem"] = "\u64cd\u4f5c\u7cfb\u7edf";
         ChineseTexts["About.Configuration"] = "\u914d\u7f6e\u8def\u5f84";
         ChineseTexts["About.Update"] = "\u66f4\u65b0";
-        ChineseTexts["About.UpdateDescription"] = "\u68c0\u67e5\u662f\u5426\u6709\u66f4\u65b0\u7684 CxShell \u7248\u672c\u3002";
+        ChineseTexts["About.UpdateDescription"] = "\u68c0\u67e5\u662f\u5426\u6709\u66f4\u65b0\u7684 FxShell \u7248\u672c\u3002";
         ChineseTexts["About.OpenSource"] = "\u5f00\u6e90\u4f9d\u8d56";
-        ChineseTexts["About.OpenSourceDescription"] = "CxShell \u57fa\u4e8e\u4ee5\u4e0b\u5f00\u6e90\u9879\u76ee\u6784\u5efa\u3002";
+        ChineseTexts["About.OpenSourceDescription"] = "FxShell \u57fa\u4e8e\u4ee5\u4e0b\u5f00\u6e90\u9879\u76ee\u6784\u5efa\u3002";
         ChineseTexts["About.License"] = "\u8bb8\u53ef\u8bc1";
-        ChineseTexts["About.Support"] = "\u652f\u6301 CxShell";
-        ChineseTexts["About.SupportDescription"] = "CxShell \u514d\u8d39\u4e14\u5f00\u6e90\uff0c\u4f60\u7684\u652f\u6301\u5c06\u5e2e\u52a9\u9879\u76ee\u6301\u7eed\u5f00\u53d1\u3002";
+        ChineseTexts["About.Support"] = "\u652f\u6301 FxShell";
+        ChineseTexts["About.SupportDescription"] = "FxShell \u514d\u8d39\u4e14\u5f00\u6e90\uff0c\u4f60\u7684\u652f\u6301\u5c06\u5e2e\u52a9\u9879\u76ee\u6301\u7eed\u5f00\u53d1\u3002";
         ChineseTexts["About.OpenGitHub"] = "\u6253\u5f00 GitHub";
         ChineseTexts["About.KoFi"] = "\u5728 Ko-fi \u4e0a\u652f\u6301";
         ChineseTexts["Donation.Title"] = "\u652f\u6301\u4e0e\u6350\u8d60";
-        ChineseTexts["Donation.Intro"] = "CxShell \u514d\u8d39\u4e14\u5f00\u6e90\u3002\u5982\u679c\u5b83\u5bf9\u4f60\u7684\u5de5\u4f5c\u6709\u5e2e\u52a9\uff0c\u4f60\u7684\u652f\u6301\u5c06\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u6539\u8fdb\u7ec8\u7aef\u3001\u6587\u4ef6\u4f20\u8f93\u548c\u8fdc\u7a0b\u4f1a\u8bdd\u4f53\u9a8c\u3002";
+        ChineseTexts["Donation.Intro"] = "FxShell \u514d\u8d39\u4e14\u5f00\u6e90\u3002\u5982\u679c\u5b83\u5bf9\u4f60\u7684\u5de5\u4f5c\u6709\u5e2e\u52a9\uff0c\u4f60\u7684\u652f\u6301\u5c06\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u6539\u8fdb\u7ec8\u7aef\u3001\u6587\u4ef6\u4f20\u8f93\u548c\u8fdc\u7a0b\u4f1a\u8bdd\u4f53\u9a8c\u3002";
         ChineseTexts["Donation.ContributionTitle"] = "\u6700\u597d\u7684\u652f\u6301\uff1a\u53c2\u4e0e\u8d21\u732e";
-        ChineseTexts["Donation.ContributionDescription"] = "\u63d0\u4ea4\u4ee3\u7801\u3001\u53cd\u9988 Bug\u3001\u6539\u8fdb\u6587\u6863\u6216\u5206\u4eab\u5efa\u8bae\u90fd\u662f\u6709\u4ef7\u503c\u7684\u8d21\u732e\u3002\u6bcf\u4e00\u6b21\u53c2\u4e0e\u90fd\u4f1a\u8ba9 CxShell \u8d70\u5f97\u66f4\u8fdc\u3002";
+        ChineseTexts["Donation.ContributionDescription"] = "\u63d0\u4ea4\u4ee3\u7801\u3001\u53cd\u9988 Bug\u3001\u6539\u8fdb\u6587\u6863\u6216\u5206\u4eab\u5efa\u8bae\u90fd\u662f\u6709\u4ef7\u503c\u7684\u8d21\u732e\u3002\u6bcf\u4e00\u6b21\u53c2\u4e0e\u90fd\u4f1a\u8ba9 FxShell \u8d70\u5f97\u66f4\u8fdc\u3002";
         ChineseTexts["Donation.DomesticTitle"] = "\u56fd\u5185\u652f\u6301";
-        ChineseTexts["Donation.DomesticDescription"] = "\u4f7f\u7528\u652f\u4ed8\u5b9d\u6216\u5fae\u4fe1\u626b\u63cf\u4e0b\u65b9\u4e8c\u7ef4\u7801\uff0c\u652f\u6301 CxShell \u7684\u5f00\u53d1\u3002";
+        ChineseTexts["Donation.DomesticDescription"] = "\u4f7f\u7528\u652f\u4ed8\u5b9d\u6216\u5fae\u4fe1\u626b\u63cf\u4e0b\u65b9\u4e8c\u7ef4\u7801\uff0c\u652f\u6301 FxShell \u7684\u5f00\u53d1\u3002";
         ChineseTexts["Donation.Alipay"] = "\u652f\u4ed8\u5b9d";
         ChineseTexts["Donation.WeChatPay"] = "\u5fae\u4fe1\u652f\u4ed8";
         ChineseTexts["Donation.InternationalTitle"] = "\u6d77\u5916\u652f\u6301";
-        ChineseTexts["Donation.InternationalDescription"] = "\u6d77\u5916\u7528\u6237\u53ef\u4ee5\u901a\u8fc7 Ko-fi \u5b89\u5168\u652f\u6301 CxShell\u3002";
+        ChineseTexts["Donation.InternationalDescription"] = "\u6d77\u5916\u7528\u6237\u53ef\u4ee5\u901a\u8fc7 Ko-fi \u5b89\u5168\u652f\u6301 FxShell\u3002";
         ChineseTexts["Donation.OpenKoFi"] = "\u5728 Ko-fi \u4e0a\u652f\u6301";
         ChineseTexts["Donation.OpenGitHub"] = "\u6253\u5f00 GitHub";
         ChineseTexts["Donation.Thanks"] = "\u611f\u8c22\u6bcf\u4e00\u6b21\u6350\u8d60\u3001Star\u3001Issue \u548c Pull Request\u3002";
@@ -1710,7 +1710,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Validation.RdpDriveFolderRequired"] = "\u8bf7\u4e3a RDP \u78c1\u76d8\u91cd\u5b9a\u5411\u9009\u62e9\u4e00\u4e2a\u5df2\u5b58\u5728\u7684\u672c\u5730\u6587\u4ef6\u5939\u3002";
         ChineseTexts["Validation.RdpDriveNameInvalid"] = "RDP \u9a71\u52a8\u5668\u540d\u79f0\u9700\u4e3a 1-32 \u4e2a\u5b57\u7b26\uff0c\u4e14\u4e0d\u80fd\u5305\u542b \\ / : * ? \" < > |\u3002";
         ChineseTexts["SessionEdit.Unsupported.QuickCommands"] = "\u5feb\u901f\u547d\u4ee4\u53ef\u5728\u7ec8\u7aef Tab \u53f3\u952e\u83dc\u5355\u4e2d\u4f7f\u7528\u3002\u53ef\u4f7f\u7528\u9ed8\u8ba4\u96c6\uff0c\u4e5f\u53ef\u7528\u5206\u53f7\u8f93\u5165 name=command \u5f62\u5f0f\u7684\u81ea\u5b9a\u4e49\u547d\u4ee4\u3002";
-        ChineseTexts["SessionEdit.Unsupported.DuplicateSessionCd"] = "\u590d\u5236 SSH \u7ec8\u7aef tab \u65f6\uff0cCxShell \u4f1a\u5728\u65b0 tab \u8fde\u63a5\u540e cd \u5230\u5f53\u524d\u8fdc\u7a0b\u76ee\u5f55\u3002";
+        ChineseTexts["SessionEdit.Unsupported.DuplicateSessionCd"] = "\u590d\u5236 SSH \u7ec8\u7aef tab \u65f6\uff0cFxShell \u4f1a\u5728\u65b0 tab \u8fde\u63a5\u540e cd \u5230\u5f53\u524d\u8fdc\u7a0b\u76ee\u5f55\u3002";
         ChineseTexts["SessionEdit.AutoReconnect"] = "\u7ec8\u7aef\u8fde\u63a5\u5f02\u5e38\u5173\u95ed\u65f6\u81ea\u52a8\u91cd\u65b0\u8fde\u63a5";
         ChineseTexts["SessionEdit.Transfer.AutoDetect"] = "\u81ea\u52a8\u8bc6\u522b\uff08\u63a8\u8350\uff09";
         ChineseTexts["SessionEdit.Terminal.AllowRemoteTitle"] = "\u5141\u8bb8\u8fdc\u7aef\u7ec8\u7aef\u4fee\u6539\u6807\u7b7e\u6807\u9898";
@@ -1718,14 +1718,14 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["SessionEdit.Unsupported.RdpDisplayPartial"] = "Work Space \u4f7f\u7528\u5f53\u524d RDP \u53ef\u89c6\u533a\u57df\uff1bFull Screen \u4f7f\u7528\u5f53\u524d\u663e\u793a\u5668\u5206\u8fa8\u7387\u3002Smart sizing \u5728\u672c\u5730\u7f29\u653e\uff0csmart/legacy reconnect \u4f1a\u7ee7\u7eed\u8ddf\u968f\u540e\u7eed\u89c6\u56fe\u5c3a\u5bf8\u53d8\u5316\u3002";
         ChineseTexts["SessionManager.AutoCheckUpdates"] = "\u81ea\u52a8\u68c0\u67e5\u66f4\u65b0";
         ChineseTexts["SessionManager.IncludePrereleaseUpdates"] = "\u63a5\u6536\u9884\u89c8\u7248\u66f4\u65b0";
-        ChineseTexts["Update.Title"] = "CxShell \u66f4\u65b0";
+        ChineseTexts["Update.Title"] = "FxShell \u66f4\u65b0";
         ChineseTexts["Update.NotInstalled"] = "\u5f53\u524d\u8fd0\u884c\u7684\u4e0d\u662f Velopack \u5b89\u88c5\u7248\u3002\u81ea\u52a8\u66f4\u65b0\u4ec5\u652f\u6301\u901a\u8fc7\u5b89\u88c5\u5305\u5b89\u88c5\u7684\u7248\u672c\u3002";
-        ChineseTexts["Update.NoUpdate"] = "CxShell \u5df2\u662f\u6700\u65b0\u7248\u672c\u3002";
+        ChineseTexts["Update.NoUpdate"] = "FxShell \u5df2\u662f\u6700\u65b0\u7248\u672c\u3002";
         ChineseTexts["Update.Failed"] = "\u68c0\u67e5\u66f4\u65b0\u5931\u8d25\uff1a{0}";
         ChineseTexts["Update.RateLimited"] = "GitHub \u6682\u65f6\u9650\u5236\u4e86\u66f4\u65b0\u8bf7\u6c42\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002";
         ChineseTexts["Update.NetworkInterrupted"] = "\u66f4\u65b0\u5305\u5c1a\u672a\u4e0b\u8f7d\u5b8c\u6210\uff0c\u7f51\u7edc\u8fde\u63a5\u5df2\u4e2d\u65ad\u3002\u8bf7\u68c0\u67e5\u7f51\u7edc\u540e\u91cd\u8bd5\u3002";
         ChineseTexts["Update.AvailableMessage"] = "\u53d1\u73b0\u65b0\u7248\u672c {0}\uff0c\u5f53\u524d\u7248\u672c\uff1a{1}\u3002\n\u662f\u5426\u7acb\u5373\u4e0b\u8f7d\u5e76\u5b89\u88c5\uff1f";
-        ChineseTexts["Update.DownloadedMessage"] = "\u66f4\u65b0 {0} \u5df2\u4e0b\u8f7d\u5b8c\u6210\u3002\u662f\u5426\u7acb\u5373\u91cd\u542f CxShell \u5e76\u5e94\u7528\u66f4\u65b0\uff1f";
+        ChineseTexts["Update.DownloadedMessage"] = "\u66f4\u65b0 {0} \u5df2\u4e0b\u8f7d\u5b8c\u6210\u3002\u662f\u5426\u7acb\u5373\u91cd\u542f FxShell \u5e76\u5e94\u7528\u66f4\u65b0\uff1f";
         ChineseTexts["Update.Downloading"] = "\u6b63\u5728\u4e0b\u8f7d\u66f4\u65b0...";
         ChineseTexts["Update.DownloadFailed"] = "\u4e0b\u8f7d\u66f4\u65b0\u5931\u8d25\uff1a{0}";
         ChineseTexts["Update.ProgressVersion"] = "\u7248\u672c {0} -> {1}";
@@ -1733,7 +1733,7 @@ public sealed class LocalizationService : INotifyPropertyChanged
         ChineseTexts["Update.Cancel"] = "\u53d6\u6d88";
         ChineseTexts["Update.DownloadCancelled"] = "\u66f4\u65b0\u4e0b\u8f7d\u5df2\u53d6\u6d88\u3002";
         ChineseTexts["Update.ReleaseNotes"] = "\u66f4\u65b0\u8bf4\u660e\uff1a";
-        ChineseTexts["Update.MacApplicationsWarning"] = "CxShell \u5f53\u524d\u4f4d\u4e8e {0}\u3002macOS \u66ff\u6362 /Applications \u4e2d\u7684\u5e94\u7528\u65f6\u53ef\u80fd\u8981\u6c42\u7ba1\u7406\u5458\u5bc6\u7801\u3002\u82e5\u60f3\u514d\u7ba1\u7406\u5458\u5bc6\u7801\u66f4\u65b0\uff0c\u8bf7\u9000\u51fa CxShell \u540e\u5c06 CxShell.app \u79fb\u52a8\u5230 {1}\uff0c\u518d\u4ece\u8be5\u4f4d\u7f6e\u542f\u52a8\u5e76\u66f4\u65b0\u3002";
+        ChineseTexts["Update.MacApplicationsWarning"] = "FxShell \u5f53\u524d\u4f4d\u4e8e {0}\u3002macOS \u66ff\u6362 /Applications \u4e2d\u7684\u5e94\u7528\u65f6\u53ef\u80fd\u8981\u6c42\u7ba1\u7406\u5458\u5bc6\u7801\u3002\u82e5\u60f3\u514d\u7ba1\u7406\u5458\u5bc6\u7801\u66f4\u65b0\uff0c\u8bf7\u9000\u51fa FxShell \u540e\u5c06 FxShell.app \u79fb\u52a8\u5230 {1}\uff0c\u518d\u4ece\u8be5\u4f4d\u7f6e\u542f\u52a8\u5e76\u66f4\u65b0\u3002";
         ChineseTexts["SessionManager.CopyFullPath"] = "\u590d\u5236\u5b8c\u6574\u8def\u5f84";
         ChineseTexts["SessionManager.CopySessionId"] = "\u590d\u5236\u4f1a\u8bdd ID";
         ChineseTexts["SessionManager.CopyLaunchCommand"] = "\u590d\u5236\u542f\u52a8\u547d\u4ee4";
@@ -2085,11 +2085,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         english["UiText.146"] = "File (F):";
         english["UiText.147"] = "Position (P):";
         english["UiText.148"] = "Highlight";
-        english["UiText.149"] = "Highlight sets let you configure keywords highlighted in the CxShell terminal. These keywords also support regular expressions.";
+        english["UiText.149"] = "Highlight sets let you configure keywords highlighted in the FxShell terminal. These keywords also support regular expressions.";
         english["UiText.150"] = "Highlight Set";
         english["UiText.151"] = "Function Key Emulation";
         english["UiText.152"] = "Function key type (T):";
-        english["UiText.153"] = "Note: when &lt;Default&gt; is selected, CxShell automatically chooses suitable function keys based on the terminal type.";
+        english["UiText.153"] = "Note: when &lt;Default&gt; is selected, FxShell automatically chooses suitable function keys based on the terminal type.";
         english["UiText.154"] = "Specify the key mapping file to replace (S):";
         english["UiText.155"] = "DELETE key sequence";
         english["UiText.156"] = "BACKSPACE key sequence";
@@ -2140,14 +2140,14 @@ public sealed class LocalizationService : INotifyPropertyChanged
         english["UiText.201"] = "Auto rename (R)";
         english["UiText.202"] = "Overwrite (V)";
         english["UiText.203"] = "Upload Protocol";
-        english["UiText.204"] = "Specify the upload protocol to use when you drag and drop files into CxShell.";
+        english["UiText.204"] = "Specify the upload protocol to use when you drag and drop files into FxShell.";
         english["UiText.205"] = "Zmodem (default)";
         english["UiText.206"] = "Select the block size.";
         english["UiText.207"] = "Upload Command";
         english["UiText.208"] = "Set the command used to upload files with X/YMODEM. The file name is automatically appended to the end of the command.";
         english["UiText.209"] = "Xmodem command (X):";
         english["UiText.210"] = "Ymodem command (Y):";
-        english["UiText.211"] = "Select the next option so CxShell detects ZMODEM transfer status on the remote host and starts automatic file transfer.";
+        english["UiText.211"] = "Select the next option so FxShell detects ZMODEM transfer status on the remote host and starts automatic file transfer.";
         english["UiText.212"] = "Auto-activate ZMODEM (A)";
         english["UiText.213"] = "Set the command used to upload files with ZMODEM. The file name is automatically appended to the end of the command.";
         english["UiText.214"] = "Zmodem command (Z):";
@@ -2347,11 +2347,11 @@ public sealed class LocalizationService : INotifyPropertyChanged
         chinese["UiText.146"] = "文件(F):";
         chinese["UiText.147"] = "位置(P):";
         chinese["UiText.148"] = "突出显示";
-        chinese["UiText.149"] = "突出显示集允许您配置在 CxShell 终端上突出显示的关键字列表。这些关键字也支持正则表达式。";
+        chinese["UiText.149"] = "突出显示集允许您配置在 FxShell 终端上突出显示的关键字列表。这些关键字也支持正则表达式。";
         chinese["UiText.150"] = "高亮集";
         chinese["UiText.151"] = "功能键仿真";
         chinese["UiText.152"] = "功能键类型(T):";
-        chinese["UiText.153"] = "注释: 选择&lt;默认&gt;时，CxShell 根据终端类型自动选择恰当的功能键。";
+        chinese["UiText.153"] = "注释: 选择&lt;默认&gt;时，FxShell 根据终端类型自动选择恰当的功能键。";
         chinese["UiText.154"] = "请指定要替换的按键对应文件(S):";
         chinese["UiText.155"] = "DELETE 键序列";
         chinese["UiText.156"] = "BACKSPACE 键序列";
@@ -2402,14 +2402,14 @@ public sealed class LocalizationService : INotifyPropertyChanged
         chinese["UiText.201"] = "自动重命名(R)";
         chinese["UiText.202"] = "覆盖(V)";
         chinese["UiText.203"] = "上传协议";
-        chinese["UiText.204"] = "指定文件上传协议来使用，当你拖放文件到 CxShell。";
+        chinese["UiText.204"] = "指定文件上传协议来使用，当你拖放文件到 FxShell。";
         chinese["UiText.205"] = "Zmodem(默认)";
         chinese["UiText.206"] = "选择分组的大小。";
         chinese["UiText.207"] = "上传命令";
         chinese["UiText.208"] = "设置要用于与 X/YMODEM 上传文件的命令。（文件名会自动添加到该命令结束。）";
         chinese["UiText.209"] = "Xmodem命令(X):";
         chinese["UiText.210"] = "Ymodem命令(Y):";
-        chinese["UiText.211"] = "选择下一个选项，CxShell 检测远程主机的 ZMODEM 文件转移状态并启动自动转移文件。";
+        chinese["UiText.211"] = "选择下一个选项，FxShell 检测远程主机的 ZMODEM 文件转移状态并启动自动转移文件。";
         chinese["UiText.212"] = "自动激活ZMODEM(A)";
         chinese["UiText.213"] = "设置要用于与 ZMODEM 上传文件的命令。（文件名会自动添加到该命令结束。）";
         chinese["UiText.214"] = "Zmodem命令(Z):";

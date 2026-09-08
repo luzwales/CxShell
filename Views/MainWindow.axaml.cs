@@ -8,14 +8,14 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.ViewModels;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.ViewModels;
 using AtomContextMenu = AtomUI.Desktop.Controls.ContextMenu;
 using AtomMenuItem = AtomUI.Desktop.Controls.MenuItem;
 using AtomMenuSeparator = AtomUI.Desktop.Controls.MenuSeparator;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class MainWindow : Window
 {

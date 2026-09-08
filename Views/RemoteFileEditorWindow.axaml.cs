@@ -5,11 +5,11 @@ using AvaloniaEdit.TextMate;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 using TextMateSharp.Grammars;
 using AtomWindow = AtomUI.Desktop.Controls.Window;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class RemoteFileEditorWindow : AtomWindow
 {

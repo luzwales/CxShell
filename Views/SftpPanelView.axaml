@@ -2,9 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:atom="https://atomui.net"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
-             xmlns:vm="using:CxShell.ViewModels"
-             xmlns:models="using:CxShell.Models"
-             x:Class="CxShell.Views.SftpPanelView"
+             xmlns:vm="using:FxShell.ViewModels"
+             xmlns:models="using:FxShell.Models"
+             x:Class="FxShell.Views.SftpPanelView"
              x:DataType="vm:SftpViewModel">
 
     <UserControl.Styles>

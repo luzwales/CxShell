@@ -4,11 +4,11 @@ using System.Text.Json;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Terminal;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Terminal;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed class SessionRecordingItemViewModel
 {

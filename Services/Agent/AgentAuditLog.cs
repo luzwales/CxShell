@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public sealed class AgentAuditLog
 {

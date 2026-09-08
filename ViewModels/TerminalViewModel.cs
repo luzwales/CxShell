@@ -13,13 +13,13 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.Media;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Services.Agent;
-using CxShell.Terminal;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Services.Agent;
+using FxShell.Terminal;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class TerminalViewModel : ObservableObject
 {
@@ -1606,11 +1606,11 @@ public partial class TerminalViewModel : ObservableObject
         try
         {
             var output = await sshConnection
-                .RunCommandAsync("printf '__CXSHELL_HOME__%s\\n' \"$HOME\"; printf '__CXSHELL_PWD__'; pwd -P", TimeSpan.FromSeconds(5), cancellationToken)
+                .RunCommandAsync("printf '__FXSHELL_HOME__%s\\n' \"$HOME\"; printf '__FXSHELL_PWD__'; pwd -P", TimeSpan.FromSeconds(5), cancellationToken)
                 .ConfigureAwait(false);
 
-            var home = ExtractMarkedRemotePath(output, "__CXSHELL_HOME__");
-            var current = ExtractMarkedRemotePath(output, "__CXSHELL_PWD__");
+            var home = ExtractMarkedRemotePath(output, "__FXSHELL_HOME__");
+            var current = ExtractMarkedRemotePath(output, "__FXSHELL_PWD__");
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (generation != _connectionGeneration || _manualDisconnect || !connection.IsConnected)
@@ -2011,7 +2011,7 @@ public partial class TerminalViewModel : ObservableObject
             LoginScriptExecutionMode.PowerShell => "ps1",
             _ => "txt"
         };
-        var temporaryName = $"cxshell-login-{Guid.NewGuid():N}.{extension}";
+        var temporaryName = $"fxshell-login-{Guid.NewGuid():N}.{extension}";
         var parameters = session.LoginScriptParameters?.Trim() ?? string.Empty;
 
         return isPosix
@@ -2044,14 +2044,14 @@ public partial class TerminalViewModel : ObservableObject
     {
         var path = $"/tmp/{temporaryName}";
         var command = new StringBuilder();
-        command.Append("__cxshell_script=").Append(QuotePosixShellArgument(path)).Append("; ");
+        command.Append("__fxshell_script=").Append(QuotePosixShellArgument(path)).Append("; ");
         command.Append("printf '%s' ").Append(QuotePosixShellArgument(base64));
-        command.Append(" | base64 -d > \"$__cxshell_script\"; ");
-        command.Append(interpreter).Append(" \"$__cxshell_script\"");
+        command.Append(" | base64 -d > \"$__fxshell_script\"; ");
+        command.Append(interpreter).Append(" \"$__fxshell_script\"");
         if (!string.IsNullOrWhiteSpace(parameters))
             command.Append(' ').Append(parameters);
-        command.Append("; __cxshell_status=$?; rm -f \"$__cxshell_script\"; unset __cxshell_script; ");
-        command.Append("printf '[CxShell script exit: %s]' \"$__cxshell_status\"");
+        command.Append("; __fxshell_status=$?; rm -f \"$__fxshell_script\"; unset __fxshell_script; ");
+        command.Append("printf '[FxShell script exit: %s]' \"$__fxshell_status\"");
         return NormalizeScriptSendText(command.ToString()) + "\r";
     }
 
@@ -2063,17 +2063,17 @@ public partial class TerminalViewModel : ObservableObject
         string parameters)
     {
         var command = new StringBuilder();
-        command.Append("$__cxshell_script=Join-Path $env:TEMP '").Append(temporaryName).Append("'; ");
-        command.Append("[IO.File]::WriteAllBytes($__cxshell_script,[Convert]::FromBase64String('");
+        command.Append("$__fxshell_script=Join-Path $env:TEMP '").Append(temporaryName).Append("'; ");
+        command.Append("[IO.File]::WriteAllBytes($__fxshell_script,[Convert]::FromBase64String('");
         command.Append(base64).Append("')); ");
         command.Append("& ").Append(interpreter);
         if (mode == LoginScriptExecutionMode.PowerShell)
             command.Append(" -NoProfile -NonInteractive -File");
-        command.Append(" $__cxshell_script");
+        command.Append(" $__fxshell_script");
         if (!string.IsNullOrWhiteSpace(parameters))
             command.Append(' ').Append(parameters);
-        command.Append("; $__cxshell_status=$LASTEXITCODE; Remove-Item -LiteralPath $__cxshell_script -Force -ErrorAction SilentlyContinue; ");
-        command.Append("Write-Output ('[CxShell script exit: ' + $__cxshell_status + ']')");
+        command.Append("; $__fxshell_status=$LASTEXITCODE; Remove-Item -LiteralPath $__fxshell_script -Force -ErrorAction SilentlyContinue; ");
+        command.Append("Write-Output ('[FxShell script exit: ' + $__fxshell_status + ']')");
         return NormalizeScriptSendText(command.ToString()) + "\r";
     }
 
@@ -2828,7 +2828,7 @@ public partial class TerminalViewModel : ObservableObject
         if (string.IsNullOrEmpty(text) || text.IndexOf('\x05') < 0)
             return text;
 
-        var answerback = _session?.TerminalAdvancedAnswerback ?? "CxShell";
+        var answerback = _session?.TerminalAdvancedAnswerback ?? "FxShell";
         if (!string.IsNullOrEmpty(answerback) && connection?.IsConnected == true)
             TrySendData(connection, answerback);
 

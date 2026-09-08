@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed record OpenSshJumpHost(string Host, int Port, string Username);
 

@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class ConnectionAuditService
 {
@@ -38,7 +38,7 @@ public sealed class ConnectionAuditService
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"CxShell audit read failed: {ex.Message}");
+                Debug.WriteLine($"FxShell audit read failed: {ex.Message}");
                 return [];
             }
         }
@@ -60,7 +60,7 @@ public sealed class ConnectionAuditService
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"CxShell recent connection read failed: {ex.Message}");
+                Debug.WriteLine($"FxShell recent connection read failed: {ex.Message}");
                 return [];
             }
         }
@@ -100,7 +100,7 @@ public sealed class ConnectionAuditService
             catch (Exception ex)
             {
                 // An audit write must never make a connection fail.
-                Debug.WriteLine($"CxShell audit write failed: {ex.Message}");
+                Debug.WriteLine($"FxShell audit write failed: {ex.Message}");
             }
         }
     }
@@ -141,7 +141,7 @@ public sealed class ConnectionAuditService
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"CxShell external audit write failed: {ex.Message}");
+                Debug.WriteLine($"FxShell external audit write failed: {ex.Message}");
             }
         }
     }
@@ -158,7 +158,7 @@ public sealed class ConnectionAuditService
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"CxShell audit clear failed: {ex.Message}");
+                Debug.WriteLine($"FxShell audit clear failed: {ex.Message}");
             }
         }
     }
@@ -214,8 +214,8 @@ public sealed class ConnectionAuditService
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         if (!string.IsNullOrWhiteSpace(appData) && Path.IsPathFullyQualified(appData))
-            return Path.Combine(appData, "CxShell");
+            return Path.Combine(appData, "FxShell");
 
-        return Path.Combine(AppContext.BaseDirectory, ".cxshell-data");
+        return Path.Combine(AppContext.BaseDirectory, ".fxshell-data");
     }
 }

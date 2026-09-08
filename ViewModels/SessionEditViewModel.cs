@@ -12,12 +12,12 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class SessionEditViewModel : ObservableObject
 {
@@ -184,7 +184,7 @@ public partial class SessionEditViewModel : ObservableObject
     [ObservableProperty] private bool _terminalAdvancedDisableTerminalPrint;
     [ObservableProperty] private bool _terminalAdvancedDisableAlternateScreen;
     [ObservableProperty] private bool _terminalAdvancedIgnoreResizeRequest = true;
-    [ObservableProperty] private string _terminalAdvancedAnswerback = "CxShell";
+    [ObservableProperty] private string _terminalAdvancedAnswerback = "FxShell";
     [ObservableProperty] private bool _terminalAdvancedUseBuiltinLineDrawing = true;
     [ObservableProperty] private bool _terminalAdvancedUseBuiltinPowerline = true;
     [ObservableProperty] private string _appearanceColorScheme = "XTerm";
@@ -322,7 +322,7 @@ public partial class SessionEditViewModel : ObservableObject
     [ObservableProperty] private string _rdpColorQuality = "32";
     [ObservableProperty] private bool _rdpApplyKeyCombinations = true;
     [ObservableProperty] private bool _rdpRedirectDrives;
-    [ObservableProperty] private string _rdpDriveName = "CxShell";
+    [ObservableProperty] private string _rdpDriveName = "FxShell";
     [ObservableProperty] private string _rdpDrivePath = string.Empty;
     [ObservableProperty] private string _rdpAudioMode = "DoNotPlay";
     [ObservableProperty] private bool _rdpMicrophoneEnabled;
@@ -1335,7 +1335,7 @@ public partial class SessionEditViewModel : ObservableObject
         TerminalAdvancedDisableTerminalPrint = session.TerminalAdvancedDisableTerminalPrint;
         TerminalAdvancedDisableAlternateScreen = session.TerminalAdvancedDisableAlternateScreen;
         TerminalAdvancedIgnoreResizeRequest = session.TerminalAdvancedIgnoreResizeRequest;
-        TerminalAdvancedAnswerback = string.IsNullOrEmpty(session.TerminalAdvancedAnswerback) ? "CxShell" : session.TerminalAdvancedAnswerback;
+        TerminalAdvancedAnswerback = string.IsNullOrEmpty(session.TerminalAdvancedAnswerback) ? "FxShell" : session.TerminalAdvancedAnswerback;
         TerminalAdvancedUseBuiltinLineDrawing = session.TerminalAdvancedUseBuiltinLineDrawing;
         TerminalAdvancedUseBuiltinPowerline = session.TerminalAdvancedUseBuiltinPowerline;
         AppearanceColorScheme = string.IsNullOrWhiteSpace(session.AppearanceColorScheme) ? "XTerm" : session.AppearanceColorScheme;
@@ -1473,7 +1473,7 @@ public partial class SessionEditViewModel : ObservableObject
         RdpColorQuality = string.IsNullOrWhiteSpace(session.RdpColorQuality) ? "32" : session.RdpColorQuality;
         RdpApplyKeyCombinations = session.RdpApplyKeyCombinations;
         RdpRedirectDrives = session.RdpRedirectDrives;
-        RdpDriveName = string.IsNullOrWhiteSpace(session.RdpDriveName) ? "CxShell" : session.RdpDriveName;
+        RdpDriveName = string.IsNullOrWhiteSpace(session.RdpDriveName) ? "FxShell" : session.RdpDriveName;
         RdpDrivePath = session.RdpDrivePath ?? string.Empty;
         RdpAudioMode = string.IsNullOrWhiteSpace(session.RdpAudioMode) ? "DoNotPlay" : session.RdpAudioMode;
         RdpMicrophoneEnabled = session.RdpMicrophoneEnabled;
@@ -1721,7 +1721,7 @@ public partial class SessionEditViewModel : ObservableObject
         session.TerminalAdvancedDisableTerminalPrint = TerminalAdvancedDisableTerminalPrint;
         session.TerminalAdvancedDisableAlternateScreen = TerminalAdvancedDisableAlternateScreen;
         session.TerminalAdvancedIgnoreResizeRequest = TerminalAdvancedIgnoreResizeRequest;
-        session.TerminalAdvancedAnswerback = string.IsNullOrWhiteSpace(TerminalAdvancedAnswerback) ? "CxShell" : TerminalAdvancedAnswerback.Trim();
+        session.TerminalAdvancedAnswerback = string.IsNullOrWhiteSpace(TerminalAdvancedAnswerback) ? "FxShell" : TerminalAdvancedAnswerback.Trim();
         session.TerminalAdvancedUseBuiltinLineDrawing = TerminalAdvancedUseBuiltinLineDrawing;
         session.TerminalAdvancedUseBuiltinPowerline = TerminalAdvancedUseBuiltinPowerline;
         session.AppearanceColorScheme = string.IsNullOrWhiteSpace(AppearanceColorScheme) ? "XTerm" : AppearanceColorScheme;
@@ -1773,7 +1773,7 @@ public partial class SessionEditViewModel : ObservableObject
         session.RdpColorQuality = RdpColorQuality;
         session.RdpApplyKeyCombinations = RdpApplyKeyCombinations;
         session.RdpRedirectDrives = RdpRedirectDrives;
-        session.RdpDriveName = string.IsNullOrWhiteSpace(RdpDriveName) ? "CxShell" : RdpDriveName.Trim();
+        session.RdpDriveName = string.IsNullOrWhiteSpace(RdpDriveName) ? "FxShell" : RdpDriveName.Trim();
         session.RdpDrivePath = RdpRedirectDrives ? RdpDrivePath.Trim() : string.Empty;
         session.RdpAudioMode = RdpAudioMode;
         session.RdpMicrophoneEnabled = RdpMicrophoneEnabled;

@@ -6,10 +6,10 @@ using AtomUI.Icons.AntDesign;
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public enum SettingsSection
 {
@@ -84,7 +84,7 @@ public partial class SettingsCenterViewModel : ObservableObject, IDisposable
     public string AboutTitleText => Text("Settings.About");
     public string AboutDescriptionText => Text("Settings.AboutDescription");
     public string UpdateDescriptionText => Text("Settings.UpdateDescription");
-    public string AboutAppNameText => "CxShell";
+    public string AboutAppNameText => "FxShell";
     public string AboutVersionText => string.Format(Text("About.Version"), _appVersion);
     public string AboutContentText => Text("About.Description");
     public string AboutBuiltWithText => Text("About.BuiltWith");

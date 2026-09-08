@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Text;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 public enum TerminalShellIntegrationEventKind
 {

@@ -1,7 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public enum ConnectionAuditEventType
 {

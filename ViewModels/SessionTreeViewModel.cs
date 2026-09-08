@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public enum SessionLookupStatus
 {
@@ -582,7 +582,7 @@ public partial class SessionTreeViewModel : ObservableObject
     {
         var executablePath = Environment.ProcessPath;
         if (string.IsNullOrWhiteSpace(executablePath))
-            executablePath = Path.Combine(AppContext.BaseDirectory, "CxShell.exe");
+            executablePath = Path.Combine(AppContext.BaseDirectory, "FxShell.exe");
 
         return $"{QuoteCommandArgument(executablePath)} {QuoteCommandArgument(session.Id.ToString())}";
     }

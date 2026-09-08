@@ -20,12 +20,12 @@ jobs:
             rid: osx-arm64
             triplet: arm64-osx
             arch: arm64
-            artifact_dir: CxShell-macos-arm64
+            artifact_dir: FxShell-macos-arm64
           - runs_on: macos-15-intel
             rid: osx-x64
             triplet: x64-osx
             arch: x64
-            artifact_dir: CxShell-macos-x64
+            artifact_dir: FxShell-macos-x64
 
     steps:
       - name: Check out source
@@ -74,7 +74,7 @@ jobs:
         run: |
           version="${{ steps.version.outputs.value }}"
           assembly_version="${version%%-*}"
-          dotnet publish CxShell.csproj \
+          dotnet publish FxShell.csproj \
             -c Release \
             -r "${{ matrix.rid }}" \
             --self-contained true \
@@ -100,32 +100,32 @@ jobs:
       - name: Build RDP bridge
         shell: bash
         run: |
-          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/CxShell.app/Contents/MacOS"
+          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/FxShell.app/Contents/MacOS"
           export TRIPLET="${{ matrix.triplet }}"
           bash tools/build-rdp-bridge.sh
 
       - name: Build Finder drag bridge
         shell: bash
         run: |
-          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/CxShell.app/Contents/MacOS"
+          export OUTPUT_DIR="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/FxShell.app/Contents/MacOS"
           export ARCH="${{ matrix.arch }}"
           bash tools/build-macos-drag-bridge.sh
 
       - name: Ad-hoc sign app
         shell: bash
         run: |
-          codesign --force --deep --sign - "artifacts/${{ matrix.artifact_dir }}/CxShell.app"
+          codesign --force --deep --sign - "artifacts/${{ matrix.artifact_dir }}/FxShell.app"
 
       - name: Validate package
         shell: bash
         run: |
-          app_path="artifacts/${{ matrix.artifact_dir }}/CxShell.app"
-          test -x "$app_path/Contents/MacOS/CxShell"
+          app_path="artifacts/${{ matrix.artifact_dir }}/FxShell.app"
+          test -x "$app_path/Contents/MacOS/FxShell"
           test -f "$app_path/Contents/Info.plist"
-          test -f "$app_path/Contents/Resources/CxShell.icns"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app_path/Contents/Info.plist")" = "CxShell"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app_path/Contents/Info.plist")" = "CxShell"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app_path/Contents/Info.plist")" = "CxShell.icns"
+          test -f "$app_path/Contents/Resources/FxShell.icns"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app_path/Contents/Info.plist")" = "FxShell"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$app_path/Contents/Info.plist")" = "FxShell"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconFile' "$app_path/Contents/Info.plist")" = "FxShell.icns"
           test -f "$app_path/Contents/MacOS/libCxRdpBridge.dylib"
           test -f "$app_path/Contents/MacOS/libCxMacDragBridge.dylib"
           if [ -d "$app_path/Contents/MacOS/runtimes/win-x64" ]; then
@@ -143,9 +143,9 @@ jobs:
       - name: Create DMG
         shell: bash
         run: |
-          export APP_PATH="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/CxShell.app"
+          export APP_PATH="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/FxShell.app"
           export OUTPUT_DMG="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}.dmg"
-          export VOLUME_NAME="CxShell ${{ matrix.arch }}"
+          export VOLUME_NAME="FxShell ${{ matrix.arch }}"
           export README_SOURCE="$GITHUB_WORKSPACE/artifacts/${{ matrix.artifact_dir }}/README-macos.txt"
           bash tools/create-macos-dmg.sh
 

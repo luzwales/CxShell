@@ -5,7 +5,7 @@ using AtomUI.Theme.Resources;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 /// <summary>根据 IsConnected 返回连接状态颜色（IBrush）</summary>
 public class SftpStatusColorConverter : IValueConverter

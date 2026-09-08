@@ -8,7 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.VisualTree;
 
-namespace CxShell.Controls;
+namespace FxShell.Controls;
 
 public sealed class ResizableStackPanel : Panel
 {

@@ -1,7 +1,7 @@
-using CxShell.Models;
+using FxShell.Models;
 using System.Collections.Concurrent;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class SessionRecordingService
 {

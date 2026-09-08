@@ -1,7 +1,7 @@
 using System;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class SshConnectionContext(ConnectionInfo connectionInfo, IDisposable? proxyLifetime = null) : IDisposable
 {

@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class AgentSettingsPage : UserControl
 {

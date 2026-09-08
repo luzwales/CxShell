@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json;
-using CxShell.Services;
+using FxShell.Services;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public interface IAgentRunHistoryStore
 {
@@ -34,7 +34,7 @@ public sealed class JsonAgentRunHistoryStore : IAgentRunHistoryStore
         _filePath = string.IsNullOrWhiteSpace(filePath)
             ? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "CxShell",
+                "FxShell",
                 "agent-runs.json")
             : Path.GetFullPath(filePath);
         _recoveryFilePath = _filePath + ".recovery";

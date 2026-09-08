@@ -1,7 +1,7 @@
 using System;
 using Avalonia;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public readonly record struct RdpDesktopSize(int Width, int Height);
 

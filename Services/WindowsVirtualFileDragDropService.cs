@@ -6,7 +6,7 @@ using System.Runtime.InteropServices.ComTypes;
 using System.Runtime.Versioning;
 using System.Threading;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class VirtualDragFile(
     string fileName,
@@ -100,7 +100,7 @@ public static class WindowsVirtualFileDragDropService
     public static bool IsSupported => OperatingSystem.IsWindows();
     public static string DebugLogPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "CxShell",
+        "FxShell",
         "Logs",
         "sftp-drag.log");
 

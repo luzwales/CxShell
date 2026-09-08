@@ -1,9 +1,9 @@
 using System;
 using Avalonia.Interactivity;
-using CxShell.Models;
-using CxShell.ViewModels;
+using FxShell.Models;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SshHostKeyPromptWindow : AtomUI.Desktop.Controls.Window
 {

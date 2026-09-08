@@ -2,9 +2,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Hosts a local interactive shell through a real pseudo-terminal. A PTY is

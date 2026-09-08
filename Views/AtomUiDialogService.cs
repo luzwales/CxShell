@@ -5,9 +5,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 internal readonly record struct ExternalLaunchConfirmation(bool Confirmed, bool TrustTarget);
 

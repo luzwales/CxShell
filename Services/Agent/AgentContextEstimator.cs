@@ -1,4 +1,4 @@
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public static class AgentContextEstimator
 {

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="${APP_NAME:-CxShell}"
-BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER:-com.cxshell.app}"
+APP_NAME="${APP_NAME:-FxShell}"
+BUNDLE_IDENTIFIER="${BUNDLE_IDENTIFIER:-com.fxshell.app}"
 BUNDLE_VERSION="${BUNDLE_VERSION:-1.0.0}"
 BUNDLE_SHORT_VERSION="${BUNDLE_SHORT_VERSION:-$BUNDLE_VERSION}"
 MIN_MACOS_VERSION="${MIN_MACOS_VERSION:-11.0}"
@@ -11,8 +11,8 @@ ARTIFACT_DIR="${ARTIFACT_DIR:-}"
 ARCH="${ARCH:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ICON_NAME="${ICON_NAME:-CxShell}"
-ICON_SOURCE="${ICON_SOURCE:-$REPO_ROOT/Assets/CxShellLogo.png}"
+ICON_NAME="${ICON_NAME:-FxShell}"
+ICON_SOURCE="${ICON_SOURCE:-$REPO_ROOT/Assets/FxShellLogo.png}"
 ICON_FILE="$ICON_NAME.icns"
 
 if [ -z "$PUBLISH_DIR" ]; then

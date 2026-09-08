@@ -2,10 +2,10 @@ using System;
 using System.Threading.Tasks;
 using AtomUI.Desktop.Controls;
 using Avalonia.Interactivity;
-using CxShell.Models;
-using CxShell.ViewModels;
+using FxShell.Models;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SshTunnelRuleDialogWindow : Window
 {

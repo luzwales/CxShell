@@ -5,10 +5,10 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class RdpFramebufferEventArgs : EventArgs
 {
@@ -37,7 +37,7 @@ public sealed class RdpBridgeClient : IDisposable
     private const uint KeyboardOptionsApiVersion = 4;
     private static readonly object DebugLogLock = new();
     private static readonly object NativeLoadFailureLock = new();
-    private static readonly bool DetailedDebugLogEnabled = IsEnvironmentFlagEnabled("CXSHELL_RDP_DEBUG_LOG");
+    private static readonly bool DetailedDebugLogEnabled = IsEnvironmentFlagEnabled("FXSHELL_RDP_DEBUG_LOG");
     private static string? _lastNativeLoadFailure;
     private readonly FrameCallback _frameCallback;
     private readonly StatusCallback _statusCallback;
@@ -127,7 +127,7 @@ public sealed class RdpBridgeClient : IDisposable
             {
                 Disconnect();
                 throw new InvalidOperationException(
-                    "The installed CxRdpBridge does not support RDP drive redirection. Reinstall or update CxShell so the native bridge matches the application version.");
+                    "The installed CxRdpBridge does not support RDP drive redirection. Reinstall or update FxShell so the native bridge matches the application version.");
             }
 
             var driveResult = NativeMethods.cxrdp_set_drive_redirection(
@@ -152,7 +152,7 @@ public sealed class RdpBridgeClient : IDisposable
             {
                 Disconnect();
                 throw new InvalidOperationException(
-                    "The installed CxRdpBridge does not support RDP audio settings. Reinstall or update CxShell so the native bridge matches the application version.");
+                    "The installed CxRdpBridge does not support RDP audio settings. Reinstall or update FxShell so the native bridge matches the application version.");
             }
 
             if (audioPlaybackMode == RdpAudioPlaybackMode.PlayLocal &&
@@ -557,7 +557,7 @@ public sealed class RdpBridgeClient : IDisposable
         if (string.IsNullOrWhiteSpace(root))
             root = AppContext.BaseDirectory;
 
-        return Path.Combine(root, "CxShell", "Logs");
+        return Path.Combine(root, "FxShell", "Logs");
     }
 
     private static void DebugLog(string message)
@@ -627,7 +627,7 @@ public sealed class RdpBridgeClient : IDisposable
 
     private static string NormalizeDriveName(string? value)
     {
-        var name = string.IsNullOrWhiteSpace(value) ? "CxShell" : value.Trim();
+        var name = string.IsNullOrWhiteSpace(value) ? "FxShell" : value.Trim();
         return name.Length <= 32 ? name : name[..32];
     }
 

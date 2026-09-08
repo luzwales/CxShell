@@ -2,13 +2,13 @@ using System.Diagnostics;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>Registers only user-level ssh:// and sftp:// handlers.</summary>
 public static class UrlProtocolRegistrationService
 {
     private static readonly string[] Schemes = ["ssh", "sftp"];
-    private const string ManagedValue = "CxShellManaged";
+    private const string ManagedValue = "FxShellManaged";
 
     public static void Apply(bool enabled)
     {
@@ -21,7 +21,7 @@ public static class UrlProtocolRegistrationService
         }
         catch (Exception ex)
         {
-            Trace.WriteLine($"CxShell URL protocol registration failed: {ex.Message}");
+            Trace.WriteLine($"FxShell URL protocol registration failed: {ex.Message}");
         }
     }
 
@@ -69,7 +69,7 @@ public static class UrlProtocolRegistrationService
         var applicationsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".local", "share", "applications");
-        var desktopPath = Path.Combine(applicationsPath, "cxshell-url-handler.desktop");
+        var desktopPath = Path.Combine(applicationsPath, "fxshell-url-handler.desktop");
 
         if (!enabled)
         {
@@ -86,8 +86,8 @@ public static class UrlProtocolRegistrationService
         var mimeTypes = string.Join(string.Empty, Schemes.Select(s => $"x-scheme-handler/{s};"));
         File.WriteAllText(desktopPath, $"""
 [Desktop Entry]
-Name=CxShell URL handler
-Comment=Open ssh:// and sftp:// links in CxShell
+Name=FxShell URL handler
+Comment=Open ssh:// and sftp:// links in FxShell
 Exec="{executablePath}" -url %u
 Type=Application
 Terminal=false
@@ -97,7 +97,7 @@ MimeType={mimeTypes}
 
         RunQuietly("update-desktop-database", applicationsPath);
         foreach (var scheme in Schemes)
-            RunQuietly("xdg-mime", $"default cxshell-url-handler.desktop x-scheme-handler/{scheme}");
+            RunQuietly("xdg-mime", $"default fxshell-url-handler.desktop x-scheme-handler/{scheme}");
     }
 
     private static void RunQuietly(string fileName, string arguments)
@@ -115,7 +115,7 @@ MimeType={mimeTypes}
         }
         catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
         {
-            Trace.WriteLine($"CxShell URL helper unavailable: {ex.Message}");
+            Trace.WriteLine($"FxShell URL helper unavailable: {ex.Message}");
         }
     }
 }

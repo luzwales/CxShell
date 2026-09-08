@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public sealed class SftpTransferQueueRecord
 {
@@ -24,7 +24,7 @@ public sealed class SftpTransferQueueRecord
 
 public sealed class SftpTransferQueueData
 {
-    public string Format { get; set; } = "CxShell.SftpTransferQueue";
+    public string Format { get; set; } = "FxShell.SftpTransferQueue";
     public string Version { get; set; } = "1.0";
     public List<SftpTransferQueueRecord> Transfers { get; set; } = new();
 }

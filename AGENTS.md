@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-CxShell is a single-project Avalonia desktop terminal and remote session client targeting .NET 10. The application entry points are `Program.cs`, `App.axaml`, and `App.axaml.cs`.
+FxShell is a single-project Avalonia desktop terminal and remote session client targeting .NET 10. The application entry points are `Program.cs`, `App.axaml`, and `App.axaml.cs`.
 
 - `Views/`: Avalonia `.axaml` views and their code-behind files.
 - `ViewModels/`: MVVM presentation logic, commands, and observable state.
@@ -10,7 +10,7 @@ CxShell is a single-project Avalonia desktop terminal and remote session client 
 - `Services/`: SSH/SFTP connections, persistence, monitoring, and Linux parsing.
 - `Terminal/`: terminal buffer, cells, ANSI parsing, and color handling.
 - `Controls/` and `Converters/`: reusable UI controls and binding converters.
-- `Assets/`: resources embedded through `CxShell.csproj`.
+- `Assets/`: resources embedded through `FxShell.csproj`.
 
 `AtomUI/` is ignored reference source and explicitly excluded from compilation. Do not treat `bin/` or `obj/` as source.
 
@@ -20,9 +20,9 @@ Run commands from the repository root:
 
 ```powershell
 dotnet restore
-dotnet build CxShell.csproj
-dotnet run --project CxShell.csproj
-dotnet format CxShell.csproj
+dotnet build FxShell.csproj
+dotnet run --project FxShell.csproj
+dotnet format FxShell.csproj
 ```
 
 `restore` downloads NuGet dependencies, `build` compiles the app, `run` launches the desktop client, and `format` applies standard .NET formatting.
@@ -33,7 +33,7 @@ Use four-space indentation in C# and follow existing file-scoped namespace style
 
 ## Testing Guidelines
 
-No automated test project currently exists. Before submitting changes, run `dotnet build CxShell.csproj` and manually exercise affected SSH, SFTP, terminal, or monitoring workflows. New test projects should use names such as `CxShell.Tests`, with test files named `<ClassName>Tests.cs`; run them with `dotnet test`.
+No automated test project currently exists. Before submitting changes, run `dotnet build FxShell.csproj` and manually exercise affected SSH, SFTP, terminal, or monitoring workflows. New test projects should use names such as `FxShell.Tests`, with test files named `<ClassName>Tests.cs`; run them with `dotnet test`.
 
 ## Terminal Interaction Requirements
 

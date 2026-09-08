@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Normalizes remote command timeouts at the Agent boundary. Package managers

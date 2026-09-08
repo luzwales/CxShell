@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class TerminalTabGroupViewModel : ObservableObject
 {

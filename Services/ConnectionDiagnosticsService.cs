@@ -7,10 +7,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class ConnectionDiagnosticsService
 {

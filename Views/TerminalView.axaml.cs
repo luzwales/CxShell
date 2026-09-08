@@ -11,12 +11,12 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 using AtomContextMenu = AtomUI.Desktop.Controls.ContextMenu;
 using AtomMenuItem = AtomUI.Desktop.Controls.MenuItem;
 using AtomMenuSeparator = AtomUI.Desktop.Controls.MenuSeparator;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class TerminalView : UserControl
 {

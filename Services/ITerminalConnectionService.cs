@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public interface ITerminalConnectionService : IDisposable
 {

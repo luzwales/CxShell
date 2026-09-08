@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public sealed record AgentModelCatalogResult(
     bool Success,

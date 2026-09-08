@@ -1,4 +1,4 @@
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// In-memory audit information for agent actions. The command text is never

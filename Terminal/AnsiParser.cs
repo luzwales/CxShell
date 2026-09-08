@@ -2,7 +2,7 @@ using System;
 using Avalonia.Media;
 using System.Text;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 /// <summary>
 /// ANSI escape sequence parser - state machine implementation.

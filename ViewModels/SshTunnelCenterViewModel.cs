@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public enum SshTunnelAction
 {

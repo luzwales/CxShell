@@ -31,10 +31,10 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore CxShell.Tests/CxShell.Tests.csproj
+        run: dotnet restore FxShell.Tests/FxShell.Tests.csproj
 
       - name: Test
-        run: dotnet test CxShell.Tests/CxShell.Tests.csproj --no-restore --configuration Release
+        run: dotnet test FxShell.Tests/FxShell.Tests.csproj --no-restore --configuration Release
 
   package:
     name: Package Windows x64
@@ -53,7 +53,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          dotnet publish CxShell.csproj `
+          dotnet publish FxShell.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
@@ -70,7 +70,7 @@ jobs:
 
       - name: Create self-contained portable executable
         shell: pwsh
-        run: Copy-Item artifacts\publish\win-x64\CxShell.exe artifacts\CxShell-Portable.exe
+        run: Copy-Item artifacts\publish\win-x64\FxShell.exe artifacts\FxShell-Portable.exe
 
       - name: Install Velopack CLI
         shell: pwsh
@@ -81,17 +81,17 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           vpk pack `
-            --packId CxShell `
+            --packId FxShell `
             --packVersion $env:APP_VERSION `
             --packDir artifacts\publish\win-x64 `
-            --mainExe CxShell.exe `
+            --mainExe FxShell.exe `
             --outputDir artifacts\release `
-            --packTitle CxShell `
+            --packTitle FxShell `
             --packAuthors luzwales
 
           $setup = Get-ChildItem artifacts\release -Filter "*Setup.exe" | Select-Object -First 1
           if (-not $setup) { throw "Velopack did not produce a setup executable." }
-          Copy-Item $setup.FullName artifacts\CxShell-Setup.exe
+          Copy-Item $setup.FullName artifacts\FxShell-Setup.exe
 
           if (-not (Test-Path artifacts\release\RELEASES)) {
             throw "Velopack did not produce the RELEASES feed file."
@@ -101,12 +101,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.APP_VERSION }}
-          name: CxShell v${{ env.APP_VERSION }}
+          name: FxShell v${{ env.APP_VERSION }}
           generate_release_notes: true
           make_latest: true
           files: |
-            artifacts/CxShell-Setup.exe
-            artifacts/CxShell-Portable.exe
+            artifacts/FxShell-Setup.exe
+            artifacts/FxShell-Portable.exe
             artifacts/release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,11 +1,11 @@
 using System;
 using Avalonia;
 using AtomUI;
-using CxShell.Services;
+using FxShell.Services;
 using ReactiveUI.Avalonia;
 using Velopack;
 
-namespace CxShell;
+namespace FxShell;
 
 internal class Program
 {

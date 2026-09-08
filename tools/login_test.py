@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small CxShell login-script smoke test."""
+"""Small FxShell login-script smoke test."""
 
 import platform
 import sys

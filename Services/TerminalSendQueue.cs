@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Serializes all terminal writes for one connection generation.

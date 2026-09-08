@@ -18,11 +18,11 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.ViewModels;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
 {

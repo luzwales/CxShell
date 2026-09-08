@@ -1,8 +1,8 @@
-# CxShell
+# FxShell
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-CxShell 是一个基于 .NET 10、Avalonia 和 AtomUI 构建的 Windows 优先桌面终端与文件管理客户端。当前版本刻意聚焦于本地终端、SSH 工作流、文件传输、本地性能查看和 SSH 隧道。
+FxShell 是一个基于 .NET 10、Avalonia 和 AtomUI 构建的 Windows 优先桌面终端与文件管理客户端。当前版本刻意聚焦于本地终端、SSH 工作流、文件传输、本地性能查看和 SSH 隧道。
 
 [下载最新 Windows 版本](https://github.com/luzwales/CxShell/releases/latest) · [提交问题](https://github.com/luzwales/CxShell/issues)
 
@@ -48,17 +48,17 @@ CxShell 是一个基于 .NET 10、Avalonia 和 AtomUI 构建的 Windows 优先�
 
 ```powershell
 dotnet restore
-dotnet build CxShell.csproj
-dotnet run --project CxShell.csproj
-dotnet test CxShell.Tests\CxShell.Tests.csproj
+dotnet build FxShell.csproj
+dotnet run --project FxShell.csproj
+dotnet test FxShell.Tests\FxShell.Tests.csproj
 ```
 
 ## Windows 自动打包
 
 代码合并到 `master` 后，GitHub Actions 会自动构建 Windows x64 发布包，包含：
 
-- **CxShell-Setup.exe**：Velopack 安装程序，包含开始菜单入口、卸载程序和更新元数据。
-- **CxShell-Portable.exe**：自包含单文件便携版，无需安装 .NET 即可运行。
+- **FxShell-Setup.exe**：Velopack 安装程序，包含开始菜单入口、卸载程序和更新元数据。
+- **FxShell-Portable.exe**：自包含单文件便携版，无需安装 .NET 即可运行。
 - 更新器所需的 Velopack `RELEASES` 和包文件。
 
 也可以在本地生成同样的产物：
@@ -68,7 +68,7 @@ $version = "0.1.0"
 $publish = "artifacts\publish\win-x64"
 $release = "artifacts\release"
 
-dotnet publish CxShell.csproj `
+dotnet publish FxShell.csproj `
   -c Release `
   -r win-x64 `
   --self-contained true `
@@ -80,20 +80,20 @@ dotnet publish CxShell.csproj `
   /p:DebugType=none `
   /p:DebugSymbols=false
 
-Copy-Item "$publish\CxShell.exe" "artifacts\CxShell-Portable.exe"
+Copy-Item "$publish\FxShell.exe" "artifacts\FxShell-Portable.exe"
 dotnet tool install --global vpk
 vpk pack `
-  --packId CxShell `
+  --packId FxShell `
   --packVersion $version `
   --packDir $publish `
-  --mainExe CxShell.exe `
+  --mainExe FxShell.exe `
   --outputDir $release `
-  --packTitle CxShell
+  --packTitle FxShell
 ```
 
 ## 在线更新
 
-通过 `CxShell-Setup.exe` 安装的 Windows 版本使用 Velopack 检查 GitHub 最新 Release。自动检查默认开启，也可以在应用设置中关闭；用户还可以手动执行“检查更新”。更新下载完成后，CxShell 会通过 Velopack 重启并安全应用更新。
+通过 `FxShell-Setup.exe` 安装的 Windows 版本使用 Velopack 检查 GitHub 最新 Release。自动检查默认开启，也可以在应用设置中关闭；用户还可以手动执行“检查更新”。更新下载完成后，FxShell 会通过 Velopack 重启并安全应用更新。
 
 在线更新只适用于安装版。自包含便携版是独立文件，发布新版本后需要手动替换；单文件压缩使便携版体积接近压缩后的安装包。
 

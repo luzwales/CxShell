@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class ConnectionDiagnosticsWindow : Window
 {
@@ -36,7 +36,7 @@ public partial class ConnectionDiagnosticsWindow : Window
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                SuggestedFileName = $"CxShell-Diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+                SuggestedFileName = $"FxShell-Diagnostics-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
                 DefaultExtension = "txt",
                 FileTypeChoices =
                 [

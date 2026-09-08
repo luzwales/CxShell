@@ -1,6 +1,6 @@
 using System;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public enum RdpAudioPlaybackMode
 {

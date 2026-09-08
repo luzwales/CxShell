@@ -2,8 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:atom="https://atomui.net"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
-             xmlns:vm="using:CxShell.ViewModels"
-             x:Class="CxShell.Views.AgentSettingsPage"
+             xmlns:vm="using:FxShell.ViewModels"
+             x:Class="FxShell.Views.AgentSettingsPage"
              x:DataType="vm:ApplicationSettingsViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="18" Margin="0,2,12,8">

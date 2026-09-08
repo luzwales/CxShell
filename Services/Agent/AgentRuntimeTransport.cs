@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public interface IAgentRuntimeTransport
 {
@@ -26,7 +26,7 @@ public interface IAgentRuntimeRequestCancellationTransport
 }
 
 /// <summary>
-/// In-process transport used by CxShell's own Agent Runtime. Keeping this
+/// In-process transport used by FxShell's own Agent Runtime. Keeping this
 /// behind a transport interface keeps the Runtime boundary independently testable.
 /// </summary>
 public sealed class InProcessAgentRuntimeTransport : IAgentRuntimeTransport, IAgentRuntimeEventTransport

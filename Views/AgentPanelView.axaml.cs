@@ -11,12 +11,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AtomUI.Icons.AntDesign;
-using CxShell.Services;
-using CxShell.ViewModels;
+using FxShell.Services;
+using FxShell.ViewModels;
 using AtomContextMenu = AtomUI.Desktop.Controls.ContextMenu;
 using AtomMenuItem = AtomUI.Desktop.Controls.MenuItem;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class AgentPanelView : UserControl
 {

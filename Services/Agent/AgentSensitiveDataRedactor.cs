@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Removes credentials from live Agent diagnostics before they are shown in

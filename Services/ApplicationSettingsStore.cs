@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
-using CxShell.Services.Agent;
+using FxShell.Models;
+using FxShell.Services.Agent;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Persists settings that belong to the application rather than to a session.

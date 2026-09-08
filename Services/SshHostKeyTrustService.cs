@@ -1,11 +1,11 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public interface ISshHostKeyPrompt
 {

@@ -2,11 +2,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
-using CxShell.Models;
-using CxShell.ViewModels;
-using CxShell.Views;
+using FxShell.Models;
+using FxShell.ViewModels;
+using FxShell.Views;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class SshHostKeyPromptService : ISshHostKeyPrompt
 {

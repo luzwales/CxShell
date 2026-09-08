@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Client-side transport for a caller-owned Runtime frame stream. It keeps
@@ -120,7 +120,7 @@ public sealed class AgentRuntimeStreamTransport :
 
         var sequence = Interlocked.Increment(ref _generatedCancellationRequestId);
         var cancellationRequest = new RuntimeRequestEnvelope(
-            $"cxshell-cancel-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{sequence}",
+            $"fxshell-cancel-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{sequence}",
             AgentRuntimeMethodNames.RequestCancel,
             JsonSerializer.SerializeToElement(new { requestId = normalizedRequestId }, JsonOptions));
         var requestJson = JsonSerializer.Serialize(cancellationRequest, JsonOptions);

@@ -1,9 +1,9 @@
 using System;
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class CommandLineLaunchOptions
 {

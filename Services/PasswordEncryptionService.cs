@@ -2,14 +2,14 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class PasswordEncryptionService
 {
     private const string ProtectedPrefix = "cxaes:";
     private const int NonceSize = 12;
     private const int TagSize = 16;
-    private static readonly byte[] Key = SHA256.HashData(Encoding.UTF8.GetBytes("CxShell.Session.Password.v1"));
+    private static readonly byte[] Key = SHA256.HashData(Encoding.UTF8.GetBytes("FxShell.Session.Password.v1"));
 
     public static string Encrypt(string? plainText)
     {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class WindowsRdpShortcutHook : IDisposable
 {

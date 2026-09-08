@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public sealed record AgentRuntimeRequest(
     string RequestId,
@@ -79,8 +79,8 @@ public sealed class AgentRuntimeModuleContext
 }
 
 /// <summary>
-/// A self-contained group of CxShell Agent Runtime methods. Modules are hosted
-/// in process without exposing CxShell's controls or raw transport services.
+/// A self-contained group of FxShell Agent Runtime methods. Modules are hosted
+/// in process without exposing FxShell's controls or raw transport services.
 /// </summary>
 public interface IAgentRuntimeModule
 {
@@ -126,7 +126,7 @@ public interface IAgentRuntimeHost
 }
 
 /// <summary>
-/// In-process dispatcher for CxShell's Agent Runtime. It owns registered
+/// In-process dispatcher for FxShell's Agent Runtime. It owns registered
 /// modules and gives each request a bounded, cancellation-aware context.
 /// </summary>
 public sealed class AgentRuntimeHost : IAgentRuntimeHost, IDisposable

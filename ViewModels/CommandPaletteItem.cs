@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed class CommandPaletteItem : INotifyPropertyChanged
 {

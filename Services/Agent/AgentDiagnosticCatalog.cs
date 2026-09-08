@@ -1,10 +1,10 @@
 using System.Text;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Fixed, read-only diagnostic plans exposed to the Agent. The model chooses
-/// a scope, while CxShell owns the command behind that scope.
+/// a scope, while FxShell owns the command behind that scope.
 /// </summary>
 public static class AgentDiagnosticCatalog
 {

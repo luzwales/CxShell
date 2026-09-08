@@ -14,10 +14,10 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using CxShell.Models;
-using CxShell.Terminal;
+using FxShell.Models;
+using FxShell.Terminal;
 
-namespace CxShell.Controls;
+namespace FxShell.Controls;
 
 public class TerminalControl : Control
 {

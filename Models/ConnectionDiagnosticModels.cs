@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public enum ConnectionDiagnosticStepStatus
 {

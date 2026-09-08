@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SessionRecordingWindow : Window
 {
@@ -77,7 +77,7 @@ public partial class SessionRecordingWindow : Window
         {
             var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                SuggestedFileName = $"CxShell-Recording-{DateTime.Now:yyyyMMdd-HHmmss}.cast",
+                SuggestedFileName = $"FxShell-Recording-{DateTime.Now:yyyyMMdd-HHmmss}.cast",
                 DefaultExtension = "cast",
                 FileTypeChoices =
                 [

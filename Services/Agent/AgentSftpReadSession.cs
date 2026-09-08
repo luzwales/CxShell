@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// A per-tab, lazy SFTP connection used only by Agent read-only tools. It is

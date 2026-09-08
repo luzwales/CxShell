@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:atom="https://atomui.net"
-             xmlns:vm="using:CxShell.ViewModels"
-             x:Class="CxShell.Views.CommandPaletteView"
+             xmlns:vm="using:FxShell.ViewModels"
+             x:Class="FxShell.Views.CommandPaletteView"
              x:DataType="vm:CommandPaletteViewModel"
              Width="620"
              MaxHeight="520">

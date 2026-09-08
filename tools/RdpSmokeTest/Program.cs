@@ -7,24 +7,24 @@ if (args.Contains("--probe", StringComparer.OrdinalIgnoreCase))
     return ProbeNativeBridge(requireAudio);
 }
 
-var host = Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_HOST")?.Trim();
-var username = Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_USERNAME")?.Trim();
-var password = Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_PASSWORD") ?? string.Empty;
-var drivePath = Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_DRIVE_PATH")?.Trim();
-var audioModeText = Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_AUDIO_MODE")?.Trim();
+var host = Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_HOST")?.Trim();
+var username = Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_USERNAME")?.Trim();
+var password = Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_PASSWORD") ?? string.Empty;
+var drivePath = Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_DRIVE_PATH")?.Trim();
+var audioModeText = Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_AUDIO_MODE")?.Trim();
 var microphoneEnabled = string.Equals(
-    Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_MICROPHONE"),
+    Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_MICROPHONE"),
     "1",
     StringComparison.OrdinalIgnoreCase);
-var port = int.TryParse(Environment.GetEnvironmentVariable("CXSHELL_RDP_TEST_PORT"), out var configuredPort)
+var port = int.TryParse(Environment.GetEnvironmentVariable("FXSHELL_RDP_TEST_PORT"), out var configuredPort)
     ? configuredPort
     : 3389;
 
 if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username))
 {
-    Console.WriteLine("Set CXSHELL_RDP_TEST_HOST and CXSHELL_RDP_TEST_USERNAME before running this integration test.");
-    Console.WriteLine("Optional: CXSHELL_RDP_TEST_PASSWORD, CXSHELL_RDP_TEST_PORT, CXSHELL_RDP_TEST_DRIVE_PATH,");
-    Console.WriteLine("          CXSHELL_RDP_TEST_AUDIO_MODE (local/remote/none), CXSHELL_RDP_TEST_MICROPHONE (1/0).");
+    Console.WriteLine("Set FXSHELL_RDP_TEST_HOST and FXSHELL_RDP_TEST_USERNAME before running this integration test.");
+    Console.WriteLine("Optional: FXSHELL_RDP_TEST_PASSWORD, FXSHELL_RDP_TEST_PORT, FXSHELL_RDP_TEST_DRIVE_PATH,");
+    Console.WriteLine("          FXSHELL_RDP_TEST_AUDIO_MODE (local/remote/none), FXSHELL_RDP_TEST_MICROPHONE (1/0).");
     return 2;
 }
 
@@ -88,7 +88,7 @@ try
     Native.cxrdp_set_callbacks(handle, frame, status, disconnected, IntPtr.Zero);
     if (!string.IsNullOrWhiteSpace(drivePath))
     {
-        var driveResult = Native.cxrdp_set_drive_redirection(handle, 1, "CxShellTest", drivePath);
+        var driveResult = Native.cxrdp_set_drive_redirection(handle, 1, "FxShellTest", drivePath);
         Console.WriteLine($"drive redirection returned {driveResult}");
         if (driveResult != 0)
             return 1;
@@ -172,7 +172,7 @@ static int ProbeNativeBridge(bool requireAudio)
 
             try
             {
-                if (Native.cxrdp_set_drive_redirection(probeHandle, 0, "CxShellProbe", string.Empty) != 0 ||
+                if (Native.cxrdp_set_drive_redirection(probeHandle, 0, "FxShellProbe", string.Empty) != 0 ||
                     Native.cxrdp_set_audio_redirection(probeHandle, 2, 0) != 0 ||
                     Native.cxrdp_set_keyboard_options(probeHandle, 1) != 0)
                 {

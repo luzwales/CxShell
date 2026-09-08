@@ -2,9 +2,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:atom="https://atomui.net"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
-             xmlns:controls="using:CxShell.Controls"
-             xmlns:vm="using:CxShell.ViewModels"
-             x:Class="CxShell.Views.SessionRecordingPage"
+             xmlns:controls="using:FxShell.Controls"
+             xmlns:vm="using:FxShell.ViewModels"
+             x:Class="FxShell.Views.SessionRecordingPage"
              x:DataType="vm:SessionRecordingViewModel">
     <Grid RowDefinitions="Auto,*" ColumnDefinitions="340,14,*">
         <Grid Grid.Row="0"

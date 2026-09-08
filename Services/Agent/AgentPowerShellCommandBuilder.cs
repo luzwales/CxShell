@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Builds PowerShell commands that are safe to send through Windows OpenSSH.

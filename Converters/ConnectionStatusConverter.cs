@@ -2,7 +2,7 @@ using System;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
-namespace CxShell.Converters;
+namespace FxShell.Converters;
 
 public class ConnectionStatusConverter : IValueConverter
 {

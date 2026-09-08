@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text;
-using CxShell.Models;
-using CxShell.Services.Agent.OpenCoworkRuntime;
+using FxShell.Models;
+using FxShell.Services.Agent.OpenCoworkRuntime;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Owns the asynchronous lifecycle of an Agent run. The coordinator can call
@@ -66,13 +66,13 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         type = "string",
         minLength = 1,
         maxLength = AgentReadOnlyToolCatalog.MaximumRemotePathLength,
-        description = "Remote path to inspect. Credential and private-key paths are blocked by CxShell."
+        description = "Remote path to inspect. Credential and private-key paths are blocked by FxShell."
     };
 
     private static readonly AgentToolDefinition SessionCommandTool = new(
         SessionCommandToolName,
         "Send one safe shell command to the SSH session selected for this run. " +
-        "The command is still checked by CxShell's permission policy.",
+        "The command is still checked by FxShell's permission policy.",
         JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -352,7 +352,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
 
     private static readonly AgentToolDefinition DiagnosticRunTool = new(
         DiagnosticRunToolName,
-        "Run one fixed, read-only CxShell diagnostic on the selected SSH session. " +
+        "Run one fixed, read-only FxShell diagnostic on the selected SSH session. " +
         "Use this for system, disk, network, services, processes, or all. Do not use it to change the server.",
         JsonSerializer.SerializeToElement(new
         {
@@ -373,7 +373,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
 
     private static readonly AgentToolDefinition RunbookRunTool = new(
         RunbookRunToolName,
-        "Run one fixed, read-only CxShell troubleshooting workflow. Use ssh for SSH service and port checks, " +
+        "Run one fixed, read-only FxShell troubleshooting workflow. Use ssh for SSH service and port checks, " +
         "rdp for Windows Remote Desktop checks, or health for a complete host overview.",
         JsonSerializer.SerializeToElement(new
         {
@@ -415,7 +415,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
 
     private static readonly AgentToolDefinition LogsTool = new(
         AgentReadOnlyToolCatalog.LogsToolName,
-        "Read a bounded tail of a known system, application, or security log. This is read-only and the log source is validated by CxShell.",
+        "Read a bounded tail of a known system, application, or security log. This is read-only and the log source is validated by FxShell.",
         JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -512,7 +512,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
     private static readonly AgentToolDefinition PackageQueryTool = new(
         AgentReadOnlyToolCatalog.PackageQueryToolName,
         "Look up one installed package or executable without changing the selected SSH host. " +
-        "The package name is validated and the platform-specific query is supplied by CxShell.",
+        "The package name is validated and the platform-specific query is supplied by FxShell.",
         JsonSerializer.SerializeToElement(new
         {
             type = "object",
@@ -1686,7 +1686,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
                                     "command_output_truncated",
                                     ToolCallId: toolCall.Id,
                                     ToolName: toolCall.Name,
-                                    Message: "Command output was truncated by CxShell."));
+                                    Message: "Command output was truncated by FxShell."));
                     }
                     catch
                     {
@@ -3974,7 +3974,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         const int maximumPerSession = 16 * 1024;
         return output.Length <= maximumPerSession
             ? output
-            : output[..maximumPerSession] + "\n[fleet output truncated by CxShell]";
+            : output[..maximumPerSession] + "\n[fleet output truncated by FxShell]";
     }
 
     private static string SerializeCommandResult(
@@ -4121,7 +4121,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
         if (string.IsNullOrEmpty(output) || output.Length <= MaximumToolResultCharacters)
             return output;
 
-        return output[..MaximumToolResultCharacters] + "\n[tool output truncated by CxShell]";
+        return output[..MaximumToolResultCharacters] + "\n[tool output truncated by FxShell]";
     }
 
     private static bool TryReadToolArguments(
@@ -4528,7 +4528,7 @@ public sealed class AgentRunCoordinator : IAgentRunCoordinator, IDisposable
             return normalized;
 
         var next = Interlocked.Increment(ref _generatedRunId);
-        return $"cxshell-agent-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{next}";
+        return $"fxshell-agent-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{next}";
     }
 
     private static bool IsValidTimeout(TimeSpan timeout)

@@ -2,9 +2,9 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class SessionLogWriter : IDisposable
 {
@@ -153,7 +153,7 @@ public sealed class SessionLogWriter : IDisposable
         {
             var baseDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                "CxShell",
+                "FxShell",
                 "Logs");
             expanded = Path.Combine(baseDir, expanded);
         }

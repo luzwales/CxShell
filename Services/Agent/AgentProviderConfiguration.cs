@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public enum AgentProviderValidationStatus
 {
@@ -140,12 +140,12 @@ public static class AgentProviderConfiguration
             SupportsTools = true,
             SupportsStreaming = true,
             // Both supported wire formats can carry OpenAI-compatible image
-            // input. Document attachments are extracted to text by CxShell.
+            // input. Document attachments are extracted to text by FxShell.
             SupportsVision = true,
             SupportsDocumentInput = true,
             SupportsResponsesApi = settings.Type == AgentProviderType.OpenAiResponses,
             SupportsTokenUsage = true,
-            // CxShell sends the selected effort only when it is non-default;
+            // FxShell sends the selected effort only when it is non-default;
             // all supported provider adapters can therefore opt into the
             // per-request reasoning control without changing saved settings.
             SupportsReasoning = true

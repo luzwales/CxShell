@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public sealed class AgentSessionGateway : IAgentSessionGateway, IDisposable
 {
@@ -879,7 +879,7 @@ public sealed class AgentSessionGateway : IAgentSessionGateway, IDisposable
         if (string.IsNullOrEmpty(output) || output.Length <= MaximumCapturedOutputLength)
             return output;
 
-        return output[..MaximumCapturedOutputLength] + "\n[output truncated by CxShell]";
+        return output[..MaximumCapturedOutputLength] + "\n[output truncated by FxShell]";
     }
 
     private static string BuildExecutionFailureMessage(AgentCommandExecutionResult execution)

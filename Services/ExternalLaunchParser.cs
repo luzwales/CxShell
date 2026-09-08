@@ -1,7 +1,7 @@
 using System.Globalization;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Parses the small Xshell-compatible launch surface used by bastion and SSO

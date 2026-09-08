@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class MacOSFilePromiseDragDropService
 {
@@ -116,7 +116,7 @@ public static class MacOSFilePromiseDragDropService
             return 3;
         }
 
-        var partPath = destinationPath + ".cxshell.part";
+        var partPath = destinationPath + ".fxshell.part";
         try
         {
             context.File.CancellationToken.ThrowIfCancellationRequested();

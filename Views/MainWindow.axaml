@@ -1,17 +1,17 @@
 <atom:Window xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:services="using:CxShell.Services"
+             xmlns:services="using:FxShell.Services"
              xmlns:atom="https://atomui.net"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
-             xmlns:models="using:CxShell.Models"
-             xmlns:controls="using:CxShell.Controls"
-             xmlns:vm="using:CxShell.ViewModels"
-             xmlns:views="using:CxShell.Views"
-             x:Class="CxShell.Views.MainWindow"
+             xmlns:models="using:FxShell.Models"
+             xmlns:controls="using:FxShell.Controls"
+             xmlns:vm="using:FxShell.ViewModels"
+             xmlns:views="using:FxShell.Views"
+             x:Class="FxShell.Views.MainWindow"
              x:Name="MainWindowRoot"
              x:DataType="vm:MainWindowViewModel"
-             Title="CxShell"
-             Icon="/Assets/CxShellLogo.png"
+             Title="FxShell"
+             Icon="/Assets/FxShellLogo.png"
              Width="1200"
              Height="800"
              MinWidth="600"
@@ -21,7 +21,7 @@
 
     <atom:Window.LogoTemplate>
         <DataTemplate>
-            <Image Source="/Assets/CxShellLogo.png"/>
+            <Image Source="/Assets/FxShellLogo.png"/>
         </DataTemplate>
     </atom:Window.LogoTemplate>
 
@@ -753,7 +753,7 @@
                                     VerticalAlignment="Center"
                                     Spacing="12"
                                     IsVisible="{Binding !HasRecentSessions}">
-                            <atom:TextBlock Text="CxShell"
+                            <atom:TextBlock Text="FxShell"
                                             FontSize="32"
                                             FontWeight="Bold"
                                             HorizontalAlignment="Center"

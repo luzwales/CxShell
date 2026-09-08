@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Sockets;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Creates HTTP clients that use the application's global proxy. The socket

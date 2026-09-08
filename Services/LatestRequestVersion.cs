@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Tracks the newest lifecycle request so stale asynchronous work can exit before

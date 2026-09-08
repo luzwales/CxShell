@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public enum ZmodemTransferDirection
 {

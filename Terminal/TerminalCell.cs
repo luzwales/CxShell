@@ -1,6 +1,6 @@
 using Avalonia.Media;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 public struct TerminalCell
 {

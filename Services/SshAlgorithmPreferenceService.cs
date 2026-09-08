@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SshAlgorithmPreferenceService
 {

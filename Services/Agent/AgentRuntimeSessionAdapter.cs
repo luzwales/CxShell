@@ -1,11 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
-/// CxShell's in-process Agent Runtime adapter. It exposes only the CxShell
+/// FxShell's in-process Agent Runtime adapter. It exposes only the FxShell
 /// session gateway and deliberately does not expose UI or connection instances.
 /// </summary>
 public sealed class AgentRuntimeSessionAdapter :
@@ -245,7 +245,7 @@ public sealed class AgentRuntimeSessionAdapter :
             requestId,
             new AgentRuntimeInitializeResult(
                 true,
-                "cxshell-session-gateway",
+                "fxshell-session-gateway",
                 AgentRuntimeContract.RuntimeVersion)
             {
                 Protocol = AgentRuntimeContract.Protocol,
@@ -259,7 +259,7 @@ public sealed class AgentRuntimeSessionAdapter :
         => Success(
             requestId,
             new AgentRuntimeInfoResult(
-                "cxshell-session-gateway",
+                "fxshell-session-gateway",
                 AgentRuntimeContract.Protocol,
                 AgentRuntimeContract.ProtocolVersion,
                 AgentRuntimeContract.RuntimeVersion,

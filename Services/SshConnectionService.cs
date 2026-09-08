@@ -7,11 +7,11 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed record SshCommandExecutionResult(
     string Output,

@@ -2,7 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class ImagePreviewWindow : AtomUI.Desktop.Controls.Window
 {

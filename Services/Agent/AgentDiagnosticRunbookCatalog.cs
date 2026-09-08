@@ -1,11 +1,11 @@
 using System.Text;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// Fixed read-only workflows for common connection problems. A Runbook is
 /// deliberately narrower than session_command: the model selects a known
-/// workflow and CxShell supplies every command in it.
+/// workflow and FxShell supplies every command in it.
 /// </summary>
 public static class AgentDiagnosticRunbookCatalog
 {

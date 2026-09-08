@@ -9,10 +9,10 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public class ServerMonitorService : IDisposable
 {
@@ -421,7 +421,7 @@ exit 0
         if (!HasRemoteCommandSource())
             return null;
 
-        const string marker = "__CXSHELL_LATENCY__";
+        const string marker = "__FXSHELL_LATENCY__";
         var stopwatch = Stopwatch.StartNew();
         try
         {
@@ -715,7 +715,7 @@ exit 0
         {
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             if (!string.IsNullOrWhiteSpace(localAppData))
-                return Path.Combine(localAppData, "CxShell", "Logs");
+                return Path.Combine(localAppData, "FxShell", "Logs");
         }
         catch
         {

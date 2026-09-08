@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public static class AgentProviderPresets
 {

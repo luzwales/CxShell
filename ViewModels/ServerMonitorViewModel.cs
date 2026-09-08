@@ -5,11 +5,11 @@ using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class ServerMonitorViewModel : ObservableObject, IDisposable
 {

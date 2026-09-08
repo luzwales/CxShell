@@ -10,14 +10,14 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.ViewModels;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.ViewModels;
 using AtomContextMenu = AtomUI.Desktop.Controls.ContextMenu;
 using AtomMenuItem = AtomUI.Desktop.Controls.MenuItem;
 using AtomMenuSeparator = AtomUI.Desktop.Controls.MenuSeparator;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SessionTreeView : UserControl
 {
@@ -325,7 +325,7 @@ public partial class SessionTreeView : UserControl
             AllowMultiple = false,
             FileTypeFilter =
             [
-                new FilePickerFileType("CxShell session export")
+                new FilePickerFileType("FxShell session export")
                 {
                     Patterns = ["*.cxsessions.json", "*.json"]
                 },
@@ -373,11 +373,11 @@ public partial class SessionTreeView : UserControl
         var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
             Title = T("SessionManager.Export"),
-            SuggestedFileName = $"CxShell-Sessions-{DateTime.Now:yyyy-MM-dd}.cxsessions.json",
+            SuggestedFileName = $"FxShell-Sessions-{DateTime.Now:yyyy-MM-dd}.cxsessions.json",
             DefaultExtension = "cxsessions.json",
             FileTypeChoices =
             [
-                new FilePickerFileType("CxShell session export")
+                new FilePickerFileType("FxShell session export")
                 {
                     Patterns = ["*.cxsessions.json"]
                 }

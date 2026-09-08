@@ -2,9 +2,9 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using Avalonia.Media.Imaging;
-using CxShell.Services.Agent;
+using FxShell.Services.Agent;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 /// <summary>
 /// A bounded local attachment prepared for one Agent message. The model sees

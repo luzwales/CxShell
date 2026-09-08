@@ -1,13 +1,13 @@
 using System;
 using System.Collections.ObjectModel;
 using AtomUI.Desktop.Controls;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Services.Agent;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Services.Agent;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed partial class KnownSshHostKeyItemViewModel : ObservableObject
 {

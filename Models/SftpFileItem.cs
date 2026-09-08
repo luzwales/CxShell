@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public class SftpFileItem : INotifyPropertyChanged
 {

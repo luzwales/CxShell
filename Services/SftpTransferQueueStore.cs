@@ -5,13 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public sealed class SftpTransferQueueStore
 {
-    private const string CurrentAppDirectoryName = "CxShell";
+    private const string CurrentAppDirectoryName = "FxShell";
     private const int MaxRecords = 200;
     private static readonly ConcurrentDictionary<string, object> SharedSyncRoots = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _syncRoot;
@@ -73,7 +73,7 @@ public sealed class SftpTransferQueueStore
             var json = File.ReadAllText(_storagePath, Encoding.UTF8);
             var data = JsonSerializer.Deserialize<SftpTransferQueueData>(json);
             if (data == null ||
-                !string.Equals(data.Format, "CxShell.SftpTransferQueue", StringComparison.Ordinal) ||
+                !string.Equals(data.Format, "FxShell.SftpTransferQueue", StringComparison.Ordinal) ||
                 !string.Equals(data.Version, "1.0", StringComparison.Ordinal))
             {
                 return new List<SftpTransferQueueRecord>();
@@ -143,6 +143,6 @@ public sealed class SftpTransferQueueStore
         if (!string.IsNullOrWhiteSpace(appData) && Path.IsPathFullyQualified(appData))
             return Path.Combine(appData, CurrentAppDirectoryName);
 
-        return Path.Combine(AppContext.BaseDirectory, ".cxshell-data");
+        return Path.Combine(AppContext.BaseDirectory, ".fxshell-data");
     }
 }

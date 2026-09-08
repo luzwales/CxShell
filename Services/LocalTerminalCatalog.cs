@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Detects interactive shells that can be hosted by the local PTY backend.

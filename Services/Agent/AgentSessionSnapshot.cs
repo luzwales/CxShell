@@ -1,6 +1,6 @@
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
 /// The session metadata exposed to an agent. Secrets and connection objects
@@ -9,7 +9,7 @@ namespace CxShell.Services.Agent;
 public sealed record AgentSessionSnapshot
 {
     public Guid SessionId { get; init; }
-    /// <summary>The id of the saved CxShell configuration, when available.</summary>
+    /// <summary>The id of the saved FxShell configuration, when available.</summary>
     public Guid? SavedSessionId { get; init; }
     public string Name { get; init; } = string.Empty;
     public SessionProtocol Protocol { get; init; }

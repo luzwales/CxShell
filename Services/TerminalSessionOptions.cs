@@ -1,8 +1,8 @@
 using System;
 using System.Text;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class TerminalSessionOptions
 {

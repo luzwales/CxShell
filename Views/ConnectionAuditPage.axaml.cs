@@ -3,9 +3,9 @@ using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using CxShell.ViewModels;
+using FxShell.ViewModels;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class ConnectionAuditPage : UserControl
 {
@@ -38,7 +38,7 @@ public partial class ConnectionAuditPage : UserControl
         {
             var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
-                SuggestedFileName = $"CxShell-ConnectionAudit-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+                SuggestedFileName = $"FxShell-ConnectionAudit-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
                 DefaultExtension = "txt",
                 FileTypeChoices =
                 [

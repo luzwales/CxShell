@@ -20,14 +20,14 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.Services.Agent;
-using CxShell.Views;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.Services.Agent;
+using FxShell.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public enum TabArrangementMode
 {
@@ -180,7 +180,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         ? UpdateProgressText ?? _localization.Text("Toolbar.UpdateChecking")
         : _localization.Text("Toolbar.Update");
     public string UpdateToolTip => _localization.Text("Toolbar.UpdateTip");
-    public string AboutCxShellText => _localization.Text("Help.AboutCxShell");
+    public string AboutFxShellText => _localization.Text("Help.AboutFxShell");
     public string ConnectionAuditText => _localization.Text("Help.ConnectionAudit");
     public string SessionRecordingsText => _localization.Text("Help.SessionRecordings");
     public string ApplicationSettingsText => _localization.Text("Help.ApplicationSettings");
@@ -743,7 +743,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrWhiteSpace(_sessionTreeVm.Settings.BastionTokenEndpoint))
             return _sessionTreeVm.Settings.BastionTokenEndpoint.Trim();
 
-        return Environment.GetEnvironmentVariable("CXSHELL_TOKEN_ENDPOINT")?.Trim() ?? string.Empty;
+        return Environment.GetEnvironmentVariable("FXSHELL_TOKEN_ENDPOINT")?.Trim() ?? string.Empty;
     }
 
     private void SetCommandLineLaunchError(string message)
@@ -797,7 +797,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         await AtomUiDialogService.ShowAboutAsync(
             owner,
             _localization.Text("About.Title"),
-            "CxShell",
+            "FxShell",
             string.Format(_localization.Text("About.Version"), BuildAppVersion()),
             _localization.Text("About.Description"),
             _localization.Text("About.BuiltWith"),
@@ -1194,7 +1194,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(AgentToolTip));
         OnPropertyChanged(nameof(UpdateText));
         OnPropertyChanged(nameof(UpdateToolTip));
-        OnPropertyChanged(nameof(AboutCxShellText));
+        OnPropertyChanged(nameof(AboutFxShellText));
         OnPropertyChanged(nameof(ConnectionAuditText));
         OnPropertyChanged(nameof(SessionRecordingsText));
         OnPropertyChanged(nameof(ApplicationSettingsText));
@@ -1762,7 +1762,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         AddCommand(items, commandsCategory, ArrangeHorizontalText, null, ArrangeTabsHorizontalCommand);
         AddCommand(items, commandsCategory, ArrangeTileText, null, ArrangeTabsTileCommand);
         AddCommand(items, commandsCategory, ArrangeMergeText, null, MergeTabGroupsCommand);
-        AddCommand(items, commandsCategory, AboutCxShellText, null, ShowAboutCommand);
+        AddCommand(items, commandsCategory, AboutFxShellText, null, ShowAboutCommand);
         AddCommand(items, commandsCategory, ConnectionAuditText, null, ShowConnectionAuditCommand);
         AddCommand(items, commandsCategory, SessionRecordingsText, null, ShowSessionRecordingsCommand);
         AddCommand(items, commandsCategory, ApplicationSettingsText, null, ShowApplicationSettingsCommand);

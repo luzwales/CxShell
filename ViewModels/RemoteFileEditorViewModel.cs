@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class RemoteFileEditorViewModel : ObservableObject, IDisposable
 {
@@ -17,7 +17,7 @@ public partial class RemoteFileEditorViewModel : ObservableObject, IDisposable
 
     public string FileName { get; }
     public string RemotePath { get; }
-    public string WindowTitle => $"{(IsDirty ? "* " : string.Empty)}{FileName} - CxShell";
+    public string WindowTitle => $"{(IsDirty ? "* " : string.Empty)}{FileName} - FxShell";
 
     public RemoteFileEditorViewModel(
         string fileName,

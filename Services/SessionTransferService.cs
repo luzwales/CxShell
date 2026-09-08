@@ -1,12 +1,12 @@
 using System.Text.Json;
-using CxShell.Models;
+using FxShell.Models;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SessionTransferService
 {
-    public const string StorageFormat = "CxShell.Session";
-    public const string Format = "CxShell.SessionExport";
+    public const string StorageFormat = "FxShell.Session";
+    public const string Format = "FxShell.SessionExport";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

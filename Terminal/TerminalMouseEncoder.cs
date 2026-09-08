@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 /// <summary>
 /// 将终端控件中的指针事件编码为 X10、SGR 1006 或 urxvt 1015 鼠标报告。

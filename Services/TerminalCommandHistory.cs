@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 /// <summary>
 /// Keeps a small, in-memory command history for one terminal session.

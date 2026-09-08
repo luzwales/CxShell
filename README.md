@@ -1,8 +1,8 @@
-# CxShell
+# FxShell
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-CxShell is a Windows-first desktop terminal and file-management client built with .NET 10, Avalonia, and AtomUI. The current product scope is intentionally focused on local shells, SSH-based workflows, file transfer, local performance, and SSH tunnels.
+FxShell is a Windows-first desktop terminal and file-management client built with .NET 10, Avalonia, and AtomUI. The current product scope is intentionally focused on local shells, SSH-based workflows, file transfer, local performance, and SSH tunnels.
 
 [Download the latest Windows release](https://github.com/luzwales/CxShell/releases/latest) · [Report an issue](https://github.com/luzwales/CxShell/issues)
 
@@ -30,7 +30,7 @@ The connection editor exposes SSH, SFTP, and FTP as its remote protocols. Local 
 
 ## Screenshots
 
-![CxShell terminal and file workspace](docs/images/cxshell-ssh-sftp-monitor.png)
+![FxShell terminal and file workspace](docs/images/fxshell-ssh-sftp-monitor.png)
 
 ## Technology
 
@@ -52,17 +52,17 @@ Requirements:
 
 ```powershell
 dotnet restore
-dotnet build CxShell.csproj
-dotnet run --project CxShell.csproj
-dotnet test CxShell.Tests\CxShell.Tests.csproj
+dotnet build FxShell.csproj
+dotnet run --project FxShell.csproj
+dotnet test FxShell.Tests\FxShell.Tests.csproj
 ```
 
 ## Windows packaging
 
 The GitHub Actions workflow builds Windows x64 packages automatically after changes reach `master`. It produces:
 
-- **CxShell-Setup.exe**: Velopack installer with Start Menu integration, uninstaller, and update metadata.
-- **CxShell-Portable.exe**: self-contained single-file executable that does not require installation or .NET.
+- **FxShell-Setup.exe**: Velopack installer with Start Menu integration, uninstaller, and update metadata.
+- **FxShell-Portable.exe**: self-contained single-file executable that does not require installation or .NET.
 - Velopack `RELEASES` and package files used by the installed application's updater.
 
 To create the same artifacts locally:
@@ -72,7 +72,7 @@ $version = "0.1.0"
 $publish = "artifacts\publish\win-x64"
 $release = "artifacts\release"
 
-dotnet publish CxShell.csproj `
+dotnet publish FxShell.csproj `
   -c Release `
   -r win-x64 `
   --self-contained true `
@@ -84,22 +84,22 @@ dotnet publish CxShell.csproj `
   /p:DebugType=none `
   /p:DebugSymbols=false
 
-Copy-Item "$publish\CxShell.exe" "artifacts\CxShell-Portable.exe"
+Copy-Item "$publish\FxShell.exe" "artifacts\FxShell-Portable.exe"
 dotnet tool install --global vpk
 vpk pack `
-  --packId CxShell `
+  --packId FxShell `
   --packVersion $version `
   --packDir $publish `
-  --mainExe CxShell.exe `
+  --mainExe FxShell.exe `
   --outputDir $release `
-  --packTitle CxShell
+  --packTitle FxShell
 ```
 
 ## Online updates
 
-Installed Windows builds use Velopack to check the latest GitHub Release. Automatic checks are enabled by default and can be disabled in application settings. A user can also start **Check for updates** manually. When an update is downloaded, CxShell restarts through Velopack and applies it safely.
+Installed Windows builds use Velopack to check the latest GitHub Release. Automatic checks are enabled by default and can be disabled in application settings. A user can also start **Check for updates** manually. When an update is downloaded, FxShell restarts through Velopack and applies it safely.
 
-Online updates require the installed `CxShell-Setup.exe` edition. The self-contained portable executable is intentionally standalone and must be replaced manually when a new release is published. Single-file compression keeps this portable artifact close to the size of the compressed installer package.
+Online updates require the installed `FxShell-Setup.exe` edition. The self-contained portable executable is intentionally standalone and must be replaced manually when a new release is published. Single-file compression keeps this portable artifact close to the size of the compressed installer package.
 
 The update feed is the GitHub Release download endpoint:
 

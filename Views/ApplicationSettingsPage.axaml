@@ -1,8 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:atom="https://atomui.net"
-             xmlns:vm="using:CxShell.ViewModels"
-             x:Class="CxShell.Views.ApplicationSettingsPage"
+             xmlns:vm="using:FxShell.ViewModels"
+             x:Class="FxShell.Views.ApplicationSettingsPage"
              x:DataType="vm:ApplicationSettingsViewModel">
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="18" Margin="0,2,12,8">

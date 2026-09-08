@@ -1,7 +1,7 @@
 using System.Text;
 using Avalonia.Input;
 
-namespace CxShell.Terminal;
+namespace FxShell.Terminal;
 
 [Flags]
 public enum KittyKeyboardFlags

@@ -1,4 +1,4 @@
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public enum VncDisplayMode
 {

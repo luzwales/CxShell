@@ -1,10 +1,10 @@
 using System.Net;
 using System.Net.Http;
-using CxShell.Models;
+using FxShell.Models;
 using Velopack;
 using Velopack.Sources;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public enum AppUpdateCheckStatus
 {
@@ -122,7 +122,7 @@ public sealed class AppUpdateService
         var userApplicationsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             "Applications",
-            "CxShell.app");
+            "FxShell.app");
 
         if (!OperatingSystem.IsMacOS())
         {
@@ -213,7 +213,7 @@ public sealed class AppUpdateService
             if (!Directory.Exists(directory))
                 return false;
 
-            var testFile = Path.Combine(directory, $".cxshell-write-test-{Guid.NewGuid():N}.tmp");
+            var testFile = Path.Combine(directory, $".fxshell-write-test-{Guid.NewGuid():N}.tmp");
             using (File.Create(testFile, 1, FileOptions.DeleteOnClose))
             {
             }

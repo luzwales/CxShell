@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using CxShell.Services;
+using FxShell.Services;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public sealed class CommandPaletteViewModel : INotifyPropertyChanged
 {

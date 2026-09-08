@@ -15,8 +15,8 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AtomUI.Theme.Resources;
-using CxShell.Services;
-using CxShell.ViewModels;
+using FxShell.Services;
+using FxShell.ViewModels;
 using AtomButton = AtomUI.Desktop.Controls.Button;
 using AtomContextMenu = AtomUI.Desktop.Controls.ContextMenu;
 using AtomDataGrid = AtomUI.Desktop.Controls.DataGrid;
@@ -26,7 +26,7 @@ using AtomMenuSeparator = AtomUI.Desktop.Controls.MenuSeparator;
 using AtomTextBox = AtomUI.Desktop.Controls.TextBox;
 using AtomWindow = AtomUI.Desktop.Controls.Window;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class SftpPanelView : UserControl
 {

@@ -7,15 +7,15 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class CommandLineHandoffService
 {
     private const int ConnectTimeoutMilliseconds = 350;
     private const int MaximumPayloadBytes = 64 * 1024;
     private static readonly string UserScope = BuildUserScope();
-    private static readonly string PipeName = $"CxShell.CommandLineLaunch.v1.{UserScope}";
-    private static readonly string MutexName = $"CxShell.CommandLineLaunch.Mutex.v1.{UserScope}";
+    private static readonly string PipeName = $"FxShell.CommandLineLaunch.v1.{UserScope}";
+    private static readonly string MutexName = $"FxShell.CommandLineLaunch.Mutex.v1.{UserScope}";
 
     public static bool TrySendToExistingInstance(string[] args)
     {

@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class RdpKeyboardShortcutSequences
 {

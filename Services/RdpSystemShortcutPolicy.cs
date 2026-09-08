@@ -1,4 +1,4 @@
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class RdpSystemShortcutPolicy
 {

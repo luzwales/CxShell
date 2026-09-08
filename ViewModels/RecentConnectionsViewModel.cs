@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CxShell.Models;
-using CxShell.Services;
+using FxShell.Models;
+using FxShell.Services;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public partial class RecentConnectionsViewModel : ObservableObject, IDisposable
 {

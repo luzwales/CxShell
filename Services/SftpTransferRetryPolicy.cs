@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 using System.Net.Sockets;
-using CxShell.Models;
+using FxShell.Models;
 using Renci.SshNet.Common;
 
-namespace CxShell.Services;
+namespace FxShell.Services;
 
 public static class SftpTransferRetryPolicy
 {

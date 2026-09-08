@@ -1,4 +1,4 @@
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 /// <summary>
 /// Global network access settings for the Agent. Web access is deliberately

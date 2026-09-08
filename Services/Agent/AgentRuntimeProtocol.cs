@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public static class AgentRuntimeMethodNames
 {
@@ -62,7 +62,7 @@ public static class AgentRuntimeErrorCodes
 
 public static class AgentRuntimeContract
 {
-    public const string Protocol = "cxshell-agent";
+    public const string Protocol = "fxshell-agent";
     public const string ProtocolVersion = "1";
     public const string RuntimeVersion = "0.1";
     public const int MaximumMessageCount = 64;

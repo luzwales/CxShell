@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace CxShell.Views;
+namespace FxShell.Views;
 
 public partial class ApplicationSettingsPage : UserControl
 {

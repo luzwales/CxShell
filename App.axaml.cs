@@ -9,12 +9,12 @@ using AtomUI.Desktop.Controls;
 using AtomUI.Theme;
 using AtomUI.Theme.Algorithms;
 using AtomUI.Theme.Configuration;
-using CxShell.Models;
-using CxShell.Services;
-using CxShell.ViewModels;
-using CxShell.Views;
+using FxShell.Models;
+using FxShell.Services;
+using FxShell.ViewModels;
+using FxShell.Views;
 
-namespace CxShell;
+namespace FxShell;
 
 public partial class App : Application
 {
@@ -79,7 +79,7 @@ public partial class App : Application
         if (!OperatingSystem.IsWindows() || desktop.MainWindow is not { } mainWindow)
             return;
 
-        var showWindowItem = new NativeMenuItem("显示 CxShell");
+        var showWindowItem = new NativeMenuItem("显示 FxShell");
         showWindowItem.Click += (_, _) => ShowMainWindow(desktop);
 
         var exitItem = new NativeMenuItem("退出");
@@ -93,7 +93,7 @@ public partial class App : Application
         _windowsTrayIcon = new TrayIcon
         {
             Icon = mainWindow.Icon,
-            ToolTipText = "CxShell",
+            ToolTipText = "FxShell",
             Menu = menu,
             IsVisible = true
         };
@@ -130,7 +130,7 @@ public partial class App : Application
 
         var aboutItem = new NativeMenuItem
         {
-            Header = "About CxShell"
+            Header = "About FxShell"
         };
         aboutItem.Click += (_, _) => ShowAboutFromApplicationMenu();
 

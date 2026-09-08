@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 public sealed record AgentCommandRequest
 {

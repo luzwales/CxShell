@@ -1,10 +1,10 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CxShell.Services.Agent;
+namespace FxShell.Services.Agent;
 
 /// <summary>
-/// Transport-neutral typed facade for CxShell's Agent Runtime JSON contract.
+/// Transport-neutral typed facade for FxShell's Agent Runtime JSON contract.
 /// It keeps the Runtime boundary independently testable and replaceable.
 /// </summary>
 public interface IAgentRuntimeClient
@@ -217,7 +217,7 @@ public sealed class AgentRuntimeClient : IAgentRuntimeClient
         if (string.IsNullOrWhiteSpace(normalized))
         {
             var next = Interlocked.Increment(ref _generatedRequestId);
-            normalized = $"cxshell-runtime-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{next}";
+            normalized = $"fxshell-runtime-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{next}";
         }
 
         if (normalized.Length > AgentRuntimeContract.MaximumRequestIdCharacters)

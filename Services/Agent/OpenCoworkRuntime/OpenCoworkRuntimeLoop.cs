@@ -1,11 +1,11 @@
-using CxShell.Services.Agent;
+using FxShell.Services.Agent;
 
-namespace CxShell.Services.Agent.OpenCoworkRuntime;
+namespace FxShell.Services.Agent.OpenCoworkRuntime;
 
 /// <summary>
 /// The small, host-independent part of OpenCoWork's Agent runtime.
 ///
-/// This is intentionally adapted to CxShell's model and tool contracts instead
+/// This is intentionally adapted to FxShell's model and tool contracts instead
 /// of depending on the OpenCoWork Worker process. The loop owns conversation
 /// progression and safety budgets; the host owns provider calls, tool policy,
 /// UI events, and session access.

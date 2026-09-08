@@ -1,9 +1,9 @@
 using System;
 using System.Threading;
-using CxShell.Services;
+using FxShell.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace CxShell.ViewModels;
+namespace FxShell.ViewModels;
 
 public enum SftpTransferDirection
 {

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using CxShell.Services;
+using FxShell.Services;
 
-namespace CxShell.Models;
+namespace FxShell.Models;
 
 public class CpuCoreInfo
 {
