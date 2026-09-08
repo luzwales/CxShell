@@ -16,7 +16,7 @@
              Height="800"
              MinWidth="600"
              MinHeight="400"
-             WindowState="Normal"
+             WindowState="Maximized"
              WindowStartupLocation="CenterScreen">
 
     <atom:Window.LogoTemplate>
@@ -26,6 +26,22 @@
     </atom:Window.LogoTemplate>
 
     <atom:Window.Styles>
+        <Style Selector="atom|Button.header-action-button">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="MinWidth" Value="40"/>
+            <Setter Property="MinHeight" Value="40"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="atom|Button.header-action-button /template/ Border#ShadowsFrame">
+            <Setter Property="BoxShadow" Value="0 0 0 0 Transparent"/>
+        </Style>
+        <Style Selector="atom|Button.header-action-button:pointerover">
+            <Setter Property="BorderBrush" Value="{atom:SharedTokenResource ColorPrimaryBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
         <Style Selector="Border.quick-session-bar-button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
@@ -217,7 +233,8 @@
         <Border Grid.Row="0" Padding="8,4"
                 IsVisible="{Binding IsMainChromeVisible}"
                 Background="{atom:SharedTokenResource ColorBgContainer}">
-            <StackPanel Orientation="Horizontal" Spacing="4">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
                 <atom:Button Command="{Binding NewSessionCommand}"
                              ButtonType="Default"
                              atom:ToolTip.Tip="{Binding NewSessionToolTip}"
@@ -326,52 +343,53 @@
                              atom:ToolTip.Placement="Bottom">
                     <atom:TextBlock Text="{Binding TabBarText}" VerticalAlignment="Center"/>
                 </atom:Button>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right">
                 <!-- 主题切换 -->
-                <Border Width="1" Background="{atom:SharedTokenResource ColorSplit}" Margin="8,4" Opacity="0.6"/>
-                <atom:Button ButtonType="Default" Command="{Binding ToggleThemeCommand}"
+                <atom:Button Classes="header-action-button"
+                             x:Name="SettingsButton"
+                             ButtonType="Default"
+                             Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
+                             Command="{Binding ShowApplicationSettingsCommand}"
+                             atom:ToolTip.Tip="{Binding SettingsToolTip}"
+                             atom:ToolTip.Placement="Bottom"/>
+                <atom:Button Classes="header-action-button"
+                             x:Name="TabArrangeButton"
+                             ButtonType="Default"
+                             Icon="{antdicons:AntDesignIconProvider Kind=LayoutOutlined}"
+                             Click="OnTabArrangeButtonClick"
+                             atom:ToolTip.Tip="{Binding ArrangeToolTip}"
+                             atom:ToolTip.Placement="Bottom"/>
+                <atom:Button Classes="header-action-button"
+                             ButtonType="Default"
+                             Command="{Binding ToggleThemeCommand}"
                              atom:ToolTip.Tip="{Binding ThemeToolTip}"
                              atom:ToolTip.Placement="Bottom">
                     <atom:TextBlock Text="{Binding ThemeIcon}" FontSize="14"
                                     TextAlignment="Center" VerticalAlignment="Center"/>
                 </atom:Button>
-                <atom:Button ButtonType="Default" Command="{Binding ToggleTerminalFullScreenCommand}"
-                             atom:ToolTip.Tip="{Binding FullScreenToolTip}"
-                             atom:ToolTip.Placement="Bottom">
-                    <atom:TextBlock Text="⛶"
-                                    FontSize="14"
-                                    Width="18"
-                                    TextAlignment="Center"
-                                    VerticalAlignment="Center"/>
-                </atom:Button>
-                 <atom:Button x:Name="TabArrangeButton"
-                              ButtonType="Default"
-                              Icon="{antdicons:AntDesignIconProvider Kind=LayoutOutlined}"
-                              Click="OnTabArrangeButtonClick"
-                              atom:ToolTip.Tip="{Binding ArrangeToolTip}"
-                              atom:ToolTip.Placement="Bottom">
-                    <atom:TextBlock Text="▾" FontSize="10" VerticalAlignment="Center" Opacity="0.75"/>
-                 </atom:Button>
-                <atom:Button x:Name="LanguageButton"
+                <atom:Button Classes="header-action-button"
+                             x:Name="LanguageButton"
                              ButtonType="Default"
                              Click="OnLanguageButtonClick"
                              atom:ToolTip.Tip="{Binding LanguageToolTip}"
                              atom:ToolTip.Placement="Bottom">
-                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <atom:TextBlock Text="{Binding LanguageIcon}"
-                                        FontSize="12"
-                                        FontWeight="Bold"
-                                        MinWidth="18"
-                                        TextAlignment="Center"
-                                        VerticalAlignment="Center"/>
-                        <atom:TextBlock Text="▾" FontSize="10" VerticalAlignment="Center" Opacity="0.75"/>
-                    </StackPanel>
+                    <atom:TextBlock Text="{Binding LanguageIcon}"
+                                    FontSize="12"
+                                    FontWeight="Bold"
+                                    TextAlignment="Center"
+                                    VerticalAlignment="Center"/>
                 </atom:Button>
-                 <atom:Button x:Name="SettingsButton"
-                              ButtonType="Default"
-                              Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
-                              Command="{Binding ShowApplicationSettingsCommand}"
-                              atom:ToolTip.Tip="{Binding SettingsToolTip}"
-                             atom:ToolTip.Placement="Bottom"/>
+                <atom:Button Classes="header-action-button"
+                             ButtonType="Default"
+                             Command="{Binding ToggleTerminalFullScreenCommand}"
+                             atom:ToolTip.Tip="{Binding FullScreenToolTip}"
+                             atom:ToolTip.Placement="Bottom">
+                    <atom:TextBlock Text="⛶"
+                                    FontSize="14"
+                                    TextAlignment="Center"
+                                    VerticalAlignment="Center"/>
+                </atom:Button>
                 <atom:Popup x:Name="LanguagePopup"
                             Placement="Bottom"
                             IsLightDismissEnabled="True">
@@ -455,7 +473,8 @@
                         </StackPanel>
                     </Border>
                 </atom:Popup>
-            </StackPanel>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- 状态栏 -->

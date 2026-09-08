@@ -61,8 +61,8 @@ public class TerminalControl : Control
     private Key _pendingTextInputKey = Key.None;
     private KeyModifiers _pendingTextInputModifiers;
     private TerminalKeyEventType _pendingTextInputEventType = TerminalKeyEventType.Press;
-    private const double ScrollbarWidth = 16;
-    private const double ScrollbarMinThumbHeight = 28;
+    private const double ScrollbarWidth = 12;
+    private const double ScrollbarMinThumbHeight = 20;
 
     public static readonly StyledProperty<TerminalBuffer?> TerminalBufferProperty =
         AvaloniaProperty.Register<TerminalControl, TerminalBuffer?>(nameof(TerminalBuffer));
@@ -862,19 +862,21 @@ public class TerminalControl : Control
 
     private void DrawScrollbar(DrawingContext context, TerminalBuffer buffer)
     {
-        if (!ShouldShowScrollbar(buffer))
+        if (!ShouldShowScrollbar(buffer) || (!_isPointerOverScrollbar && !_isDraggingScrollbar))
             return;
 
         var track = GetScrollbarTrackRect();
         var thumb = GetScrollbarThumbRect(buffer, track);
-        context.FillRectangle(
-            GetBrush(Color.FromArgb(90, 80, 86, 96)),
-            track);
-        context.FillRectangle(
+        context.DrawRectangle(
+            GetBrush(Color.FromArgb(80, 80, 86, 96)),
+            null,
+            new RoundedRect(track, 6));
+        context.DrawRectangle(
             GetBrush(_isDraggingScrollbar
                 ? Color.FromArgb(230, 150, 170, 205)
                 : Color.FromArgb(190, 120, 140, 175)),
-            thumb);
+            null,
+            new RoundedRect(thumb, 3));
     }
 
     private void LoadBackgroundImage()
@@ -1641,6 +1643,7 @@ public class TerminalControl : Control
         base.OnPointerExited(e);
         _isPointerOverScrollbar = false;
         _pointerHyperlinkUri = null;
+        InvalidateVisual();
         Cursor = new Cursor(StandardCursorType.Ibeam);
     }
 
@@ -2425,7 +2428,7 @@ public class TerminalControl : Control
         maxOffset = Math.Max(1, maxOffset);
         var topRatio = (maxOffset - _scrollOffset) / (double)maxOffset;
         var thumbY = track.Y + travel * topRatio;
-        return new Rect(track.X + 2, thumbY, Math.Max(4, track.Width - 4), thumbHeight);
+        return new Rect(track.X + 3, thumbY, Math.Max(4, track.Width - 6), thumbHeight);
     }
 
     private bool IsPointInScrollbar(Point point, TerminalBuffer buffer)
@@ -2444,6 +2447,7 @@ public class TerminalControl : Control
 
         _isPointerOverScrollbar = overScrollbar;
         _pointerHyperlinkUri = hyperlinkUri;
+        InvalidateVisual();
         Cursor = new Cursor(overScrollbar
             ? StandardCursorType.Arrow
             : hyperlinkUri != null ? StandardCursorType.Hand : StandardCursorType.Ibeam);

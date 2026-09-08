@@ -61,6 +61,8 @@
             <Setter Property="BoxShadow" Value="0 0 0 0 Transparent"/>
         </Style>
         <Style Selector="atom|InlineNavMenuItemHeader[Level=0]">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="Background" Value="{atom:SharedTokenResource ColorFillSecondary}"/>
             <Setter Property="CornerRadius" Value="6"/>
         </Style>
@@ -74,6 +76,8 @@
             <Setter Property="Background" Value="{atom:SharedTokenResource ColorPrimaryBg}"/>
         </Style>
         <Style Selector="atom|InlineNavMenuItemHeader[Level=1]">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="Background" Value="{atom:SharedTokenResource ColorFillQuaternary}"/>
             <Setter Property="CornerRadius" Value="6"/>
         </Style>
@@ -103,8 +107,10 @@
                                Foreground="{atom:SharedTokenResource ColorTextSecondary}"/>
                 </StackPanel>
                 <atom:NavMenu x:Name="SessionNavMenu"
+                              HorizontalAlignment="Stretch"
+                              Margin="0"
                               Mode="Inline"
-                              IsAccordionMode="False"
+                              IsAccordionMode="True"
                               DefaultOpenPaths="{Binding DefaultOpenNavPaths}"
                               DefaultSelectedPath="{Binding DefaultSelectedNavPath}"
                               NavMenuItemClick="OnSessionNavMenuItemClick">
