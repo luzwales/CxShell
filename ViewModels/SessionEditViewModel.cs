@@ -659,13 +659,8 @@ public partial class SessionEditViewModel : ObservableObject
     public ObservableCollection<ISelectOption> ProtocolOptions { get; } =
     [
         new SelectOption { Header = "SSH", Content = SessionProtocol.SSH.ToString() },
-        new SelectOption { Header = "TELNET", Content = SessionProtocol.TELNET.ToString() },
-        new SelectOption { Header = "RLOGIN", Content = SessionProtocol.RLOGIN.ToString() },
         new SelectOption { Header = "SFTP", Content = SessionProtocol.SFTP.ToString() },
-        new SelectOption { Header = "SERIAL", Content = SessionProtocol.SERIAL.ToString() },
-        new SelectOption { Header = "FTP", Content = SessionProtocol.FTP.ToString() },
-        new SelectOption { Header = "RDP", Content = SessionProtocol.RDP.ToString() },
-        new SelectOption { Header = "VNC", Content = SessionProtocol.VNC.ToString() }
+        new SelectOption { Header = "FTP", Content = SessionProtocol.FTP.ToString() }
     ];
     public ObservableCollection<ISelectOption> LoginScriptExecutionModeOptions { get; } =
     [

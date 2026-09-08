@@ -30,8 +30,6 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
     /// </summary>
     public Guid AgentSessionId { get; } = Guid.NewGuid();
     public TerminalViewModel Terminal { get; }
-    public VncViewModel? Vnc { get; }
-    public RdpViewModel? Rdp { get; }
     public SftpViewModel? FileTransfer { get; }
     public SftpViewModel CompanionSftp { get; }
     /// <summary>
@@ -40,15 +38,13 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
     /// </summary>
     public AgentSftpReadSession AgentSftpReadSession { get; } = new();
     public ServerMonitorViewModel Monitor { get; } = new();
-    public bool IsVncSession => Vnc != null;
-    public bool IsRdpSession => Rdp != null;
     public bool IsFileTransferSession => FileTransfer != null;
-    public bool IsTerminalSession => Vnc == null && Rdp == null && FileTransfer == null;
+    public bool IsTerminalSession => FileTransfer == null;
     public string KeyboardBroadcastReceiveText => LocalizationService.Shared.Text("Terminal.Broadcast.Receive");
     public IBrush ConnectionIndicatorBrush => new SolidColorBrush(IsConnected
         ? Color.Parse("#18C914")
         : Color.Parse("#F5222D"));
-    public string ConnectionIndicatorText => IsConnected ? "已连接" : "已断开";
+    public string ConnectionIndicatorText => IsConnected ? "Connected" : "Disconnected";
     public bool HasTabColor => !string.Equals(Session.AppearanceTabColorMode, "Default", StringComparison.OrdinalIgnoreCase);
     public bool HasTabIcon => !string.Equals(SessionTabIconCatalog.Normalize(Session.AppearanceTabIcon), SessionTabIconCatalog.Default, StringComparison.Ordinal);
     public PathIcon? TabIcon => SessionTabIconCatalog.CreateIcon(Session.AppearanceTabIcon);
@@ -57,7 +53,7 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         ? new SolidColorBrush(IsSelected ? ResolveTabColor() : ResolveMutedTabColor())
         : new SolidColorBrush(ResolveDefaultTabBackground());
 
-    /// <summary>仅内存保存，不持久化，用于监控独立 SSH 连接</summary>
+    /// <summary>浠呭唴瀛樹繚瀛橈紝涓嶆寔涔呭寲锛岀敤浜庣洃鎺х嫭�?SSH 杩炴�?/summary>
     public string? ConnectedPassword { get; set; }
 
     public event Action<TerminalTabViewModel>? CloseRequested;
@@ -66,35 +62,19 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
     public CancellationToken LifetimeToken => _lifetimeToken;
 
     public TerminalTabViewModel(SessionInfo session)
-        : this(session, null, null, null)
+        : this(session, null)
     {
     }
 
-    public TerminalTabViewModel(SessionInfo session, VncViewModel? vnc)
-        : this(session, vnc, null, null)
-    {
-    }
-
-    public TerminalTabViewModel(SessionInfo session, RdpViewModel rdp)
-        : this(session, null, rdp, null)
-    {
-    }
-
-    public TerminalTabViewModel(SessionInfo session, SftpViewModel fileTransfer)
-        : this(session, null, null, fileTransfer)
-    {
-    }
-
-    private TerminalTabViewModel(SessionInfo session, VncViewModel? vnc, RdpViewModel? rdp, SftpViewModel? fileTransfer)
+    public TerminalTabViewModel(SessionInfo session, SftpViewModel? fileTransfer)
     {
         _lifetimeToken = _lifetimeCancellation.Token;
         Session = session;
-        Vnc = vnc;
-        Rdp = rdp;
         FileTransfer = fileTransfer;
         CompanionSftp = new SftpViewModel();
         _title = session.Name;
         Terminal = new TerminalViewModel();
+
 
         Terminal.PropertyChanged += (s, e) =>
         {
@@ -114,34 +94,6 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
             }
         };
 
-        if (Vnc != null)
-        {
-            Vnc.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(VncViewModel.IsConnected))
-                {
-                    IsConnected = Vnc.IsConnected;
-                    NotifyConnectionIndicatorChanged();
-                }
-            };
-            IsConnected = Vnc.IsConnected;
-            NotifyConnectionIndicatorChanged();
-        }
-
-        if (Rdp != null)
-        {
-            Rdp.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(RdpViewModel.IsConnected))
-                {
-                    IsConnected = Rdp.IsConnected;
-                    NotifyConnectionIndicatorChanged();
-                }
-            };
-            IsConnected = Rdp.IsConnected;
-            NotifyConnectionIndicatorChanged();
-        }
-
         if (FileTransfer != null)
         {
             FileTransfer.PropertyChanged += (_, e) =>
@@ -159,8 +111,8 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
 
     private void NotifyConnectionIndicatorChanged()
     {
-        OnPropertyChanged(nameof(ConnectionIndicatorBrush));
         OnPropertyChanged(nameof(ConnectionIndicatorText));
+        OnPropertyChanged(nameof(ConnectionIndicatorBrush));
     }
 
     private void UpdateTitle()
@@ -168,7 +120,7 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         if (!Terminal.IsConnected && IsConnected)
         {
             // Was connected, now disconnected
-            Title = $"[断开] {Session.Name}";
+            Title = $"[Disconnected] {Session.Name}";
         }
         else if (Terminal.IsConnected &&
                  Session.TerminalAdvancedAllowTitleChange &&
@@ -262,24 +214,6 @@ public partial class TerminalTabViewModel : ObservableObject, IDisposable
         _lifetimeCancellation.Cancel();
         ConnectedPassword = null;
         Terminal.CloseDetached();
-
-        try
-        {
-            Vnc?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"VNC tab cleanup failed: {ex.Message}");
-        }
-
-        try
-        {
-            Rdp?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"RDP tab cleanup failed: {ex.Message}");
-        }
 
         if (FileTransfer != null)
             _ = DisposeFileTransferAsync(FileTransfer);

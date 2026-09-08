@@ -3734,9 +3734,6 @@ public partial class TerminalViewModel : ObservableObject
     {
         return session.Protocol switch
         {
-            SessionProtocol.TELNET => new TelnetConnectionService(),
-            SessionProtocol.RLOGIN => new RloginConnectionService(),
-            SessionProtocol.SERIAL => new SerialConnectionService(),
             SessionProtocol.Local => new LocalTerminalConnectionService(),
             _ => new SshConnectionService()
         };
@@ -3808,7 +3805,6 @@ public partial class TerminalViewModel : ObservableObject
     {
         return session.Protocol switch
         {
-            SessionProtocol.SERIAL => session.SerialPortName,
             SessionProtocol.Local => $"Local / {session.LocalTerminalProfile?.Name ?? session.Name}",
             _ => $"{session.Username}@{session.Host}:{session.Port}"
         };

@@ -13,8 +13,6 @@ public partial class TerminalTabGroupViewModel : ObservableObject
 
     public bool HasTabs => Tabs.Count > 0;
     public bool IsSelectedTerminalSession => SelectedTab?.IsTerminalSession == true;
-    public bool IsSelectedVncSession => SelectedTab?.IsVncSession == true;
-    public bool IsSelectedRdpSession => SelectedTab?.IsRdpSession == true;
     public bool IsSelectedFileTransferSession => SelectedTab?.IsFileTransferSession == true;
 
     public TerminalTabGroupViewModel()
@@ -48,8 +46,6 @@ public partial class TerminalTabGroupViewModel : ObservableObject
     partial void OnSelectedTabChanged(TerminalTabViewModel? value)
     {
         OnPropertyChanged(nameof(IsSelectedTerminalSession));
-        OnPropertyChanged(nameof(IsSelectedVncSession));
-        OnPropertyChanged(nameof(IsSelectedRdpSession));
         OnPropertyChanged(nameof(IsSelectedFileTransferSession));
     }
 }
