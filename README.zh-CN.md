@@ -58,7 +58,8 @@ dotnet test CxShell.Tests\CxShell.Tests.csproj
 代码合并到 `master` 后，GitHub Actions 会自动构建 Windows x64 发布包，包含：
 
 - **CxShell-Setup.exe**：Velopack 安装程序，包含开始菜单入口、卸载程序和更新元数据。
-- **CxShell-Portable.exe**：自包含单文件便携版，无需安装即可运行。
+- **CxShell-Portable.exe**：自包含单文件便携版，无需安装 .NET 即可运行。
+- **CxShell-Portable-FrameworkDependent.exe**：体积更小的单文件便携版，但要求目标机器安装 .NET 10 Desktop Runtime。
 - 更新器所需的 Velopack `RELEASES` 和包文件。
 
 也可以在本地生成同样的产物：
@@ -76,6 +77,7 @@ dotnet publish CxShell.csproj `
   /p:Version=$version `
   /p:PublishSingleFile=true `
   /p:IncludeNativeLibrariesForSelfExtract=true `
+  /p:EnableCompressionInSingleFile=true `
   /p:DebugType=none `
   /p:DebugSymbols=false
 
@@ -94,7 +96,7 @@ vpk pack `
 
 通过 `CxShell-Setup.exe` 安装的 Windows 版本使用 Velopack 检查 GitHub 最新 Release。自动检查默认开启，也可以在应用设置中关闭；用户还可以手动执行“检查更新”。更新下载完成后，CxShell 会通过 Velopack 重启并安全应用更新。
 
-在线更新只适用于安装版。便携版是独立文件，发布新版本后需要手动替换。
+在线更新只适用于安装版。自包含便携版是独立文件，发布新版本后需要手动替换；framework-dependent 便携版体积更小，但目标机器必须安装 .NET 10 Desktop Runtime。
 
 更新源为：
 

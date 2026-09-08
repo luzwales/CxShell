@@ -62,7 +62,8 @@ dotnet test CxShell.Tests\CxShell.Tests.csproj
 The GitHub Actions workflow builds Windows x64 packages automatically after changes reach `master`. It produces:
 
 - **CxShell-Setup.exe**: Velopack installer with Start Menu integration, uninstaller, and update metadata.
-- **CxShell-Portable.exe**: self-contained single-file executable that does not require installation.
+- **CxShell-Portable.exe**: self-contained single-file executable that does not require installation or .NET.
+- **CxShell-Portable-FrameworkDependent.exe**: smaller single-file executable that requires the .NET 10 Desktop Runtime.
 - Velopack `RELEASES` and package files used by the installed application's updater.
 
 To create the same artifacts locally:
@@ -80,6 +81,7 @@ dotnet publish CxShell.csproj `
   /p:Version=$version `
   /p:PublishSingleFile=true `
   /p:IncludeNativeLibrariesForSelfExtract=true `
+  /p:EnableCompressionInSingleFile=true `
   /p:DebugType=none `
   /p:DebugSymbols=false
 
@@ -98,7 +100,7 @@ vpk pack `
 
 Installed Windows builds use Velopack to check the latest GitHub Release. Automatic checks are enabled by default and can be disabled in application settings. A user can also start **Check for updates** manually. When an update is downloaded, CxShell restarts through Velopack and applies it safely.
 
-Online updates require the installed `CxShell-Setup.exe` edition. The portable executable is intentionally standalone and must be replaced manually when a new release is published.
+Online updates require the installed `CxShell-Setup.exe` edition. The self-contained portable executable is intentionally standalone and must be replaced manually when a new release is published. The framework-dependent portable executable is smaller, but requires the .NET 10 Desktop Runtime on the target machine.
 
 The update feed is the GitHub Release download endpoint:
 
