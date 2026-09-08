@@ -62,11 +62,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         SetSelectedProtocol();
         SetSelectedProxyOptions();
         SetSelectedSshOptions();
-        SetSelectedTelnetOptions();
-        SetSelectedRloginOptions();
-        SetSelectedSerialOptions();
-        SetSelectedRdpOptions();
-        SetSelectedVncOptions();
         SetSelectedSessionDefaultOptions();
         _isInitializingSelections = false;
         ProxySelect.SelectionChanged += OnProxySelectionChanged;
@@ -179,20 +174,14 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         var title = GetSessionCategoryTitle(key);
         PageTitleText.Text = title;
         ConnectionPage.IsVisible = key == "Connection";
-        LoginPromptPage.IsVisible = key == "LoginPrompt";
         SshPage.IsVisible = key == "Ssh";
         LoginScriptPage.IsVisible = key == "LoginScript";
         SshSecurityPage.IsVisible = key == "SshSecurity";
         SshTunnelPage.IsVisible = key == "SshTunnel";
         SshOtherPage.IsVisible = key == "SshOther";
-        TelnetPage.IsVisible = key == "Telnet";
         ProxyPage.IsVisible = key == "Proxy";
         KeepAlivePage.IsVisible = key == "KeepAlive";
-        RloginPage.IsVisible = key == "Rlogin";
         SftpPage.IsVisible = key == "SshSftp";
-        SerialPage.IsVisible = key == "Serial";
-        RdpPage.IsVisible = key == "Rdp";
-        VncPage.IsVisible = key == "Vnc";
         TracingPage.IsVisible = key == "Tracing";
         PlaceholderPage.IsVisible = !IsImplementedCategoryPage(key);
         PlaceholderTitleText.Text = title;
@@ -202,15 +191,9 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
     {
         return key is
             "Connection" or
-            "LoginPrompt" or
-            "LoginScript" or
+"LoginScript" or
             "Proxy" or
             "KeepAlive" or
-            "Telnet" or
-            "Rlogin" or
-            "Serial" or
-            "Rdp" or
-            "Vnc" or
             "Ssh" or
             "SshSecurity" or
             "SshTunnel" or
@@ -223,9 +206,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
             "Appearance" or
             "AppearanceWindow" or
             "AppearanceHighlight" or
-            "Transfer" or
-            "FileTransferXymodem" or
-            "FileTransferZmodem" or
             "Logging" or
             "Bell" or
             "Advanced" or
@@ -239,18 +219,12 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         {
             "Connection" => l.Text("SessionEdit.Connection"),
             "Auth" => l.Text("SessionEdit.UserAuth"),
-            "LoginPrompt" => l.Text("SessionEdit.LoginPrompt"),
             "LoginScript" => l.Text("SessionEdit.LoginScript"),
             "Ssh" => "SSH",
             "SshSecurity" => $"SSH > {l.Text("SessionEdit.Security")}",
             "SshTunnel" => $"SSH > {l.Text("SessionEdit.Tunnel")}",
             "SshSftp" => "SSH > SFTP (Secure File Transfer)",
             "SshOther" => $"SSH > {l.Text("SessionEdit.Monitor")}",
-            "Telnet" => "TELNET",
-            "Rlogin" => "RLOGIN",
-            "Serial" => l.Text("SessionEdit.Serial"),
-            "Rdp" => "RDP",
-            "Vnc" => "VNC",
             "Proxy" => l.Text("SessionEdit.Proxy"),
             "KeepAlive" => l.Text("SessionEdit.KeepAlive"),
             "Terminal" => l.Text("SessionEdit.Terminal"),
@@ -260,9 +234,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
             "Appearance" => l.Text("SessionEdit.Appearance"),
             "AppearanceWindow" => $"{l.Text("SessionEdit.Appearance")} > {l.Text("SessionEdit.Window")}",
             "AppearanceHighlight" => $"{l.Text("SessionEdit.Appearance")} > {l.Text("SessionEdit.Highlight")}",
-            "Transfer" => l.Text("SessionEdit.Transfer"),
-            "FileTransferXymodem" => $"{l.Text("SessionEdit.Transfer")} > {l.Text("SessionEdit.Xymodem")}",
-            "FileTransferZmodem" => $"{l.Text("SessionEdit.Transfer")} > {l.Text("SessionEdit.Zmodem")}",
             "Logging" => $"{l.Text("SessionEdit.Advanced")} > {l.Text("SessionEdit.Logging")}",
             "Bell" => $"{l.Text("SessionEdit.Advanced")} > {l.Text("SessionEdit.Bell")}",
             "Advanced" => l.Text("SessionEdit.Advanced"),
@@ -334,10 +305,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
             vm.SshKeyExchangeAlgorithms = GetSelectedAlgorithmText(SshKeyExchangeSelect, vm.SshKeyExchangeAlgorithms);
             vm.SshX11UseXmanager = SshX11XmanagerButton.IsChecked == true;
             vm.SshX11Display = SshX11DisplayBox?.Text ?? vm.SshX11Display;
-            vm.TelnetXDisplayLocation = TelnetXDisplayLocationBox?.Text ?? vm.TelnetXDisplayLocation;
-            vm.TelnetOptionMode = TelnetActiveOptionButton.IsChecked == true ? "Active" : "Passive";
-            vm.TelnetUsernamePrompt = TelnetUsernamePromptBox?.Text ?? vm.TelnetUsernamePrompt;
-            vm.TelnetPasswordPrompt = TelnetPasswordPromptBox?.Text ?? vm.TelnetPasswordPrompt;
             vm.LoginScriptFilePath = LoginScriptFilePathBox?.Text ?? vm.LoginScriptFilePath;
             if (Enum.TryParse<LoginScriptExecutionMode>(
                     GetSelectedOptionText(LoginScriptExecutionModeSelect, vm.LoginScriptExecutionMode.ToString()),
@@ -346,31 +313,9 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
             {
                 vm.LoginScriptExecutionMode = loginScriptExecutionMode;
             }
-            vm.RloginPasswordPrompt = RloginPasswordPromptBox?.Text ?? vm.RloginPasswordPrompt;
-            vm.RloginTerminalSpeed = GetSelectedOptionText(RloginTerminalSpeedSelect, vm.RloginTerminalSpeed);
             vm.SftpLocalStartDirectory = SftpLocalStartDirectoryBox?.Text ?? vm.SftpLocalStartDirectory;
             vm.SftpRemoteStartDirectory = SftpRemoteStartDirectoryBox?.Text ?? vm.SftpRemoteStartDirectory;
             vm.SftpCustomServerCommand = SftpCustomServerCommandBox?.Text ?? vm.SftpCustomServerCommand;
-            vm.SerialPortName = GetSelectedOptionText(SerialPortSelect, vm.SerialPortName);
-            vm.SerialBaudRate = GetSelectedOptionText(SerialBaudRateSelect, vm.SerialBaudRate);
-            vm.SerialDataBits = GetSelectedOptionText(SerialDataBitsSelect, vm.SerialDataBits);
-            vm.SerialStopBits = GetSelectedOptionText(SerialStopBitsSelect, vm.SerialStopBits);
-            vm.SerialParity = GetSelectedOptionText(SerialParitySelect, vm.SerialParity);
-            vm.SerialFlowControl = GetSelectedOptionText(SerialFlowControlSelect, vm.SerialFlowControl);
-            vm.RdpWindowSize = GetSelectedOptionText(RdpWindowSizeSelect, vm.RdpWindowSize);
-            ApplyRdpPresetSize(vm);
-            vm.RdpDesktopWidth = RdpWidthBox?.Text ?? vm.RdpDesktopWidth;
-            vm.RdpDesktopHeight = RdpHeightBox?.Text ?? vm.RdpDesktopHeight;
-            vm.RdpResizeMode = GetSelectedOptionText(RdpResizeModeSelect, vm.RdpResizeMode);
-            vm.RdpScreenScale = GetSelectedOptionText(RdpScreenScaleSelect, vm.RdpScreenScale);
-            vm.RdpColorQuality = GetSelectedOptionText(RdpColorQualitySelect, vm.RdpColorQuality);
-            vm.RdpAudioMode = GetSelectedOptionText(RdpAudioModeSelect, vm.RdpAudioMode);
-            vm.VncDisplayMode = GetSelectedOptionText(VncDisplayModeSelect, vm.VncDisplayMode);
-            vm.VncResizeMode = GetSelectedOptionText(VncResizeModeSelect, vm.VncResizeMode);
-            vm.VncCursorMode = GetSelectedOptionText(VncCursorModeSelect, vm.VncCursorMode);
-            vm.VncClipboardMode = GetSelectedOptionText(VncClipboardModeSelect, vm.VncClipboardMode);
-            vm.VncEncodingProfile = GetSelectedOptionText(VncEncodingProfileSelect, vm.VncEncodingProfile);
-            vm.VncJpegSubsampling = GetSelectedOptionText(VncJpegSubsamplingSelect, vm.VncJpegSubsampling);
             vm.TerminalType = GetSelectedOptionText(SessionTerminalTypeSelect, vm.TerminalType);
             vm.TerminalEncoding = GetSelectedOptionText(SessionTerminalEncodingSelect, vm.TerminalEncoding);
             vm.TerminalSendLineEnding = GetSelectedOptionText(SessionTerminalSendLineEndingSelect, vm.TerminalSendLineEnding);
@@ -648,15 +593,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
             vm.FileTransferUploadDirectory = directory;
     }
 
-    private async void OnBrowseRdpDriveDirectoryClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
-
-        var directory = await PickFolderAsync(T("Dialog.FilePicker.RdpDriveDirectory"), vm.RdpDrivePath);
-        if (!string.IsNullOrWhiteSpace(directory))
-            vm.RdpDrivePath = directory;
-    }
 
     private void OnOpenFileTransferUploadDirectoryClick(object? sender, RoutedEventArgs e)
     {
@@ -819,7 +755,7 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         var allCommandsItem = new AtomUI.Desktop.Controls.TreeViewItem
         {
             Header = T("Dialog.QuickCommandSet.AllCommands"),
-            Value = "<<所有命令>>",
+            Value = "<<閹碘偓閺堝鎳℃禒?>",
             IsExpanded = true
         };
 
@@ -844,8 +780,8 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         var normalizedCurrent = current?.Trim();
         if (string.Equals(normalizedCurrent, "Default Quick Command Set", StringComparison.OrdinalIgnoreCase))
             defaultSetItem.IsSelected = true;
-        else if (string.Equals(normalizedCurrent, "<<所有命令>>", StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(normalizedCurrent, "所有命令", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(normalizedCurrent, "<<All Commands>>", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(normalizedCurrent, "All Commands", StringComparison.OrdinalIgnoreCase))
             allCommandsItem.IsSelected = true;
         else
             defaultSetItem.IsSelected = true;
@@ -1483,18 +1419,9 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         if (vm.IsSerialPortInvalid)
         {
             ShowCategoryPage("Serial");
-            SerialPortSelect.Focus();
         }
     }
 
-    private void SetSelectedTelnetOptions()
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
-
-        TelnetActiveOptionButton.IsChecked = string.Equals(vm.TelnetOptionMode, "Active", StringComparison.OrdinalIgnoreCase);
-        TelnetPassiveOptionButton.IsChecked = TelnetActiveOptionButton.IsChecked != true;
-    }
 
     private void SetSelectedSshOptions()
     {
@@ -2168,13 +2095,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         return result;
     }
 
-    private void SetSelectedRloginOptions()
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
-
-        SelectOption(RloginTerminalSpeedSelect, vm.RloginTerminalSpeed);
-    }
 
     private static AtomUI.Desktop.Controls.ColorPicker CreateAppearanceColorPicker(
         Avalonia.Media.Color color,
@@ -2605,43 +2525,8 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         SelectAlgorithmOption(SshKeyExchangeSelect, vm.SshKeyExchangeAlgorithms);
     }
 
-    private void SetSelectedSerialOptions()
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
 
-        SelectOption(SerialPortSelect, vm.SerialPortName);
-        SelectOption(SerialBaudRateSelect, vm.SerialBaudRate);
-        SelectOption(SerialDataBitsSelect, vm.SerialDataBits);
-        SelectOption(SerialStopBitsSelect, vm.SerialStopBits);
-        SelectOption(SerialParitySelect, vm.SerialParity);
-        SelectOption(SerialFlowControlSelect, vm.SerialFlowControl);
-    }
 
-    private void SetSelectedRdpOptions()
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
-
-        SelectOption(RdpWindowSizeSelect, vm.RdpWindowSize);
-        SelectOption(RdpResizeModeSelect, vm.RdpResizeMode);
-        SelectOption(RdpScreenScaleSelect, vm.RdpScreenScale);
-        SelectOption(RdpColorQualitySelect, vm.RdpColorQuality);
-        SelectOption(RdpAudioModeSelect, vm.RdpAudioMode);
-    }
-
-    private void SetSelectedVncOptions()
-    {
-        if (DataContext is not SessionEditViewModel vm)
-            return;
-
-        SelectOption(VncDisplayModeSelect, vm.VncDisplayMode);
-        SelectOption(VncResizeModeSelect, vm.VncResizeMode);
-        SelectOption(VncCursorModeSelect, vm.VncCursorMode);
-        SelectOption(VncClipboardModeSelect, vm.VncClipboardMode);
-        SelectOption(VncEncodingProfileSelect, vm.VncEncodingProfile);
-        SelectOption(VncJpegSubsamplingSelect, vm.VncJpegSubsampling);
-    }
 
     private void SetSelectedSessionDefaultOptions()
     {
@@ -2668,19 +2553,6 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
         ApplyAppearancePreviewTextOptions(vm.AppearanceFontQuality);
     }
 
-    private void ApplyRdpPresetSize(SessionEditViewModel vm)
-    {
-        var size = vm.RdpWindowSize;
-        if (!size.Contains('x', StringComparison.OrdinalIgnoreCase))
-            return;
-
-        var parts = size.Split('x');
-        if (parts.Length != 2)
-            return;
-
-        RdpWidthBox.Text = parts[0];
-        RdpHeightBox.Text = parts[1];
-    }
 
     private static void SelectOption(Select select, string value)
     {
@@ -2950,7 +2822,7 @@ public partial class SessionEditDialog : AtomUI.Desktop.Controls.Window
     {
         var options = new ObservableCollection<ISelectOption>
         {
-            new SelectOption { Header = "<无>", Content = "None" }
+            new SelectOption { Header = "<閺?", Content = "None" }
         };
         foreach (var proxy in proxies.Where(proxy =>
                      proxy.Id != editingProxyId &&

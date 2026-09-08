@@ -138,17 +138,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool CanArrangeTabs => Tabs.Count >= 2;
     public bool CanMergeTabGroups => IsTabArrangementEnabled;
     public bool IsSelectedTerminalSession => SelectedTab?.IsTerminalSession == true;
-    public bool IsSelectedVncSession => SelectedTab?.IsVncSession == true;
-    public bool IsSelectedRdpSession => SelectedTab?.IsRdpSession == true;
     public bool IsSelectedFileTransferSession => SelectedTab?.IsFileTransferSession == true;
-    public bool IsSelectedVncToolbarVisible => SelectedTab?.IsVncSession == true &&
-                                               SelectedTab.Session.VncShowToolbarButtons;
-    public bool IsSelectedRdpToolbarVisible => SelectedTab?.IsRdpSession == true;
 
     public ServerMonitorViewModel Monitor => SelectedTab?.Monitor ?? _emptyMonitor;
     public ObservableCollection<SessionInfo> QuickSessions => _sessionTreeVm.QuickSessions;
     public string ThemeIcon => IsDarkMode ? "\u263E" : "\u2600";
-    public string LanguageIcon => _localization.IsEnglish ? "En" : "中";
+    public string LanguageIcon => _localization.IsEnglish ? "En" : "Zh";
     public string NewSessionText => _localization.Text("Toolbar.New");
     public string NewSessionToolTip => _localization.Text("Toolbar.NewTip");
     public string SessionManagerText => _localization.Text("Toolbar.Sessions");
@@ -1250,21 +1245,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         NotifySelectedContentVisibilityChanged();
         OnPropertyChanged(nameof(Monitor));
-        if (value?.Vnc != null)
-        {
-            if (IsSftpVisible)
-                IsSftpVisible = false;
-            if (IsMonitorVisible)
-                IsMonitorVisible = false;
-        }
-        if (value?.Rdp != null)
-        {
-            if (IsSftpVisible)
-                IsSftpVisible = false;
-            if (IsMonitorVisible)
-                IsMonitorVisible = false;
-        }
-        if (value?.FileTransfer != null)
+        if (IsSftpVisible)
+            IsSftpVisible = false;
+        if (IsMonitorVisible)
+            IsMonitorVisible = false;if (value?.FileTransfer != null)
         {
             if (IsSftpVisible)
                 IsSftpVisible = false;
@@ -1312,11 +1296,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void NotifySelectedContentVisibilityChanged()
     {
         OnPropertyChanged(nameof(IsSelectedTerminalSession));
-        OnPropertyChanged(nameof(IsSelectedVncSession));
-        OnPropertyChanged(nameof(IsSelectedRdpSession));
         OnPropertyChanged(nameof(IsSelectedFileTransferSession));
-        OnPropertyChanged(nameof(IsSelectedVncToolbarVisible));
-        OnPropertyChanged(nameof(IsSelectedRdpToolbarVisible));
     }
 
     partial void OnIsMonitorVisibleChanged(bool value)
@@ -1489,8 +1469,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (tab == null ||
             tab.IsDisposed ||
             !Tabs.Contains(tab) ||
-            tab.Vnc != null ||
-            tab.Rdp != null ||
             !tab.Terminal.IsConnected ||
             tab.Session.Protocol != SessionProtocol.SSH)
         {
@@ -1599,8 +1577,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         if (tab == null ||
             tab.IsDisposed ||
             !Tabs.Contains(tab) ||
-            tab.Vnc != null ||
-            tab.Rdp != null ||
             tab.FileTransfer != null ||
             !tab.Terminal.IsConnected ||
             tab.Session.Protocol != SessionProtocol.SSH)
@@ -1743,7 +1719,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 items,
                 recentSessionsCategory,
                 recentSession,
-                $"{connectHint} · {entry.LocalTimestamp:MM-dd HH:mm}");
+                $"{connectHint} 路 {entry.LocalTimestamp:MM-dd HH:mm}");
         }
 
         foreach (var session in sessions.Where(session => !recentSessionIds.Contains(session.Id)))
@@ -1758,7 +1734,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 LocalTerminalPaletteCategory,
                 profile.Name,
                 () => _ = OpenLocalTerminalAsync(capturedProfile),
-                $"{LocalTerminalPaletteHint} · {profile.ExecutablePath}"));
+                $"{LocalTerminalPaletteHint} 路 {profile.ExecutablePath}"));
         }
 
         var selectedTab = SelectedTab;
@@ -1771,7 +1747,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                     quickCommandsCategory,
                     quickCommand.Name,
                     () => ExecuteQuickCommand(selectedTab, capturedCommand),
-                    $"{executeHint} · {quickCommand.CommandText}"));
+                    $"{executeHint} 路 {quickCommand.CommandText}"));
             }
         }
 
@@ -1809,7 +1785,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             category,
             title,
             () => _ = ConnectSession(capturedSession),
-            $"{connectHint} · {endpoint}",
+            $"{connectHint} 路 {endpoint}",
             session.Protocol.ToString(),
             isSession: true));
     }
@@ -2026,26 +2002,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void UpdateStatusBar()
     {
-        if (SelectedTab?.Vnc is { } vnc)
-        {
-            ConnectionStatusText = vnc.IsConnected ? "VNC connected" : "VNC disconnected";
-            ConnectionStatusColor = new SolidColorBrush(vnc.IsConnected ? Color.Parse("#52C41A") : Colors.Gray);
-            ConnectedHostInfo = $"{SelectedTab.Session.Host}:{(SelectedTab.Session.Port > 0 ? SelectedTab.Session.Port : 5900)}";
-            TerminalSizeText = vnc.RemoteWidth > 0 && vnc.RemoteHeight > 0
-                ? $"{vnc.RemoteWidth}x{vnc.RemoteHeight}"
-                : string.Empty;
-            return;
-        }
-
-        if (SelectedTab?.Rdp is { } rdp)
-        {
-            ConnectionStatusText = rdp.IsConnected ? "RDP connected" : rdp.StatusText;
-            ConnectionStatusColor = new SolidColorBrush(rdp.IsConnected ? Color.Parse("#52C41A") : Colors.Gray);
-            ConnectedHostInfo = BuildRdpHostInfo(SelectedTab.Session);
-            TerminalSizeText = string.Empty;
-            return;
-        }
-
         if (SelectedTab?.FileTransfer is { } fileTransfer)
         {
             ConnectionStatusText = fileTransfer.IsConnected
@@ -2074,14 +2030,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void UpdateTerminalSize()
     {
-        if (SelectedTab?.Vnc is { } vnc)
-        {
-            TerminalSizeText = vnc.RemoteWidth > 0 && vnc.RemoteHeight > 0
-                ? $"{vnc.RemoteWidth}x{vnc.RemoteHeight}"
-                : string.Empty;
-            return;
-        }
-
         if (SelectedTab?.FileTransfer != null)
         {
             TerminalSizeText = string.Empty;
@@ -2241,7 +2189,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             tab.Title = tab.Session.Name;
             tab.NotifyThemeChanged();
             tab.Terminal.RefreshSessionOptions();
-            tab.Vnc?.RefreshSessionOptions(tab.Session);
             UpdateMonitor(tab);
         }
     }
@@ -2449,21 +2396,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         {
             await ConnectFileTransferSession(session, passwordOverride);
             return;
-        }
-
-        if (session.Protocol == SessionProtocol.RDP)
-        {
-            await ConnectRdpSession(session, passwordOverride);
-            return;
-        }
-
-        if (session.Protocol == SessionProtocol.VNC)
-        {
-            await ConnectVncSession(session, passwordOverride);
-            return;
-        }
-
-        if (session.Protocol is not (SessionProtocol.SSH or SessionProtocol.TELNET or SessionProtocol.RLOGIN or SessionProtocol.SERIAL or SessionProtocol.Local))
+        }        if (session.Protocol is not (SessionProtocol.SSH or SessionProtocol.Local))
         {
             ConnectionStatusText = $"Protocol {session.Protocol} does not support terminal connection yet";
             ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
@@ -2474,7 +2407,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             ? GetSavedPassword(session)
             : passwordOverride;
 
-        if (session.Protocol is SessionProtocol.SSH or SessionProtocol.TELNET or SessionProtocol.RLOGIN &&
+        if (session.Protocol is SessionProtocol.SSH &&
             string.IsNullOrEmpty(password) &&
             SshAgentAuthService.ShouldPromptForPassword(session))
         {
@@ -2520,41 +2453,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FF4D4F"));
         }
     }
-
-    private async Task ConnectRdpSession(SessionInfo session, string? passwordOverride)
-    {
-        var password = string.IsNullOrEmpty(passwordOverride)
-            ? GetSavedPassword(session)
-            : passwordOverride;
-        if (string.IsNullOrEmpty(password))
-            password = await ShowPasswordDialog(session);
-
-        if (password == null)
-            return;
-
-        var rdp = new RdpViewModel(session, password);
-        var tab = new TerminalTabViewModel(session, rdp);
-        tab.CloseRequested += CloseTab;
-        tab.PropertyChanged += OnTerminalTabPropertyChanged;
-        AddTabToActiveGroup(tab);
-        SelectedTab = tab;
-        RecordAudit(session, ConnectionAuditEventType.ConnectStarted);
-
-        IsTerminalFullScreen = false;
-        ConnectionStatusText = "RDP ready";
-        ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
-        ConnectedHostInfo = BuildRdpHostInfo(session);
-    }
-
-    private static string BuildRdpHostInfo(SessionInfo session)
-    {
-        var host = string.IsNullOrWhiteSpace(session.Host) ? "RDP" : session.Host.Trim();
-        var port = session.Port > 0 ? session.Port : 3389;
-        return string.IsNullOrWhiteSpace(session.Username)
-            ? $"{host}:{port}"
-            : $"{session.Username}@{host}:{port}";
-    }
-
     private static string BuildFileTransferHostInfo(SessionInfo session)
     {
         var host = string.IsNullOrWhiteSpace(session.Host) ? session.Protocol.ToString() : session.Host.Trim();
@@ -2563,63 +2461,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             ? $"{host}:{port}"
             : $"{session.Username}@{host}:{port}";
     }
-
-    private static string BuildVncHostInfo(SessionInfo session)
-    {
-        var host = string.IsNullOrWhiteSpace(session.Host) ? "VNC" : session.Host.Trim();
-        var port = session.Port > 0 ? session.Port : 5900;
-        if (!session.VncUseSshTunnel)
-            return $"{host}:{port}";
-
-        var sshHost = string.IsNullOrWhiteSpace(session.VncSshHost) ? host : session.VncSshHost.Trim();
-        var sshPort = session.VncSshPort is >= 1 and <= 65535 ? session.VncSshPort : 22;
-        var remoteHost = string.IsNullOrWhiteSpace(session.VncSshRemoteHost) ? host : session.VncSshRemoteHost.Trim();
-        var remotePort = session.VncSshRemotePort is >= 1 and <= 65535 ? session.VncSshRemotePort : port;
-        return $"{remoteHost}:{remotePort} via SSH {sshHost}:{sshPort}";
-    }
-
-    private async Task ConnectVncSession(SessionInfo session, string? passwordOverride)
-    {
-        var password = string.IsNullOrEmpty(passwordOverride)
-            ? GetSavedPassword(session)
-            : passwordOverride;
-        if (string.IsNullOrEmpty(password))
-            password = await ShowPasswordDialog(session);
-        if (password == null)
-            return;
-
-        var vm = new VncViewModel();
-        var tab = new TerminalTabViewModel(session, vm);
-        tab.CloseRequested += CloseTab;
-        tab.PropertyChanged += OnTerminalTabPropertyChanged;
-        AddTabToActiveGroup(tab);
-        SelectedTab = tab;
-        IsSftpVisible = false;
-        IsMonitorVisible = false;
-        RecordAudit(session, ConnectionAuditEventType.ConnectStarted);
-
-        try
-        {
-            ConnectionStatusText = "VNC connecting...";
-            ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
-            ConnectedHostInfo = BuildVncHostInfo(session);
-            await vm.ConnectAsync(session, password);
-            if (tab.IsDisposed || !Tabs.Contains(tab))
-                return;
-
-            ConnectionStatusText = "VNC connected";
-            ConnectionStatusColor = new SolidColorBrush(Color.Parse("#52C41A"));
-            UpdateTerminalSize();
-        }
-        catch (Exception ex)
-        {
-            RecordAudit(session, ConnectionAuditEventType.Failed, ex.Message);
-            ConnectionStatusText = $"VNC failed: {ex.Message}";
-            ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FF4D4F"));
-            vm.StatusText = $"VNC failed: {ex.Message}";
-        }
-    }
-
     private async Task ConnectFileTransferSession(SessionInfo session, string? passwordOverride)
     {
         string? password = string.IsNullOrEmpty(passwordOverride)
@@ -2701,8 +2542,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             !tab.CompanionSftp.IsConnected ||
             tab.Session.Protocol != SessionProtocol.SSH ||
             !tab.Session.SftpFollowTerminalDirectory ||
-            tab.Vnc != null ||
-            tab.Rdp != null ||
             tab.FileTransfer != null)
         {
             return;
@@ -3237,11 +3076,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void Disconnect()
     {
-        if (SelectedTab?.Vnc != null)
-            SelectedTab.Vnc.Disconnect();
-        else if (SelectedTab?.Rdp != null)
-            SelectedTab.Rdp.Disconnect();
-        else if (SelectedTab?.FileTransfer != null)
+        if (SelectedTab?.FileTransfer != null)
             SelectedTab.FileTransfer.StopBrowsing();
         else
         {
@@ -3254,12 +3089,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private bool CanCurrentConnect()
     {
         return SelectedTab != null &&
-               (SelectedTab.Vnc != null
-                   ? !SelectedTab.Vnc.IsConnected
-                   : SelectedTab.Rdp != null
-                       ? !SelectedTab.Rdp.IsConnected
-                   : SelectedTab.FileTransfer != null
-                       ? !SelectedTab.FileTransfer.IsConnected
+               (SelectedTab.FileTransfer != null
+                   ? !SelectedTab.FileTransfer.IsConnected
                    : !SelectedTab.Terminal.IsConnected);
     }
 
@@ -3271,46 +3102,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
 
         RecordAudit(tab.Session, ConnectionAuditEventType.ConnectStarted);
-
-        if (tab.Vnc != null)
-        {
-            if (tab.Vnc.IsConnected)
-                return;
-
-            var vncPassword = tab.ConnectedPassword ?? GetSavedPassword(tab.Session) ?? await ShowPasswordDialog(tab.Session);
-            if (vncPassword == null)
-                return;
-
-            try
-            {
-                ConnectionStatusText = "VNC connecting...";
-                ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
-                await tab.Vnc.ConnectAsync(tab.Session, vncPassword);
-                tab.ConnectedPassword = vncPassword;
-                UpdateStatusBar();
-                UpdateTerminalSize();
-            }
-            catch (Exception ex)
-            {
-                RecordAudit(tab.Session, ConnectionAuditEventType.Failed, ex.Message);
-                ConnectionStatusText = $"VNC failed: {ex.Message}";
-                ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FF4D4F"));
-            }
-
-            return;
-        }
-
-        if (tab.Rdp != null)
-        {
-            if (tab.Rdp.IsConnected)
-                return;
-
-            ConnectionStatusText = "RDP connecting...";
-            ConnectionStatusColor = new SolidColorBrush(Color.Parse("#FAAD14"));
-            tab.Rdp.Reconnect();
-            UpdateStatusBar();
-            return;
-        }
 
         if (tab.FileTransfer != null)
         {
@@ -3341,7 +3132,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
 
         var password = tab.ConnectedPassword ?? GetSavedPassword(tab.Session);
-        if (tab.Session.Protocol is SessionProtocol.SSH or SessionProtocol.TELNET or SessionProtocol.RLOGIN &&
+        if (tab.Session.Protocol is SessionProtocol.SSH &&
             SshAgentAuthService.ShouldPromptForPassword(tab.Session) &&
             password == null)
         {
@@ -3374,20 +3165,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private bool CanCurrentDisconnect()
     {
-        return SelectedTab?.Vnc?.IsConnected == true ||
-               SelectedTab?.Rdp?.IsConnected == true ||
-               SelectedTab?.FileTransfer?.IsConnected == true ||
+        return SelectedTab?.FileTransfer?.IsConnected == true ||
                SelectedTab?.Terminal.IsConnected == true;
     }
 
     [RelayCommand(CanExecute = nameof(CanCurrentDisconnect))]
     private void CurrentDisconnect()
     {
-        if (SelectedTab?.Vnc != null)
-            SelectedTab.Vnc.Disconnect();
-        else if (SelectedTab?.Rdp != null)
-            SelectedTab.Rdp.Disconnect();
-        else if (SelectedTab?.FileTransfer != null)
+        if (SelectedTab?.FileTransfer != null)
             SelectedTab.FileTransfer.StopBrowsing();
         else
         {

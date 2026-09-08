@@ -135,7 +135,7 @@ public partial class MainWindow : Window
     {
         base.OnLoaded(e);
         StartCommandLineHandoffServer();
-        StartRdpSmokeIfRequested();
+        // StartRdpSmokeIfRequested();
         HandleCommandLineLaunchIfRequested();
         ShowSessionManagerOnStartupIfNeeded();
         if (DataContext is MainWindowViewModel vm)
@@ -208,8 +208,8 @@ public partial class MainWindow : Window
         if (TryHandleQuickCommandShortcut(e))
             return;
 
-        if (TryHandleVncPasteShortcut(e))
-            return;
+        // if (TryHandleVncPasteShortcut(e))
+        //     return;
 
         if (e.Key != Key.Escape)
             return;
@@ -338,7 +338,7 @@ public partial class MainWindow : Window
         return true;
     }
 
-    private bool TryHandleVncPasteShortcut(KeyEventArgs e)
+    /* private bool TryHandleVncPasteShortcut(KeyEventArgs e)
     {
         if (DataContext is not MainWindowViewModel { SelectedTab.Vnc: { } vnc } ||
             e.Key != Key.V ||
@@ -349,7 +349,7 @@ public partial class MainWindow : Window
         }
 
         e.Handled = true;
-        _ = PasteLocalClipboardToVncAsync(vnc);
+        // _ = PasteLocalClipboardToVncAsync(vnc);
         return true;
     }
 
@@ -366,7 +366,7 @@ public partial class MainWindow : Window
         {
             // Clipboard access can fail on some desktop backends.
         }
-    }
+    } */
 
     private void OnQuickSessionTagPointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -930,24 +930,24 @@ public partial class MainWindow : Window
 
     private async void OnSendRemoteClipboardClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel { SelectedTab.Vnc: { } vnc })
-            return;
+        // if (DataContext is not MainWindowViewModel { SelectedTab.Vnc: { } vnc })
+        //    return;
 
         var clipboard = Avalonia.Controls.TopLevel.GetTopLevel(this)?.Clipboard;
         var text = clipboard == null ? null : await clipboard.TryGetTextAsync();
         if (!string.IsNullOrEmpty(text))
-            await vnc.SendClipboardTextAndPasteAsync(text);
+            /* await vnc.SendClipboardTextAndPasteAsync(text); */ return;
     }
 
     private async void OnSendRemoteCtrlAltDelClick(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainWindowViewModel { SelectedTab.Vnc: { } vnc })
-            return;
+        // if (DataContext is not MainWindowViewModel { SelectedTab.Vnc: { } vnc })
+        //    return;
 
-        await vnc.SendCtrlAltDeleteAsync();
+        /* await vnc.SendCtrlAltDeleteAsync(); */
     }
 
-    private async void OnSendRdpCtrlAltDelClick(object? sender, RoutedEventArgs e)
+    /* private async void OnSendRdpCtrlAltDelClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel { SelectedTab.Rdp: { } rdp })
             await rdp.SendCtrlAltDeleteAsync();
@@ -971,7 +971,7 @@ public partial class MainWindow : Window
         AddMenuItem(menu, T("Rdp.Keyboard.TaskManager"), () => _ = rdp.SendTaskManagerAsync(), enabled);
         AddMenuItem(menu, T("Rdp.Keyboard.PrintScreen"), () => _ = rdp.SendPrintScreenAsync(), enabled);
         menu.Open(anchor);
-    }
+    } */
 
     private static string T(string key)
     {
@@ -1322,7 +1322,7 @@ public partial class MainWindow : Window
             vm.AddCurrentSessionToQuickBarCommand.Execute(null);
     }
 
-    private void StartRdpSmokeIfRequested()
+    /* private void StartRdpSmokeIfRequested()
     {
         if (Array.IndexOf(_startupArgs, "--rdp-smoke") < 0 ||
             DataContext is not MainWindowViewModel vm)
@@ -1355,11 +1355,11 @@ public partial class MainWindow : Window
 
             await vm.ConnectSession(session);
         });
-    }
+    } */
 
     private void ShowSessionManagerOnStartupIfNeeded()
     {
-        if (Array.IndexOf(_startupArgs, "--rdp-smoke") >= 0 ||
+        if (/* Array.IndexOf(_startupArgs, "--rdp-smoke") >= 0 || */
             _startupLaunchOptions.HasCommand ||
             DataContext is not MainWindowViewModel vm)
         {
@@ -1372,7 +1372,7 @@ public partial class MainWindow : Window
     private void HandleCommandLineLaunchIfRequested()
     {
         if (!_startupLaunchOptions.HasCommand ||
-            Array.IndexOf(_startupArgs, "--rdp-smoke") >= 0 ||
+            /* Array.IndexOf(_startupArgs, "--rdp-smoke") >= 0 || */
             DataContext is not MainWindowViewModel vm)
         {
             return;
