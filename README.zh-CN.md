@@ -4,7 +4,7 @@
 
 FxShell 是一个基于 .NET 10、Avalonia 和 AtomUI 构建的 Windows 优先桌面终端与文件管理客户端。当前版本刻意聚焦于本地终端、SSH 工作流、文件传输、本地性能查看和 SSH 隧道。
 
-[下载最新 Windows 版本](https://github.com/luzwales/CxShell/releases/latest) · [提交问题](https://github.com/luzwales/CxShell/issues)
+[下载最新 Windows 版本](https://github.com/luzwales/FxShell/releases/latest) · [提交问题](https://github.com/luzwales/FxShell/issues)
 
 ## 核心功能
 
@@ -100,7 +100,7 @@ vpk pack `
 更新源为：
 
 ```text
-https://github.com/luzwales/CxShell/releases/latest/download
+https://github.com/luzwales/FxShell/releases/latest/download
 ```
 
 请不要从最新 Release 中删除 Velopack 的 `RELEASES`、`.nupkg` 和完整版本包；更新器除了安装程序和便携版之外还需要这些文件。

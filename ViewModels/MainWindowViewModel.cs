@@ -802,7 +802,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _localization.Text("About.Description"),
             _localization.Text("About.BuiltWith"),
             _localization.Text("About.GitHub"),
-            "https://github.com/xiaochengzjc/CxShell");
+            "https://github.com/luzwales/FxShell");
     }
 
     [RelayCommand]

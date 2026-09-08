@@ -13,7 +13,7 @@
         <Authors>xiaochengzjc</Authors>
         <Copyright>Copyright 2026 xiaochengzjc</Copyright>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-        <RepositoryUrl>https://github.com/luzwales/CxShell</RepositoryUrl>
+        <RepositoryUrl>https://github.com/luzwales/FxShell</RepositoryUrl>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <ApplicationIcon>Assets\FxShellLogo.ico</ApplicationIcon>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>

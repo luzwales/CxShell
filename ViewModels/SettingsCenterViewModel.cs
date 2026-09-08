@@ -89,7 +89,7 @@ public partial class SettingsCenterViewModel : ObservableObject, IDisposable
     public string AboutContentText => Text("About.Description");
     public string AboutBuiltWithText => Text("About.BuiltWith");
     public string AboutGitHubLabelText => Text("About.GitHub");
-    public string AboutGitHubUrlText => "https://github.com/xiaochengzjc/CxShell";
+    public string AboutGitHubUrlText => "https://github.com/luzwales/FxShell";
     public string AboutVersionBadgeText => $"v{_appVersion}";
     public string AboutStatusText => Text("About.Status");
     public string AboutSystemInfoText => Text("About.SystemInfo");

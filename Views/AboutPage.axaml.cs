@@ -6,7 +6,7 @@ namespace FxShell.Views;
 
 public partial class AboutPage : UserControl
 {
-    private const string GitHubUrl = "https://github.com/xiaochengzjc/CxShell";
+    private const string GitHubUrl = "https://github.com/luzwales/FxShell";
     private const string KoFiUrl = "https://ko-fi.com/xiaochengzjc";
 
     public AboutPage()

@@ -4,7 +4,7 @@
 
 FxShell is a Windows-first desktop terminal and file-management client built with .NET 10, Avalonia, and AtomUI. The current product scope is intentionally focused on local shells, SSH-based workflows, file transfer, local performance, and SSH tunnels.
 
-[Download the latest Windows release](https://github.com/luzwales/CxShell/releases/latest) · [Report an issue](https://github.com/luzwales/CxShell/issues)
+[Download the latest Windows release](https://github.com/luzwales/FxShell/releases/latest) · [Report an issue](https://github.com/luzwales/FxShell/issues)
 
 ## Core features
 
@@ -104,7 +104,7 @@ Online updates require the installed `FxShell-Setup.exe` edition. The self-conta
 The update feed is the GitHub Release download endpoint:
 
 ```text
-https://github.com/luzwales/CxShell/releases/latest/download
+https://github.com/luzwales/FxShell/releases/latest/download
 ```
 
 Do not remove the Velopack `RELEASES`, `.nupkg`, and full-release assets from the latest release; the updater needs them in addition to the installer and portable executable.
